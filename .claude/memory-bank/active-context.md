@@ -1,30 +1,31 @@
 # Active Context: CapMan AI
 
 ## Current Phase
-Phase 1: Backend + Frontend initialization (agents running in parallel)
+MVP COMPLETE — All 8 tasks done, all quality gates pass.
 
 ## Active Plan
 See `.claude/memory-bank/plans/2day-sprint.md`
 
-## Just Completed
-- Bootstrapped agentic development workflow
-- Created .claude/ config, skills, hooks
-- Initialized memory bank and decision log
-- Created initial git commit
-- Decomposed sprint into 8 tasks with dependencies
-- Dispatched backend init agent (Task 1) and frontend init agent (Task 2)
+## Completed
+- Task 1: Backend init (FastAPI + uv) ✅
+- Task 2: Frontend init (Next.js + pnpm) ✅
+- Task 3: Scenario Generator (OpenRouter LLM + fallbacks) ✅
+- Task 4: Grading Agent (probing + 4-dimension scoring) ✅
+- Task 5: Gamification + MTSS (XP/levels/leaderboard + tier classification) ✅
+- Task 6: Student UI (scenario flow, param selection, multi-probe, grade display) ✅
+- Task 7: Educator Dashboard (tier cards, skill breakdown, student detail + heatmap) ✅
+- Task 8: Integration testing — all 7 endpoints verified ✅
 
-## In Progress
-- Task 1: Initialize backend project (FastAPI + uv) — agent running
-- Task 2: Initialize frontend project (Next.js + pnpm) — agent running
+## Quality Gates
+- Backend: 65 tests pass, 0 ruff violations, 0 pyright errors
+- Frontend: 0 lint errors, builds cleanly with all 4 routes
+- E2E: All 7 API endpoints return correct data with fallbacks
 
-## Next Steps (after Phase 1)
-- Phase 2: Tasks 3+4+5 in parallel (Scenario Gen, Grading Agent, Gamification+MTSS)
-- Phase 3: Tasks 6+7 in parallel (Student UI, Educator Dashboard)
-- Phase 4: Task 8 (Integration + Deploy)
-
-## Active Decisions
-- See .claude/decisions/0001-project-bootstrap.md for initial setup choices
+## Next Steps
+- Deploy backend to Railway
+- Deploy frontend to Vercel
+- Set OPENROUTER_API_KEY env var for live LLM integration
+- Demo prep and presentation
 
 ## Blockers
 None
