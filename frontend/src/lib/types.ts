@@ -1,93 +1,74 @@
-export interface MarketData {
-  asset: string;
-  price: number;
-  change_percent: number;
-  volume: string;
-  high: number;
-  low: number;
+// --- Scenario Types (aligned with backend API) ---
+
+export interface ScenarioParams {
+  market_regime: "bull" | "bear" | "sideways" | "volatile";
+  instrument_type: "equity" | "option" | "both";
+  complexity: number; // 1-5
+  skill_target:
+    | "price_action"
+    | "options_chain"
+    | "strike_select"
+    | "risk_mgmt"
+    | "position_size"
+    | "regime_id"
+    | "vol_assess"
+    | "trade_mgmt";
 }
 
 export interface Scenario {
-  id: string;
   situation: string;
-  market_data: MarketData[];
-  question: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  topic: string;
-  created_at: string;
-}
-
-export interface ScenarioResponse {
-  id: string;
-  scenario_id: string;
-  user_id: string;
-  analysis: string;
-  submitted_at: string;
-}
-
-export interface ProbeQuestion {
-  id: string;
-  scenario_id: string;
+  market_data: Record<string, unknown>;
   question: string;
 }
 
-export interface GradeDimension {
-  name: string;
-  score: number;
-  max_score: number;
-  feedback: string;
+export interface ProbeResponse {
+  questions: string[];
+}
+
+export interface ProbeExchange {
+  question: string;
+  answer: string;
+}
+
+export interface GradeRequest {
+  response_id: number;
+  scenario_text: string;
+  student_response: string;
+  probe_exchanges: ProbeExchange[];
 }
 
 export interface Grade {
+  technical_accuracy: number;
+  risk_awareness: number;
+  strategy_fit: number;
+  reasoning_clarity: number;
   overall_score: number;
-  dimensions: GradeDimension[];
-  feedback: string;
+  feedback_text: string;
   xp_earned: number;
 }
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  xp: number;
-  level: number;
-  tier: 1 | 2 | 3;
-  created_at: string;
-}
-
-export interface SkillScore {
-  skill: string;
-  score: number;
-  max_score: number;
-  attempts: number;
-}
-
 export interface LeaderboardEntry {
+  user_id: number;
+  username: string;
+  xp_total: number;
+  level: number;
   rank: number;
-  user_id: string;
+}
+
+// --- Dashboard / MTSS Types (aligned with backend API) ---
+
+/** GET /api/dashboard/overview response */
+export interface ClassOverview {
+  tier_counts: Record<string, number>;
+  students_by_tier: Record<string, string[]>;
+  skill_breakdown: Record<string, Record<string, number>>;
+}
+
+/** GET /api/mtss/tiers response item */
+export interface StudentTierInfo {
+  user_id: number;
   username: string;
-  xp: number;
-  level: number;
-}
-
-export interface MTSSTier {
-  tier: 1 | 2 | 3;
-  label: string;
-  count: number;
-  students: MTSSStudent[];
-}
-
-export interface MTSSStudent {
-  user_id: string;
-  username: string;
-  tier: 1 | 2 | 3;
-  xp: number;
-  level: number;
-  skills: SkillScore[];
-}
-
-export interface DashboardOverview {
-  total_students: number;
-  tiers: MTSSTier[];
-  skill_names: string[];
+  overall_tier: string;
+  avg_score: number;
+  skill_tiers: Record<string, string>;
 }

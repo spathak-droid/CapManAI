@@ -1,9 +1,12 @@
 import type {
   Scenario,
+  ScenarioParams,
   Grade,
-  ProbeQuestion,
+  ProbeResponse,
+  ProbeExchange,
   LeaderboardEntry,
-  DashboardOverview,
+  ClassOverview,
+  StudentTierInfo,
 } from "./types";
 
 const API_URL =
@@ -40,42 +43,61 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
-export async function generateScenario(params?: {
-  topic?: string;
-  difficulty?: string;
-}): Promise<Scenario> {
+export async function generateScenario(
+  params?: Partial<ScenarioParams>,
+): Promise<Scenario> {
+  const body: ScenarioParams = {
+    market_regime: params?.market_regime ?? "bull",
+    instrument_type: params?.instrument_type ?? "equity",
+    complexity: params?.complexity ?? 2,
+    skill_target: params?.skill_target ?? "price_action",
+  };
   return request<Scenario>("/api/scenarios/generate", {
     method: "POST",
-    body: JSON.stringify(params ?? {}),
+    body: JSON.stringify(body),
   });
 }
 
 export async function submitResponse(
-  scenarioId: string,
+  scenarioText: string,
   analysis: string,
-): Promise<ProbeQuestion> {
-  return request<ProbeQuestion>(`/api/scenarios/${scenarioId}/respond`, {
+): Promise<ProbeResponse> {
+  return request<ProbeResponse>("/api/scenarios/probe", {
     method: "POST",
-    body: JSON.stringify({ analysis }),
+    body: JSON.stringify({
+      scenario_text: scenarioText,
+      student_response: analysis,
+      num_probes: 2,
+    }),
   });
 }
 
 export async function submitProbeResponse(
-  scenarioId: string,
-  answer: string,
+  scenarioText: string,
+  studentResponse: string,
+  probeExchanges: ProbeExchange[],
 ): Promise<Grade> {
-  return request<Grade>(`/api/scenarios/${scenarioId}/probe`, {
+  return request<Grade>("/api/scenarios/grade", {
     method: "POST",
-    body: JSON.stringify({ answer }),
+    body: JSON.stringify({
+      response_id: 0, // placeholder — backend may assign
+      scenario_text: scenarioText,
+      student_response: studentResponse,
+      probe_exchanges: probeExchanges,
+    }),
   });
 }
 
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
-  return request<LeaderboardEntry[]>("/api/leaderboard");
+  return request<LeaderboardEntry[]>("/api/leaderboard?limit=20");
 }
 
-export async function fetchDashboardOverview(): Promise<DashboardOverview> {
-  return request<DashboardOverview>("/api/dashboard/overview");
+export async function fetchDashboardOverview(): Promise<ClassOverview> {
+  return request<ClassOverview>("/api/dashboard/overview");
+}
+
+export async function fetchMTSSTiers(): Promise<StudentTierInfo[]> {
+  return request<StudentTierInfo[]>("/api/mtss/tiers");
 }
 
 export { ApiError };
