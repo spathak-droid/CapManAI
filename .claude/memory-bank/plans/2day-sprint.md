@@ -4,23 +4,24 @@
 
 ## Task Dependency Graph
 ```
-Task 1 (Backend Init) ──┬──→ Task 3 (Scenario Gen) ──┐
-                        ├──→ Task 4 (Grading Agent) ──┼──→ Task 6 (Student UI) ──┐
-                        ├──→ Task 5 (Gamification+MTSS)┤                         ├──→ Task 8 (Integration+Deploy)
-Task 2 (Frontend Init) ─┴──────────────────────────────┴──→ Task 7 (Dashboard) ──┘
+Task 1 (Backend Init) ✅ ─┬──→ Task 3 (Scenario Gen) 🔄 ──┐
+                          ├──→ Task 4 (Grading Agent) 🔄 ──┼──→ Task 6 (Student UI) ⏳
+                          ├──→ Task 5 (Gamification+MTSS) 🔄┤
+Task 2 (Frontend Init) 🔄┴──────────────────────────────────┴──→ Task 7 (Dashboard) ⏳ ──→ Task 8 (Deploy) ⏳
 ```
 
-## Build Order
-- Phase 1 (parallel): Tasks 1+2 — project scaffolds
-- Phase 2 (parallel): Tasks 3+4+5 — backend features
-- Phase 3 (parallel): Tasks 6+7 — frontend features
-- Phase 4: Task 8 — integration + deploy
+## Status
+- Phase 1: ✅ Backend init complete, 🔄 Frontend init running
+- Phase 2: 🔄 Scenario Gen, Grading Agent, Gamification+MTSS all running in parallel
+- Phase 3: ⏳ Waiting (Student UI, Dashboard)
+- Phase 4: ⏳ Waiting (Integration + Deploy)
 
 ## Architecture
-- Backend: Python + FastAPI (Railway)
-- Frontend: Next.js / React (Vercel)
+- Backend: Python + FastAPI (Railway) — uv managed
+- Frontend: Next.js / React (Vercel) — pnpm managed
 - LLM: OpenRouter (anthropic/claude-sonnet-4-20250514)
-- Database: PostgreSQL
+- Database: PostgreSQL (in-memory stores for MVP)
+- MVP approach: in-memory data stores, no DB migration needed for demo
 
 ## Key Endpoints
 - POST /api/scenarios/generate, /respond, /probe, /grade
