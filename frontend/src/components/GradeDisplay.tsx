@@ -7,12 +7,18 @@ interface GradeDisplayProps {
   grade: Grade;
 }
 
+const DIMENSIONS: { key: keyof Grade; label: string }[] = [
+  { key: "technical_accuracy", label: "Technical Accuracy" },
+  { key: "risk_awareness", label: "Risk Awareness" },
+  { key: "strategy_fit", label: "Strategy Fit" },
+  { key: "reasoning_clarity", label: "Reasoning Clarity" },
+];
+
 export default function GradeDisplay({ grade }: GradeDisplayProps) {
   const [showXp, setShowXp] = useState(false);
   const [animatedXp, setAnimatedXp] = useState(0);
 
   useEffect(() => {
-    // Trigger XP animation after a short delay
     const timer = setTimeout(() => setShowXp(true), 300);
     return () => clearTimeout(timer);
   }, []);
@@ -26,7 +32,6 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
     function animate(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease-out quad
       const eased = 1 - (1 - progress) * (1 - progress);
       setAnimatedXp(Math.round(eased * target));
       if (progress < 1) {
@@ -37,8 +42,8 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
     requestAnimationFrame(animate);
   }, [showXp, grade.xp_earned]);
 
-  function scoreColor(score: number, max: number) {
-    const pct = score / max;
+  function scoreColor(score: number) {
+    const pct = score / 5;
     if (pct >= 0.8) return "bg-green-500";
     if (pct >= 0.6) return "bg-blue-500";
     if (pct >= 0.4) return "bg-yellow-500";
@@ -54,8 +59,8 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
             Overall Score
           </p>
           <p className="text-5xl font-bold text-gray-900 dark:text-white">
-            {grade.overall_score}
-            <span className="text-2xl text-gray-400">/20</span>
+            {grade.overall_score.toFixed(1)}
+            <span className="text-2xl text-gray-400">/5</span>
           </p>
         </div>
         <div
@@ -75,31 +80,27 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
         <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           Score Breakdown
         </h4>
-        {grade.dimensions.map((dim) => (
-          <div key={dim.name}>
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {dim.name}
-              </span>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {dim.score}/{dim.max_score}
-              </span>
+        {DIMENSIONS.map((dim) => {
+          const score = grade[dim.key] as number;
+          return (
+            <div key={dim.key}>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {dim.label}
+                </span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {score.toFixed(1)}/5
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div
+                  className={`h-2.5 rounded-full transition-all duration-700 ${scoreColor(score)}`}
+                  style={{ width: `${(score / 5) * 100}%` }}
+                />
+              </div>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-              <div
-                className={`h-2.5 rounded-full transition-all duration-700 ${scoreColor(dim.score, dim.max_score)}`}
-                style={{
-                  width: `${(dim.score / dim.max_score) * 100}%`,
-                }}
-              />
-            </div>
-            {dim.feedback && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {dim.feedback}
-              </p>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Overall Feedback */}
@@ -108,7 +109,7 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
           Feedback
         </h4>
         <p className="leading-relaxed text-gray-600 dark:text-gray-300">
-          {grade.feedback}
+          {grade.feedback_text}
         </p>
       </div>
     </div>

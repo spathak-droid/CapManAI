@@ -125,7 +125,7 @@ export default function LeaderboardPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
-                      {entry.xp.toLocaleString()}
+                      {entry.xp_total.toLocaleString()}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">

@@ -6,27 +6,105 @@ interface ScenarioCardProps {
   scenario: Scenario;
 }
 
+function formatKey(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function renderValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined) {
+    return <span className="text-gray-400 italic">N/A</span>;
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  if (typeof value === "number") {
+    return value.toLocaleString();
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-gray-400 italic">Empty</span>;
+
+    // If array of primitives, join them
+    if (value.every((v) => typeof v !== "object" || v === null)) {
+      return value.map(String).join(", ");
+    }
+
+    // Array of objects — render each as a sub-table
+    return (
+      <div className="space-y-2">
+        {value.map((item, idx) => (
+          <div
+            key={idx}
+            className="rounded border border-gray-200 p-2 dark:border-gray-600"
+          >
+            {typeof item === "object" && item !== null ? (
+              <MarketDataTable data={item as Record<string, unknown>} nested />
+            ) : (
+              String(item)
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (typeof value === "object") {
+    return (
+      <MarketDataTable data={value as Record<string, unknown>} nested />
+    );
+  }
+
+  return String(value);
+}
+
+function MarketDataTable({
+  data,
+  nested = false,
+}: {
+  data: Record<string, unknown>;
+  nested?: boolean;
+}) {
+  const entries = Object.entries(data);
+  if (entries.length === 0) return null;
+
+  return (
+    <div
+      className={`overflow-x-auto ${nested ? "" : "rounded-lg border border-gray-200 dark:border-gray-600"}`}
+    >
+      <table className="w-full text-left text-sm">
+        <tbody
+          className={`divide-y divide-gray-200 dark:divide-gray-600 ${nested ? "" : "bg-white dark:bg-gray-800"}`}
+        >
+          {entries.map(([key, val]) => (
+            <tr
+              key={key}
+              className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            >
+              <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-600 dark:text-gray-400">
+                {formatKey(key)}
+              </td>
+              <td className="px-4 py-2 text-gray-900 dark:text-white">
+                {renderValue(val)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ScenarioCard({ scenario }: ScenarioCardProps) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-          {scenario.topic}
-        </span>
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${
-            scenario.difficulty === "beginner"
-              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-              : scenario.difficulty === "intermediate"
-                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-          }`}
-        >
-          {scenario.difficulty}
-        </span>
-      </div>
-
       {/* Situation */}
       <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
         Scenario
@@ -36,71 +114,12 @@ export default function ScenarioCard({ scenario }: ScenarioCardProps) {
       </p>
 
       {/* Market Data Table */}
-      {scenario.market_data.length > 0 && (
+      {Object.keys(scenario.market_data).length > 0 && (
         <div className="mb-6">
           <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             Market Data
           </h4>
-          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-600">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    Asset
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    Price
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    Change
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    Volume
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    High
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
-                    Low
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {scenario.market_data.map((md) => (
-                  <tr
-                    key={md.asset}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                  >
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                      {md.asset}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      ${md.price.toLocaleString()}
-                    </td>
-                    <td
-                      className={`px-4 py-3 font-medium ${
-                        md.change_percent >= 0
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      {md.change_percent >= 0 ? "+" : ""}
-                      {md.change_percent.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      {md.volume}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      ${md.high.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      ${md.low.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MarketDataTable data={scenario.market_data} />
         </div>
       )}
 
