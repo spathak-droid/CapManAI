@@ -10,16 +10,13 @@ from src.api.assistant_routes import router as assistant_router
 from src.api.routes import router
 from src.auth.routes import auth_router
 from src.core.config import settings
-from src.db.database import async_session_factory, engine
-from src.db.models import Base
+from src.db.database import async_session_factory
 from src.lessons.persistence import seed_lessons_to_db
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Create database tables on startup."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Seed lesson data on startup. Schema managed by Alembic."""
     async with async_session_factory() as session:
         await seed_lessons_to_db(session)
     yield

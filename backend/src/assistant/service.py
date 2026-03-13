@@ -3,7 +3,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import AssistantConversation, AssistantMessage, User
+from src.db.models import AssistantConversation, AssistantMessage
 
 
 def _title_from_content(content: str, max_len: int = 50) -> str:

@@ -122,7 +122,7 @@ class LessonModuleSummary(BaseModel):
 
     module_id: str
     title: str
-    track: Literal["foundation", "core", "capstone"]
+    track: str
     order: int
     objective: str | None = None
     estimated_minutes: int

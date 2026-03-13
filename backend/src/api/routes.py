@@ -1,5 +1,7 @@
 """API route definitions for CapMan AI."""
 
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 
@@ -237,7 +239,7 @@ async def get_dashboard_overview(
     return get_class_overview(DEMO_STUDENTS)
 
 
-def _to_chunk_response(chunk: object) -> LessonChunkDetail:
+def _to_chunk_response(chunk: Any) -> LessonChunkDetail:
     chunk_data = dict(vars(chunk))
     chunk_data["quiz_items"] = [
         {
@@ -357,7 +359,7 @@ async def attempt_lesson_chunk(
         for answer in req.answers
     }
     result = await attempt_chunk(_user.id, chunk_id, answers_by_item, db, chunk)
-    xp_earned = int(result["xp_earned"])
+    xp_earned = int(result.get("xp_earned", 0))  # type: ignore[arg-type]
 
     # Log XP event (User row already updated inside service)
     try:
@@ -389,7 +391,7 @@ async def complete_lesson_chunk(
         )
 
     result = await complete_chunk(_user.id, chunk_id, db)
-    xp_earned = int(result["xp_earned"])
+    xp_earned = int(result.get("xp_earned", 0))  # type: ignore[arg-type]
 
     # Log XP event (User row already updated inside service)
     try:

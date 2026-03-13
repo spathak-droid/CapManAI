@@ -501,7 +501,7 @@ def _build_module_chunk(
     concept = str(data["concept"])
     example = str(data["example"])
     rule = str(data["rule"])
-    traps = list(data["traps"])
+    traps = list(data["traps"])  # type: ignore[arg-type]
     chunk_title = CHUNK_TITLES[chunk_order - 1]
 
     if chunk_order == 1:
@@ -1002,7 +1002,7 @@ async def get_progress_summary(
     ]
 
     total_chunks = sum(len(m.chunk_ids) for m in modules)
-    completed_chunks = sum(int(item["completed_chunks"]) for item in module_progress)
+    completed_chunks = sum(int(item["completed_chunks"]) for item in module_progress)  # type: ignore[arg-type]
 
     result = await db.execute(
         select(UserChunkProgress).where(UserChunkProgress.user_id == user_id)

@@ -59,7 +59,7 @@ def verify_firebase_token(id_token: str) -> dict[str, Any]:
     project_id = settings.FIREBASE_PROJECT_ID
     payload: dict[str, Any] = pyjwt.decode(
         id_token,
-        public_key,
+        public_key,  # type: ignore[arg-type]
         algorithms=["RS256"],
         audience=project_id,
         issuer=f"https://securetoken.google.com/{project_id}",
