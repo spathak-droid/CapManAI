@@ -1,3 +1,14 @@
+// --- Auth Types ---
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  xp_total: number;
+  level: number;
+}
+
 // --- Scenario Types (aligned with backend API) ---
 
 export interface ScenarioParams {

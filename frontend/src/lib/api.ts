@@ -1,4 +1,6 @@
+import { auth } from "./firebase";
 import type {
+  AuthUser,
   Scenario,
   ScenarioParams,
   Grade,
@@ -27,13 +29,19 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_URL}${path}`;
-  const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-    ...options,
-  });
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "Unknown error");
@@ -98,6 +106,17 @@ export async function fetchDashboardOverview(): Promise<ClassOverview> {
 
 export async function fetchMTSSTiers(): Promise<StudentTierInfo[]> {
   return request<StudentTierInfo[]>("/api/mtss/tiers");
+}
+
+export async function fetchCurrentUser(): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/me");
+}
+
+export async function updateRole(role: string): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/me/role", {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
 }
 
 export { ApiError };
