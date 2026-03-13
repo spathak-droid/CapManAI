@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 import jwt as pyjwt
 from cachetools import TTLCache
+from cryptography.x509 import load_pem_x509_certificate
 
 from src.core.config import settings
 
@@ -51,10 +52,14 @@ def verify_firebase_token(id_token: str) -> dict[str, Any]:
             msg = f"Unknown kid: {kid}"
             raise pyjwt.InvalidTokenError(msg)
 
+    # Google returns X.509 certificates; extract the public key for PyJWT
+    cert = load_pem_x509_certificate(cert_pem.encode("utf-8"))
+    public_key = cert.public_key()
+
     project_id = settings.FIREBASE_PROJECT_ID
     payload: dict[str, Any] = pyjwt.decode(
         id_token,
-        cert_pem,
+        public_key,
         algorithms=["RS256"],
         audience=project_id,
         issuer=f"https://securetoken.google.com/{project_id}",

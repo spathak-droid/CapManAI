@@ -28,7 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-white font-sans text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen font-sans antialiased`}
+        style={{
+          background: `#09090b radial-gradient(ellipse 80% 60% at 50% -20%, rgba(59,130,246,0.08), rgba(139,92,246,0.04), transparent) fixed`,
+        }}
       >
         <AuthProvider>
           <NavBar />

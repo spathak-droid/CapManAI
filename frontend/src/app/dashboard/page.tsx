@@ -20,28 +20,28 @@ const TIER_CONFIG: Record<string, { label: string; description: string; cardClas
   tier_1: {
     label: "Tier 1 — On Track",
     description: "Students meeting all benchmarks",
-    cardClass: "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20",
-    textClass: "text-green-700 dark:text-green-400",
-    badgeClass: "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200",
+    cardClass: "border-emerald-500/20 bg-emerald-500/5",
+    textClass: "text-emerald-400",
+    badgeClass: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
   },
   tier_2: {
     label: "Tier 2 — Needs Support",
     description: "Students requiring targeted intervention",
-    cardClass: "border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20",
-    textClass: "text-yellow-700 dark:text-yellow-400",
-    badgeClass: "bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200",
+    cardClass: "border-amber-500/20 bg-amber-500/5",
+    textClass: "text-amber-400",
+    badgeClass: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
   },
   tier_3: {
-    label: "Tier 3 — Intensive Intervention",
+    label: "Tier 3 — Intensive",
     description: "Students needing intensive support",
-    cardClass: "border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20",
-    textClass: "text-red-700 dark:text-red-400",
-    badgeClass: "bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200",
+    cardClass: "border-red-500/20 bg-red-500/5",
+    textClass: "text-red-400",
+    badgeClass: "bg-red-500/10 text-red-400 border border-red-500/20",
   },
 };
 
 function tierBadgeClass(tier: string): string {
-  return TIER_CONFIG[tier]?.badgeClass ?? "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+  return TIER_CONFIG[tier]?.badgeClass ?? "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
 }
 
 function formatSkillName(key: string): string {
@@ -74,41 +74,28 @@ export default function DashboardPage() {
     : 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-        Educator Dashboard
-      </h1>
-      <p className="mb-8 text-gray-600 dark:text-gray-400">
-        MTSS-powered overview of student progress. Monitor tiers, track skill
-        development, and identify students who need support.
-      </p>
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* ── Page Header ── */}
+      <div className="mb-10">
+        <h1 className="mb-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+          Educator Dashboard
+        </h1>
+        <p className="text-zinc-500 text-base">
+          MTSS-powered overview of student progress. Monitor tiers, track skill
+          development, and identify students who need support.
+        </p>
+      </div>
 
+      {/* ── Loading State ── */}
       {loading && (
         <div className="flex justify-center py-20">
-          <svg
-            className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
+          <div className="h-8 w-8 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
         </div>
       )}
 
+      {/* ── Error State ── */}
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
+        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -116,7 +103,7 @@ export default function DashboardPage() {
       {overview && (
         <>
           {/* ── Tier Overview Cards ── */}
-          <div className="mb-10 grid gap-6 md:grid-cols-3">
+          <div className="mb-12 grid gap-5 md:grid-cols-3">
             {tierKeys.map((tierKey) => {
               const config = TIER_CONFIG[tierKey];
               if (!config) return null;
@@ -125,25 +112,27 @@ export default function DashboardPage() {
               return (
                 <div
                   key={tierKey}
-                  className={`rounded-xl border-2 p-6 ${config.cardClass}`}
+                  className={`relative rounded-2xl border p-6 transition-colors ${config.cardClass}`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className={`text-lg font-bold ${config.textClass}`}>
-                      {config.label}
-                    </h3>
-                    <span className={`text-3xl font-extrabold ${config.textClass}`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className={`text-sm font-semibold tracking-wide ${config.textClass}`}>
+                        {config.label}
+                      </h3>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {config.description}
+                      </p>
+                    </div>
+                    <span className={`text-4xl font-bold tabular-nums ${config.textClass}`}>
                       {count}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {config.description}
-                  </p>
                   {names.length > 0 && (
-                    <ul className="mt-4 space-y-1">
+                    <ul className="mt-5 space-y-1.5">
                       {names.map((name) => (
                         <li
                           key={name}
-                          className="text-sm text-gray-700 dark:text-gray-300"
+                          className="text-sm text-zinc-400"
                         >
                           {name}
                         </li>
@@ -157,46 +146,53 @@ export default function DashboardPage() {
 
           {/* ── Skill Breakdown Table ── */}
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-white">
               Skill Breakdown
             </h2>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-zinc-500">
               {totalStudents} students total
             </span>
           </div>
 
           {skillKeys.length > 0 ? (
-            <div className="mb-10 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="mb-12 overflow-hidden rounded-2xl border border-white/[0.06] bg-zinc-900/30">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-zinc-800/50">
                   <tr>
-                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Skill
                     </th>
                     {tierKeys.map((tk) => (
                       <th
                         key={tk}
-                        className={`px-4 py-3 text-center font-medium ${TIER_CONFIG[tk]?.textClass ?? ""}`}
+                        className="px-5 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500"
                       >
                         {TIER_CONFIG[tk]?.label.split(" — ")[0] ?? tk}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                <tbody>
                   {skillKeys.map((skill) => {
                     const tiers = overview.skill_breakdown[skill] ?? {};
                     return (
-                      <tr key={skill} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                      <tr
+                        key={skill}
+                        className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
+                      >
+                        <td className="px-5 py-3.5 font-medium text-zinc-200">
                           {formatSkillName(skill)}
                         </td>
                         {tierKeys.map((tk) => (
                           <td
                             key={tk}
-                            className={`px-4 py-3 text-center font-bold ${tierBadgeClass(tk)} rounded`}
+                            className="px-5 py-3.5 text-center"
                           >
-                            {tiers[tk] ?? 0}
+                            <span
+                              className={`inline-flex min-w-[2rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold ${tierBadgeClass(tk)}`}
+                            >
+                              {tiers[tk] ?? 0}
+                            </span>
                           </td>
                         ))}
                       </tr>
@@ -206,74 +202,74 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <div className="mb-10 rounded-xl border border-gray-200 p-10 text-center text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            <div className="mb-12 rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-10 text-center text-zinc-500">
               No skill breakdown data available yet.
             </div>
           )}
 
           {/* ── Student Detail View ── */}
-          <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+          <h2 className="mb-4 text-xl font-semibold text-white">
             Student Details
           </h2>
 
           {students.length > 0 ? (
-            <div className="mb-10 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="mb-12 overflow-hidden rounded-2xl border border-white/[0.06] bg-zinc-900/30">
               <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-zinc-800/50">
                   <tr>
-                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Student
                     </th>
-                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Overall Tier
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-300">
+                    <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Avg Score
                     </th>
-                    <th className="px-4 py-3 font-medium text-gray-600 dark:text-gray-300">
+                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Skill Tiers
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                <tbody>
                   {students.map((student) => {
                     const isExpanded = expandedId === student.user_id;
                     const skills = Object.entries(student.skill_tiers);
                     return (
                       <tr
                         key={student.user_id}
-                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        className="cursor-pointer border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
                         onClick={() =>
                           setExpandedId(isExpanded ? null : student.user_id)
                         }
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                        <td className="px-5 py-3.5 font-medium text-zinc-200">
                           {student.username}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           <span
                             className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${tierBadgeClass(student.overall_tier)}`}
                           >
                             {student.overall_tier.replace("_", " ").toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-gray-900 dark:text-white">
+                        <td className="px-5 py-3.5 text-right font-mono text-zinc-200">
                           {student.avg_score.toFixed(1)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-3.5">
                           {isExpanded ? (
                             <div className="flex flex-wrap gap-2">
                               {skills.map(([skill, tier]) => (
                                 <span
                                   key={skill}
-                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${tierBadgeClass(tier)}`}
+                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${tierBadgeClass(tier)}`}
                                 >
                                   {formatSkillName(skill)}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <span className="text-xs text-zinc-500">
                               Click to expand {skills.length} skills
                             </span>
                           )}
@@ -285,7 +281,7 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <div className="mb-10 rounded-xl border border-gray-200 p-10 text-center text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            <div className="mb-12 rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-10 text-center text-zinc-500">
               No student tier data available yet.
             </div>
           )}
@@ -293,7 +289,7 @@ export default function DashboardPage() {
           {/* ── MTSS Heatmap ── */}
           {students.length > 0 && (
             <>
-              <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="mb-4 text-xl font-semibold text-white">
                 MTSS Heatmap
               </h2>
               <MTSSHeatmap students={students} />

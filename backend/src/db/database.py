@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from src.core.config import settings
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+def _get_async_url(url: str) -> str:
+    """Ensure DATABASE_URL uses asyncpg driver."""
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
+engine = create_async_engine(_get_async_url(settings.DATABASE_URL), echo=False)
 
 async_session_factory = async_sessionmaker(
     engine,

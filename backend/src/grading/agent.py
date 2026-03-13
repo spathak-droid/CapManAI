@@ -120,11 +120,11 @@ async def _call_openrouter(
     """Make a chat completion call to OpenRouter and return the content."""
     url = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {settings.openrouter_api_key}",
         "Content-Type": "application/json",
     }
     payload = {
-        "model": settings.OPENROUTER_MODEL,
+        "model": settings.openrouter_model,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

@@ -44,32 +44,32 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
 
   function scoreColor(score: number) {
     const pct = score / 5;
-    if (pct >= 0.8) return "bg-green-500";
+    if (pct >= 0.8) return "bg-emerald-500";
     if (pct >= 0.6) return "bg-blue-500";
-    if (pct >= 0.4) return "bg-yellow-500";
+    if (pct >= 0.4) return "bg-amber-500";
     return "bg-red-500";
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6">
       {/* Overall Score and XP */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             Overall Score
           </p>
-          <p className="text-5xl font-bold text-gray-900 dark:text-white">
+          <p className="text-5xl font-bold text-white">
             {grade.overall_score.toFixed(1)}
-            <span className="text-2xl text-gray-400">/5</span>
+            <span className="text-2xl text-zinc-600">/5</span>
           </p>
         </div>
         <div
           className={`text-center transition-all duration-500 ${showXp ? "scale-100 opacity-100" : "scale-50 opacity-0"}`}
         >
-          <p className="text-sm font-medium text-green-600 dark:text-green-400">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             XP Earned
           </p>
-          <p className="text-4xl font-bold text-green-600 dark:text-green-400">
+          <p className="text-4xl font-bold text-emerald-400">
             +{animatedXp}
           </p>
         </div>
@@ -77,24 +77,24 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
 
       {/* Dimension Scores */}
       <div className="mb-6 space-y-4">
-        <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        <h4 className="text-xs font-medium uppercase tracking-wider text-zinc-500">
           Score Breakdown
         </h4>
         {DIMENSIONS.map((dim) => {
           const score = grade[dim.key] as number;
           return (
             <div key={dim.key}>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-sm text-zinc-300">
                   {dim.label}
                 </span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                <span className="text-sm font-medium text-white">
                   {score.toFixed(1)}/5
                 </span>
               </div>
-              <div className="h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-2 w-full rounded-full bg-zinc-800">
                 <div
-                  className={`h-2.5 rounded-full transition-all duration-700 ${scoreColor(score)}`}
+                  className={`h-2 rounded-full transition-all duration-700 ${scoreColor(score)}`}
                   style={{ width: `${(score / 5) * 100}%` }}
                 />
               </div>
@@ -104,11 +104,11 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
       </div>
 
       {/* Overall Feedback */}
-      <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
-        <h4 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+      <div className="rounded-xl border border-white/[0.06] bg-zinc-800/50 p-4">
+        <h4 className="mb-2 text-sm font-medium text-zinc-400">
           Feedback
         </h4>
-        <p className="leading-relaxed text-gray-600 dark:text-gray-300">
+        <p className="leading-relaxed text-zinc-300">
           {grade.feedback_text}
         </p>
       </div>

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     OPENROUTER_MODEL: str = "anthropic/claude-sonnet-4-20250514"
     FIREBASE_PROJECT_ID: str = "capmanai"
     FRONTEND_URL: str = "http://localhost:3000"
+    PORT: int = 8000
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

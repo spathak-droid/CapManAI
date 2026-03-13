@@ -11,8 +11,13 @@ import type {
   StudentTierInfo,
 } from "./types";
 
+/** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export function getApiBaseUrl(): string {
+  return API_URL;
+}
 
 class ApiError extends Error {
   constructor(
@@ -110,6 +115,21 @@ export async function fetchMTSSTiers(): Promise<StudentTierInfo[]> {
 
 export async function fetchCurrentUser(): Promise<AuthUser> {
   return request<AuthUser>("/api/auth/me");
+}
+
+export async function fetchCurrentUserWithToken(token: string): Promise<AuthUser> {
+  const url = `${API_URL}/api/auth/me`;
+  const res = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error");
+    throw new ApiError(res.status, body);
+  }
+  return res.json() as Promise<AuthUser>;
 }
 
 export async function updateRole(role: string): Promise<AuthUser> {

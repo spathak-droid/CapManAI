@@ -20,13 +20,13 @@ const SKILL_LABELS: Record<string, string> = {
 function cellColor(tier: string): string {
   switch (tier) {
     case "tier_1":
-      return "bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100";
+      return "bg-emerald-500/15 text-emerald-400";
     case "tier_2":
-      return "bg-yellow-200 text-yellow-900 dark:bg-yellow-800 dark:text-yellow-100";
+      return "bg-amber-500/15 text-amber-400";
     case "tier_3":
-      return "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100";
+      return "bg-red-500/15 text-red-400";
     default:
-      return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
+      return "bg-zinc-800 text-zinc-500";
   }
 }
 
@@ -41,36 +41,36 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
   const skillKeys = Object.keys(students[0].skill_tiers);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+    <div className="overflow-x-auto rounded-2xl border border-white/[0.06]">
       <table className="w-full text-left text-sm">
-        <thead className="bg-gray-50 dark:bg-gray-700">
+        <thead className="bg-zinc-800/50">
           <tr>
-            <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <th className="sticky left-0 z-10 bg-zinc-800/50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
               Student
             </th>
-            <th className="px-4 py-3 text-center font-medium text-gray-600 dark:text-gray-300">
+            <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">
               Avg Score
             </th>
             {skillKeys.map((skill) => (
               <th
                 key={skill}
-                className="px-4 py-3 text-center font-medium text-gray-600 dark:text-gray-300"
+                className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500"
               >
                 {formatSkillName(skill)}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+        <tbody>
           {students.map((student) => (
             <tr
               key={student.user_id}
-              className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
             >
-              <td className="sticky left-0 bg-white px-4 py-3 font-medium text-gray-900 dark:bg-gray-800 dark:text-white">
+              <td className="sticky left-0 bg-zinc-900 px-4 py-3 font-medium text-white">
                 {student.username}
               </td>
-              <td className="px-4 py-3 text-center font-mono text-gray-900 dark:text-white">
+              <td className="px-4 py-3 text-center font-mono text-blue-400">
                 {student.avg_score.toFixed(1)}
               </td>
               {skillKeys.map((skill) => {
@@ -78,10 +78,14 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
                 return (
                   <td
                     key={skill}
-                    className={`px-4 py-3 text-center text-xs font-bold ${cellColor(tier)}`}
+                    className="px-4 py-3 text-center"
                     title={`${student.username} / ${formatSkillName(skill)}: ${tier.replace("_", " ")}`}
                   >
-                    {tier.replace("tier_", "T")}
+                    <span
+                      className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold ${cellColor(tier)}`}
+                    >
+                      {tier.replace("tier_", "T")}
+                    </span>
                   </td>
                 );
               })}

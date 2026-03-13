@@ -160,111 +160,114 @@ export default function ScenarioPage() {
   }
 
   const selectClass =
-    "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white";
+    "w-full bg-zinc-800/50 border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/30 appearance-none cursor-pointer transition-colors hover:border-white/[0.15]";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* Page Header */}
+      <h1 className="mb-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
         Scenario Training
       </h1>
-      <p className="mb-8 text-gray-600 dark:text-gray-400">
+      <p className="mb-10 text-zinc-500">
         Generate an AI-powered trading scenario, write your analysis, answer
         follow-up questions, and receive detailed grading.
       </p>
 
       {/* Error Banner */}
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
+        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400 text-sm">
           {error}
         </div>
       )}
 
       {/* Phase: Idle or Graded — show params + Generate button */}
       {(phase === "idle" || phase === "graded") && (
-        <div className="mb-8 space-y-4">
+        <div className="mb-8 space-y-6">
           {/* Param selectors */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Market
-              </label>
-              <select
-                value={marketRegime}
-                onChange={(e) =>
-                  setMarketRegime(
-                    e.target.value as ScenarioParams["market_regime"],
-                  )
-                }
-                className={selectClass}
-              >
-                {MARKET_REGIMES.map((r) => (
-                  <option key={r} value={r}>
-                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Instrument
-              </label>
-              <select
-                value={instrumentType}
-                onChange={(e) =>
-                  setInstrumentType(
-                    e.target.value as ScenarioParams["instrument_type"],
-                  )
-                }
-                className={selectClass}
-              >
-                {INSTRUMENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Complexity
-              </label>
-              <select
-                value={complexity}
-                onChange={(e) => setComplexity(Number(e.target.value))}
-                className={selectClass}
-              >
-                {[1, 2, 3, 4, 5].map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Skill
-              </label>
-              <select
-                value={skillTarget}
-                onChange={(e) =>
-                  setSkillTarget(
-                    e.target.value as ScenarioParams["skill_target"],
-                  )
-                }
-                className={selectClass}
-              >
-                {SKILL_TARGETS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+          <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6 backdrop-blur-sm">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Market
+                </label>
+                <select
+                  value={marketRegime}
+                  onChange={(e) =>
+                    setMarketRegime(
+                      e.target.value as ScenarioParams["market_regime"],
+                    )
+                  }
+                  className={selectClass}
+                >
+                  {MARKET_REGIMES.map((r) => (
+                    <option key={r} value={r}>
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Instrument
+                </label>
+                <select
+                  value={instrumentType}
+                  onChange={(e) =>
+                    setInstrumentType(
+                      e.target.value as ScenarioParams["instrument_type"],
+                    )
+                  }
+                  className={selectClass}
+                >
+                  {INSTRUMENT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Complexity
+                </label>
+                <select
+                  value={complexity}
+                  onChange={(e) => setComplexity(Number(e.target.value))}
+                  className={selectClass}
+                >
+                  {[1, 2, 3, 4, 5].map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Skill
+                </label>
+                <select
+                  value={skillTarget}
+                  onChange={(e) =>
+                    setSkillTarget(
+                      e.target.value as ScenarioParams["skill_target"],
+                    )
+                  }
+                  className={selectClass}
+                >
+                  {SKILL_TARGETS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           <button
             onClick={handleGenerate}
-            className="w-full rounded-xl bg-blue-600 px-6 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl dark:bg-blue-500 dark:hover:bg-blue-600"
+            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:brightness-110 active:scale-[0.98]"
           >
             {phase === "graded" ? "Generate New Scenario" : "Generate Scenario"}
           </button>
@@ -274,26 +277,8 @@ export default function ScenarioPage() {
       {/* Phase: Loading */}
       {phase === "loading" && (
         <div className="flex flex-col items-center justify-center py-20">
-          <svg
-            className="mb-4 h-10 w-10 animate-spin text-blue-600 dark:text-blue-400"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <p className="text-gray-500 dark:text-gray-400">
+          <div className="mb-4 h-8 w-8 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
+          <p className="text-zinc-500 text-sm">
             Generating your scenario...
           </p>
         </div>
@@ -319,27 +304,9 @@ export default function ScenarioPage() {
 
       {/* Phase: responding or grading — show spinner */}
       {(phase === "responding" || phase === "grading") && (
-        <div className="flex items-center justify-center py-10">
-          <svg
-            className="mr-3 h-5 w-5 animate-spin text-blue-600 dark:text-blue-400"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <p className="text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-center gap-3 py-10">
+          <div className="h-5 w-5 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
+          <p className="text-zinc-500 text-sm">
             {phase === "responding"
               ? "AI is generating follow-up questions..."
               : "AI is grading your responses..."}
@@ -354,26 +321,26 @@ export default function ScenarioPage() {
           {probeExchanges.map((pe, idx) => (
             <div
               key={idx}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
+              className="rounded-xl border border-white/[0.06] bg-zinc-900/50 p-4"
             >
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
                 Follow-Up {idx + 1}
               </p>
-              <p className="mb-2 font-medium text-gray-900 dark:text-white">
+              <p className="mb-2 font-medium text-white">
                 {pe.question}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-zinc-400">
                 {pe.answer}
               </p>
             </div>
           ))}
 
           {/* Current probe question */}
-          <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 p-5 dark:border-yellow-700 dark:bg-yellow-900/20">
-            <p className="mb-1 text-sm font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-400">
+          <div className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-5">
+            <p className="mb-1 text-sm font-medium uppercase tracking-wider text-amber-400">
               Follow-Up Question {probeIndex + 1} of {probeQuestions.length}
             </p>
-            <p className="text-lg font-medium text-gray-900 dark:text-white">
+            <p className="text-lg font-medium text-white">
               {probeQuestions[probeIndex]}
             </p>
           </div>

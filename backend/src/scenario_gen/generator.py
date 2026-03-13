@@ -196,7 +196,7 @@ class ScenarioGenerator:
         )
 
         payload: dict[str, Any] = {
-            "model": settings.OPENROUTER_MODEL,
+            "model": settings.openrouter_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
@@ -205,7 +205,7 @@ class ScenarioGenerator:
         }
 
         headers = {
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {settings.openrouter_api_key}",
             "Content-Type": "application/json",
         }
 

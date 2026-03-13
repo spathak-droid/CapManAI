@@ -28,7 +28,7 @@ export default function ResponseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+      <label className="block text-sm font-medium text-zinc-300">
         {label}
       </label>
       <textarea
@@ -38,37 +38,19 @@ export default function ResponseForm({
         rows={6}
         placeholder={placeholder}
         disabled={loading}
-        className="w-full resize-y rounded-lg border border-gray-300 bg-white p-4 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-blue-400"
+        className="w-full resize-y rounded-xl border border-white/[0.08] bg-zinc-800/50 p-4 text-white placeholder-zinc-600 transition focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 disabled:opacity-50"
       />
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-zinc-600">
           {text.length}/{maxLength} characters
         </span>
         <button
           type="submit"
           disabled={text.trim().length === 0 || loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-2.5 text-sm font-medium text-white transition hover:shadow-lg hover:shadow-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading && (
-            <svg
-              className="h-4 w-4 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           )}
           {loading ? "Submitting..." : buttonText}
         </button>

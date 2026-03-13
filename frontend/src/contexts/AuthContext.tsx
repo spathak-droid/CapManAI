@@ -15,7 +15,7 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import type { AuthUser } from "@/lib/types";
-import { fetchCurrentUser, updateRole } from "@/lib/api";
+import { fetchCurrentUser, fetchCurrentUserWithToken, updateRole } from "@/lib/api";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -52,13 +52,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    document.cookie =
+      "auth_session=true; path=/; max-age=604800; SameSite=Lax";
+    try {
+      // Use the credential's token directly to avoid race condition
+      // where auth.currentUser may not be populated yet
+      const token = await credential.user.getIdToken();
+      const backendUser = await fetchCurrentUserWithToken(token);
+      setUser(backendUser);
+    } catch (err) {
+      console.error("Backend sync failed:", err);
+      document.cookie = "auth_session=; path=/; max-age=0";
+      await signOut(auth);
+      setUser(null);
+      throw new Error("Could not sync with server. Check backend and try again.");
+    }
   }, []);
 
   const register = useCallback(
     async (email: string, password: string, role: string) => {
-      await createUserWithEmailAndPassword(auth, email, password);
-      const backendUser = await fetchCurrentUser();
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const token = await credential.user.getIdToken();
+      const backendUser = await fetchCurrentUserWithToken(token);
       if (role === "educator") {
         const updated = await updateRole("educator");
         setUser(updated);
