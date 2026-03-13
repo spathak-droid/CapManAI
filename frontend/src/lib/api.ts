@@ -7,6 +7,9 @@ import type {
   LeaderboardEntry,
   ClassOverview,
   StudentTierInfo,
+  AuthUser,
+  LoginRequest,
+  RegisterRequest,
 } from "./types";
 
 const API_URL =
@@ -28,6 +31,7 @@ async function request<T>(
 ): Promise<T> {
   const url = `${API_URL}${path}`;
   const res = await fetch(url, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
@@ -98,6 +102,28 @@ export async function fetchDashboardOverview(): Promise<ClassOverview> {
 
 export async function fetchMTSSTiers(): Promise<StudentTierInfo[]> {
   return request<StudentTierInfo[]>("/api/mtss/tiers");
+}
+
+export async function login(data: LoginRequest): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function register(data: RegisterRequest): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function logout(): Promise<void> {
+  await request<{ message: string }>("/api/auth/logout", { method: "POST" });
+}
+
+export async function fetchCurrentUser(): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/me");
 }
 
 export { ApiError };
