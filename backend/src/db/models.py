@@ -15,6 +15,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    firebase_uid: Mapped[str | None] = mapped_column(
+        String(128), unique=True, nullable=True
+    )
     username: Mapped[str] = mapped_column(String(100), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     role: Mapped[str] = mapped_column(String(20))  # student or educator
