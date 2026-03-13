@@ -52,3 +52,22 @@ Generate questions that:
 3. Assess ability to adapt to changing conditions
 
 Respond with ONLY a JSON object: {{"probes": ["question1", "question2", ...]}}"""
+
+# Lesson-aligned scenario: reinforces what the student just learned; must show tickers and charts
+LESSON_SCENARIO_SYSTEM_PROMPT = """You are an expert trading instructor creating a short scenario that reinforces a specific lesson the student just completed. You always respond with valid JSON only — no markdown, no code fences, no commentary outside the JSON object. The scenario must include real ticker symbol(s) and full market_data so the learning app can display a price chart and stat pills."""
+
+LESSON_SCENARIO_TEMPLATE = """The student just completed this lesson:
+
+Lesson title: {chunk_title}
+What they learned: {learning_goal}
+Key takeaway: {key_takeaway}
+
+Generate a single scenario that asks the student to APPLY these exact concepts. Requirements:
+- Use one real ticker symbol (e.g. AAPL, MSFT, SPY). Name it in the situation and in market_data.
+- situation: 2–4 sentences describing a concrete moment (e.g. "AAPL is at $185 after earnings; buyers have been lifting offers.") so the student can relate price movement to the lesson (tickers, who is in control, etc.).
+- market_data MUST include: symbol (string), current_price (number), price_history (list of 5–10 daily close prices, numbers only), volume, avg_volume, sector. Include at least rsi_14 so the UI can show stats. This data will be shown as a chart and stat pills.
+- question: One clear multiple-choice question that directly tests the lesson (e.g. "Who is in control in this scenario?" or "What does the ticker symbol tell you?").
+- multiple_choice: Provide exactly 4 options (short phrases), one correct. Use "correct_index": 0 for the first option, 1 for the second, etc.
+
+Respond with ONLY a JSON object in this exact structure:
+{{"situation": "<2-4 sentence scenario with ticker and context>", "market_data": {{"symbol": "<ticker>", "current_price": <number>, "price_history": [<5-10 numbers>], "volume": <number>, "avg_volume": <number>, "sector": "<string>", "rsi_14": <number>}}, "question": "<one MC question>", "multiple_choice": {{"options": ["<option A>", "<option B>", "<option C>", "<option D>"], "correct_index": <0-3>}}}}"""

@@ -1,18 +1,33 @@
 """API route definitions for CapMan AI."""
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 
 from src.api.schemas import (
+    ChunkCompleteResponse,
     GradeRequest,
     GradeResponse,
+    LessonChunkDetail,
+    LessonModuleDetail,
+    LessonModuleSummary,
+    LessonProgressSummary,
     ProbeRequest,
     ProbeResponse,
+    QuizAttemptRequest,
+    QuizAttemptResponse,
     RespondRequest,
     RespondResponse,
+    StreakInfo,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.auth.dependencies import get_current_user, require_role
-from src.db.models import User
-from src.gamification.leaderboard import LeaderboardEntry, get_leaderboard
+from src.db.database import get_db
+from src.db.models import LessonChunk, LessonModule, LessonQuizItem, User, XPLog
+from src.gamification.leaderboard import (
+    LeaderboardEntry,
+    get_leaderboard,
+)
 from src.gamification.xp import calculate_level, xp_to_next_level
 from src.grading.agent import GradingAgent, ProbingAgent
 from src.mtss.classifier import (
@@ -22,7 +37,25 @@ from src.mtss.classifier import (
     get_class_overview,
     get_student_tiers,
 )
+from src.lessons.repository import (
+    fetch_chunk_def,
+    fetch_chunks_for_module,
+    fetch_module_detail,
+    fetch_modules,
+)
+from src.lessons.service import (
+    attempt_chunk,
+    complete_chunk,
+    get_chunk,
+    get_module,
+    get_progress_summary,
+    get_streak,
+    list_module_chunks,
+    list_modules,
+)
+from src.api.schemas import LessonScenarioRequest
 from src.scenario_gen.generator import (
+    LessonContext,
     ScenarioGenerator,
     ScenarioParams,
     ScenarioResult,
@@ -60,6 +93,17 @@ async def generate_scenario(
     return await generator.generate(params)
 
 
+@router.post("/api/scenarios/generate-lesson")
+async def generate_lesson_scenario(
+    req: LessonScenarioRequest,
+    _user: User = Depends(get_current_user),
+) -> ScenarioResult:
+    """Generate a scenario aligned with the lesson chunk (tickers, charts, lesson concepts)."""
+    generator = ScenarioGenerator()
+    lesson = LessonContext(**req.lesson_context.model_dump())
+    return await generator.generate_lesson(lesson)
+
+
 @router.post("/api/scenarios/respond")
 async def respond_to_scenario(
     req: RespondRequest,
@@ -90,14 +134,29 @@ async def probe_response(
 async def grade_response(
     req: GradeRequest,
     _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> GradeResponse:
-    """Grade a scenario response with probing answers."""
+    """Grade a scenario response with probing answers and persist XP."""
     result = await _grading_agent.grade(
         scenario_text=req.scenario_text,
         student_response=req.student_response,
         probe_exchanges=req.probe_exchanges,
     )
     xp_earned = int(result.overall_score * 10)
+
+    # Persist XP to the current user and leaderboard when we have a DB user
+    try:
+        if isinstance(_user, User):
+            user = await db.get(User, _user.id)
+            if user is not None:
+                user.xp_total = (user.xp_total or 0) + xp_earned
+                user.level = calculate_level(user.xp_total)
+                db.add(XPLog(user_id=user.id, amount=xp_earned, source="scenario_grade"))
+                await db.commit()
+                await db.refresh(user)
+    except Exception:
+        pass  # Don't fail the grade response if persistence fails (e.g. test env)
+
     return GradeResponse(
         technical_accuracy=result.technical_accuracy,
         risk_awareness=result.risk_awareness,
@@ -136,9 +195,10 @@ async def get_user_xp(
 async def get_leaderboard_route(
     limit: int = 20,
     _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> list[LeaderboardEntry]:
     """Get the current leaderboard rankings."""
-    return get_leaderboard(limit=limit)
+    return await get_leaderboard(db, limit=limit)
 
 
 @router.get("/api/mtss/tiers")
@@ -175,3 +235,273 @@ async def get_dashboard_overview(
 ) -> ClassOverview:
     """Get dashboard overview data with tier distribution."""
     return get_class_overview(DEMO_STUDENTS)
+
+
+def _to_chunk_response(chunk: object) -> LessonChunkDetail:
+    chunk_data = dict(vars(chunk))
+    chunk_data["quiz_items"] = [
+        {
+            "item_id": item.item_id,
+            "item_type": item.item_type,
+            "prompt": item.prompt,
+            "options": item.options,
+            "correct_option_id": getattr(item, "correct_option_id", None),
+            "explanation": item.explanation,
+            "why_it_matters": item.why_it_matters,
+        }
+        for item in chunk.quiz_items
+    ]
+    return LessonChunkDetail.model_validate(chunk_data)
+
+
+@router.get("/api/lessons/modules")
+async def get_lesson_modules(
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> list[LessonModuleSummary]:
+    """List all lesson modules in learning order (from DB; fallback to in-memory if DB empty)."""
+    modules = await fetch_modules(db)
+    if not modules:
+        modules = list_modules()
+    return [
+        LessonModuleSummary(
+            module_id=module.module_id,
+            title=module.title,
+            track=module.track,
+            order=module.order,
+            objective=module.objective,
+            estimated_minutes=module.estimated_minutes,
+            prerequisite_ids=module.prerequisite_ids,
+            chunk_ids=module.chunk_ids,
+            chunk_count=len(module.chunk_ids),
+        )
+        for module in modules
+    ]
+
+
+@router.get("/api/lessons/modules/{module_id}")
+async def get_lesson_module_detail(
+    module_id: str,
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> LessonModuleDetail:
+    """Get one lesson module with all chunks (from DB; fallback to in-memory if not in DB)."""
+    module = await fetch_module_detail(db, module_id)
+    if module is None:
+        module = get_module(module_id)
+    if module is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson module not found",
+        )
+    chunks = await fetch_chunks_for_module(db, module_id)
+    if not chunks:
+        chunks = list_module_chunks(module_id)
+    return LessonModuleDetail(
+        module_id=module.module_id,
+        title=module.title,
+        track=module.track,
+        order=module.order,
+        objective=module.objective,
+        estimated_minutes=module.estimated_minutes,
+        prerequisite_ids=module.prerequisite_ids,
+        chunk_ids=module.chunk_ids,
+        chunk_count=len(module.chunk_ids),
+        chunks=[_to_chunk_response(chunk) for chunk in chunks],
+    )
+
+
+@router.get("/api/lessons/chunks/{chunk_id}")
+async def get_lesson_chunk(
+    chunk_id: str,
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> LessonChunkDetail:
+    """Get one lesson chunk (from DB; fallback to in-memory if not in DB)."""
+    chunk = await fetch_chunk_def(db, chunk_id)
+    if chunk is None:
+        chunk = get_chunk(chunk_id)
+    if chunk is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson chunk not found",
+        )
+    return _to_chunk_response(chunk)
+
+
+@router.post("/api/lessons/chunks/{chunk_id}/attempt")
+async def attempt_lesson_chunk(
+    chunk_id: str,
+    req: QuizAttemptRequest,
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> QuizAttemptResponse:
+    """Submit quiz attempt (chunk from DB; fallback to in-memory if not in DB)."""
+    chunk = await fetch_chunk_def(db, chunk_id)
+    if chunk is None:
+        chunk = get_chunk(chunk_id)
+    if chunk is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson chunk not found",
+        )
+
+    answers_by_item = {
+        answer.item_id: (answer.selected_option_id or answer.response_text or "")
+        for answer in req.answers
+    }
+    result = await attempt_chunk(_user.id, chunk_id, answers_by_item, db, chunk)
+    xp_earned = int(result["xp_earned"])
+
+    # Log XP event (User row already updated inside service)
+    try:
+        if isinstance(_user, User) and xp_earned > 0:
+            db.add(XPLog(user_id=_user.id, amount=xp_earned, source="lesson_attempt"))
+            await db.commit()
+    except Exception:
+        pass
+
+    return QuizAttemptResponse.model_validate(result)
+
+
+@router.post("/api/lessons/chunks/{chunk_id}/complete")
+async def complete_lesson_chunk(
+    chunk_id: str,
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> ChunkCompleteResponse:
+    """Mark chunk complete and award chunk XP (chunk from DB or in-memory)."""
+    chunk = await fetch_chunk_def(db, chunk_id)
+    if chunk is None:
+        chunk = get_chunk(chunk_id)
+    if chunk is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson chunk not found",
+        )
+
+    result = await complete_chunk(_user.id, chunk_id, db)
+    xp_earned = int(result["xp_earned"])
+
+    # Log XP event (User row already updated inside service)
+    try:
+        if isinstance(_user, User) and xp_earned > 0:
+            db.add(XPLog(user_id=_user.id, amount=xp_earned, source="lesson_complete"))
+            await db.commit()
+    except Exception:
+        pass
+
+    return ChunkCompleteResponse.model_validate(result)
+
+
+@router.get("/api/lessons/progress/me")
+async def get_my_lesson_progress(
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> LessonProgressSummary:
+    """Get aggregate lesson progress (modules from DB; fallback to in-memory if DB empty)."""
+    modules = await fetch_modules(db)
+    if not modules:
+        modules = list_modules()
+    return LessonProgressSummary.model_validate(
+        await get_progress_summary(_user.id, db, modules)
+    )
+
+
+@router.get("/api/lessons/streak/me")
+async def get_my_lesson_streak(
+    _user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+) -> StreakInfo:
+    """Get current lesson streak for the current user."""
+    return StreakInfo.model_validate(await get_streak(_user.id, db))
+
+
+@router.get("/api/lessons/catalog/status")
+async def get_lessons_catalog_status(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    """Educator-facing DB status of lesson catalog for verification."""
+    module_count = (
+        await db.execute(select(func.count()).select_from(LessonModule))
+    ).scalar_one()
+    chunk_count = (
+        await db.execute(select(func.count()).select_from(LessonChunk))
+    ).scalar_one()
+    quiz_count = (
+        await db.execute(select(func.count()).select_from(LessonQuizItem))
+    ).scalar_one()
+    first_chunk = (
+        await db.execute(
+            select(LessonChunk).where(LessonChunk.chunk_id == "f1-ch1")
+        )
+    ).scalar_one_or_none()
+
+    return {
+        "module_count": int(module_count or 0),
+        "chunk_count": int(chunk_count or 0),
+        "quiz_item_count": int(quiz_count or 0),
+        "seeded_first_chunk_title": first_chunk.title if first_chunk else None,
+        "seeded_first_chunk_goal": first_chunk.learning_goal if first_chunk else None,
+    }
+
+
+@router.get("/api/lessons/catalog/chunks/{chunk_id}")
+async def get_lessons_catalog_chunk(
+    chunk_id: str,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    """Educator-facing DB preview of one seeded lesson chunk."""
+    chunk = (
+        await db.execute(
+            select(LessonChunk).where(LessonChunk.chunk_id == chunk_id)
+        )
+    ).scalar_one_or_none()
+    if chunk is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson chunk not found in DB",
+        )
+
+    quiz_items = (
+        await db.execute(
+            select(LessonQuizItem)
+            .where(LessonQuizItem.chunk_id == chunk_id)
+            .order_by(LessonQuizItem.order_index)
+        )
+    ).scalars().all()
+
+    return {
+        "chunk_id": chunk.chunk_id,
+        "title": chunk.title,
+        "learning_goal": chunk.learning_goal,
+        "explain_text": chunk.explain_text,
+        "example_text": chunk.example_text,
+        "key_takeaway": chunk.key_takeaway,
+        "common_mistakes": chunk.common_mistakes,
+        "quick_check_prompts": chunk.quick_check_prompts,
+        "quiz_items": [
+            {
+                "item_id": item.item_id,
+                "item_type": item.item_type,
+                "prompt": item.prompt,
+                "options": item.options,
+                "correct_option_id": item.correct_option_id,
+                "explanation": item.explanation,
+                "why_it_matters": item.why_it_matters,
+            }
+            for item in quiz_items
+        ],
+    }

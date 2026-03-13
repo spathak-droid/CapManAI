@@ -9,6 +9,17 @@ import type {
   LeaderboardEntry,
   ClassOverview,
   StudentTierInfo,
+  LessonModuleSummary,
+  LessonModuleDetail,
+  LessonChunkDetail,
+  QuizAttemptRequest,
+  QuizAttemptResponse,
+  ChunkCompleteResponse,
+  LessonProgressSummary,
+  StreakInfo,
+  AssistantConversationDetail,
+  AssistantConversationListItem,
+  AssistantMessagePayload,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -46,7 +57,18 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch (e) {
+    const msg =
+      e instanceof TypeError && e.message === "Failed to fetch"
+        ? "Cannot reach the server. Is the backend running?"
+        : e instanceof Error
+          ? e.message
+          : "Network error";
+    throw new ApiError(0, msg);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "Unknown error");
@@ -68,6 +90,18 @@ export async function generateScenario(
   return request<Scenario>("/api/scenarios/generate", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+/** Lesson-aligned scenario: reinforces the chunk, includes ticker and chart-ready market_data */
+export async function generateLessonScenario(lessonContext: {
+  chunk_title: string;
+  learning_goal: string;
+  key_takeaway: string;
+}): Promise<Scenario> {
+  return request<Scenario>("/api/scenarios/generate-lesson", {
+    method: "POST",
+    body: JSON.stringify({ lesson_context: lessonContext }),
   });
 }
 
@@ -136,6 +170,89 @@ export async function updateRole(role: string): Promise<AuthUser> {
   return request<AuthUser>("/api/auth/me/role", {
     method: "PATCH",
     body: JSON.stringify({ role }),
+  });
+}
+
+export async function fetchLessonModules(): Promise<LessonModuleSummary[]> {
+  return request<LessonModuleSummary[]>("/api/lessons/modules");
+}
+
+export async function fetchLessonModule(moduleId: string): Promise<LessonModuleDetail> {
+  return request<LessonModuleDetail>(`/api/lessons/modules/${moduleId}`);
+}
+
+export async function fetchLessonChunk(chunkId: string): Promise<LessonChunkDetail> {
+  return request<LessonChunkDetail>(`/api/lessons/chunks/${chunkId}`);
+}
+
+export async function submitChunkAttempt(
+  chunkId: string,
+  payload: QuizAttemptRequest,
+): Promise<QuizAttemptResponse> {
+  return request<QuizAttemptResponse>(`/api/lessons/chunks/${chunkId}/attempt`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function markChunkComplete(
+  chunkId: string,
+): Promise<ChunkCompleteResponse> {
+  return request<ChunkCompleteResponse>(`/api/lessons/chunks/${chunkId}/complete`, {
+    method: "POST",
+  });
+}
+
+export async function fetchMyLessonProgress(): Promise<LessonProgressSummary> {
+  return request<LessonProgressSummary>("/api/lessons/progress/me");
+}
+
+export async function fetchMyStreak(): Promise<StreakInfo> {
+  return request<StreakInfo>("/api/lessons/streak/me");
+}
+
+// --- Assistant (AI chat) API ---
+
+export async function listAssistantConversations(): Promise<
+  AssistantConversationListItem[]
+> {
+  return request<AssistantConversationListItem[]>("/api/assistant/conversations");
+}
+
+export async function getAssistantConversation(
+  id: number,
+): Promise<AssistantConversationDetail> {
+  return request<AssistantConversationDetail>(
+    `/api/assistant/conversations/${id}`,
+  );
+}
+
+export async function sendAssistantMessage(
+  conversationId: number | null,
+  messages: AssistantMessagePayload[],
+): Promise<{ conversation_id: number; message: AssistantMessagePayload }> {
+  return request<{ conversation_id: number; message: AssistantMessagePayload }>(
+    "/api/assistant/chat",
+    {
+      method: "POST",
+      body: JSON.stringify({ conversation_id: conversationId, messages }),
+    },
+  );
+}
+
+export async function renameAssistantConversation(
+  id: number,
+  title: string,
+): Promise<void> {
+  await request(`/api/assistant/conversations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function deleteAssistantConversation(id: number): Promise<void> {
+  await request(`/api/assistant/conversations/${id}`, {
+    method: "DELETE",
   });
 }
 

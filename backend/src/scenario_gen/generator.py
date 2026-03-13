@@ -15,7 +15,12 @@ from pydantic import BaseModel, field_validator
 
 from src.core.config import settings
 from src.mtss.objectives import OBJECTIVE_DESCRIPTIONS, LearningObjective
-from src.scenario_gen.prompts import SCENARIO_TEMPLATE, SYSTEM_PROMPT
+from src.scenario_gen.prompts import (
+    LESSON_SCENARIO_SYSTEM_PROMPT,
+    LESSON_SCENARIO_TEMPLATE,
+    SCENARIO_TEMPLATE,
+    SYSTEM_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +54,20 @@ class ScenarioParams(BaseModel):
         return v
 
 
+class LessonMultipleChoice(BaseModel):
+    """Multiple choice options for lesson scenario; no LLM grading."""
+
+    options: list[str]
+    correct_index: int
+
+
 class ScenarioResult(BaseModel):
     """Result from scenario generation."""
 
     situation: str
     market_data: dict[str, Any]
     question: str
+    multiple_choice: LessonMultipleChoice | None = None
 
 
 FALLBACK_SCENARIOS: list[ScenarioResult] = [
@@ -80,6 +93,15 @@ FALLBACK_SCENARIOS: list[ScenarioResult] = [
             "Given the post-earnings gap-fill pattern on AAPL, would you "
             "initiate a long position here? Specify your entry, stop-loss, "
             "and initial profit target with rationale."
+        ),
+        multiple_choice=LessonMultipleChoice(
+            options=[
+                "Buyers are in control; price is likely to continue higher.",
+                "Sellers are in control; avoid new longs.",
+                "No clear control; wait for a breakout.",
+                "The ticker symbol alone tells you who is in control.",
+            ],
+            correct_index=0,
         ),
     ),
     ScenarioResult(
@@ -167,6 +189,14 @@ FALLBACK_SCENARIOS: list[ScenarioResult] = [
 ]
 
 
+class LessonContext(BaseModel):
+    """Context from the lesson chunk the student just completed."""
+
+    chunk_title: str
+    learning_goal: str
+    key_takeaway: str
+
+
 class ScenarioGenerator:
     """Generates trading scenarios via LLM calls through OpenRouter."""
 
@@ -181,6 +211,17 @@ class ScenarioGenerator:
         except Exception:
             logger.exception("LLM call failed, returning fallback scenario")
             return self._get_fallback(params)
+
+    async def generate_lesson(self, lesson: LessonContext) -> ScenarioResult:
+        """Generate a scenario aligned with the lesson the student just completed.
+
+        Ensures ticker, price_history, and market_data so the UI can show charts.
+        """
+        try:
+            return await self._call_llm_lesson(lesson)
+        except Exception:
+            logger.exception("Lesson scenario LLM failed, returning fallback")
+            return FALLBACK_SCENARIOS[0]  # AAPL with chart-ready data
 
     async def _call_llm(self, params: ScenarioParams) -> ScenarioResult:
         """Call OpenRouter chat completions API."""
@@ -225,6 +266,50 @@ class ScenarioGenerator:
             situation=parsed["situation"],
             market_data=parsed["market_data"],
             question=parsed["question"],
+        )
+
+    async def _call_llm_lesson(self, lesson: LessonContext) -> ScenarioResult:
+        """Call OpenRouter with lesson-aligned prompt; response must have ticker and chart data."""
+        user_prompt = LESSON_SCENARIO_TEMPLATE.format(
+            chunk_title=lesson.chunk_title,
+            learning_goal=lesson.learning_goal,
+            key_takeaway=lesson.key_takeaway,
+        )
+        payload: dict[str, Any] = {
+            "model": settings.openrouter_model,
+            "messages": [
+                {"role": "system", "content": LESSON_SCENARIO_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        headers = {
+            "Authorization": f"Bearer {settings.openrouter_api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{settings.OPENROUTER_BASE_URL}/chat/completions",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+        data = response.json()
+        content: str = data["choices"][0]["message"]["content"]
+        parsed: dict[str, Any] = json.loads(content)
+        mc: LessonMultipleChoice | None = None
+        if "multiple_choice" in parsed:
+            raw = parsed["multiple_choice"]
+            if isinstance(raw, dict) and "options" in raw and "correct_index" in raw:
+                opts = raw["options"] if isinstance(raw["options"], list) else []
+                idx = int(raw["correct_index"]) if isinstance(raw["correct_index"], (int, float)) else 0
+                if opts and 0 <= idx < len(opts):
+                    mc = LessonMultipleChoice(options=opts, correct_index=idx)
+        return ScenarioResult(
+            situation=parsed["situation"],
+            market_data=parsed["market_data"],
+            question=parsed["question"],
+            multiple_choice=mc,
         )
 
     def _get_fallback(self, params: ScenarioParams) -> ScenarioResult:

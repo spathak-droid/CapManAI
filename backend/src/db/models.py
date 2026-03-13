@@ -1,8 +1,8 @@
 """SQLAlchemy ORM models for CapMan AI."""
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -28,6 +28,11 @@ class User(Base):
     responses: Mapped[list["Response"]] = relationship(back_populates="user")
     skill_scores: Mapped[list["SkillScore"]] = relationship(back_populates="user")
     xp_logs: Mapped[list["XPLog"]] = relationship(back_populates="user")
+    chunk_progress: Mapped[list["UserChunkProgress"]] = relationship(back_populates="user")
+    streak: Mapped["UserStreak | None"] = relationship(back_populates="user")
+    assistant_conversations: Mapped[list["AssistantConversation"]] = relationship(
+        back_populates="user"
+    )
 
 
 class Scenario(Base):
@@ -112,3 +117,113 @@ class XPLog(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="xp_logs")
+
+
+class LessonModule(Base):
+    __tablename__ = "lesson_modules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    module_id: Mapped[str] = mapped_column(String(32), unique=True)
+    title: Mapped[str] = mapped_column(String(255))
+    track: Mapped[str] = mapped_column(String(32))
+    order_index: Mapped[int] = mapped_column()
+    objective: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    estimated_minutes: Mapped[int] = mapped_column()
+    prerequisite_ids: Mapped[list[str]] = mapped_column(JSON)  # type: ignore[assignment]
+
+
+class LessonChunk(Base):
+    __tablename__ = "lesson_chunks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chunk_id: Mapped[str] = mapped_column(String(64), unique=True)
+    module_id: Mapped[str] = mapped_column(String(32), ForeignKey("lesson_modules.module_id"))
+    order_index: Mapped[int] = mapped_column()
+    title: Mapped[str] = mapped_column(String(255))
+    estimated_minutes: Mapped[int] = mapped_column()
+    learning_goal: Mapped[str] = mapped_column(Text)
+    explain_text: Mapped[str] = mapped_column(Text)
+    example_text: Mapped[str] = mapped_column(Text)
+    key_takeaway: Mapped[str] = mapped_column(Text)
+    common_mistakes: Mapped[list[str]] = mapped_column(JSON)  # type: ignore[assignment]
+    quick_check_prompts: Mapped[list[str]] = mapped_column(JSON)  # type: ignore[assignment]
+
+
+class LessonQuizItem(Base):
+    __tablename__ = "lesson_quiz_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    item_id: Mapped[str] = mapped_column(String(96), unique=True)
+    chunk_id: Mapped[str] = mapped_column(String(64), ForeignKey("lesson_chunks.chunk_id"))
+    order_index: Mapped[int] = mapped_column()
+    item_type: Mapped[str] = mapped_column(String(32))
+    prompt: Mapped[str] = mapped_column(Text)
+    options: Mapped[list[dict[str, str]]] = mapped_column(JSON)  # type: ignore[assignment]
+    correct_option_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    explanation: Mapped[str] = mapped_column(Text)
+    why_it_matters: Mapped[str] = mapped_column(Text)
+
+
+class UserChunkProgress(Base):
+    __tablename__ = "user_chunk_progress"
+    __table_args__ = (UniqueConstraint("user_id", "chunk_id", name="uq_user_chunk"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    chunk_id: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(default=0)
+    latest_score: Mapped[float] = mapped_column(default=0.0)
+    best_score: Mapped[float] = mapped_column(default=0.0)
+    mastered: Mapped[bool] = mapped_column(default=False)
+    completed: Mapped[bool] = mapped_column(default=False)
+    completion_xp_awarded: Mapped[bool] = mapped_column(default=False)
+    mastery_bonus_awarded: Mapped[bool] = mapped_column(default=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="chunk_progress")
+
+
+class UserStreak(Base):
+    __tablename__ = "user_streaks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    current_streak: Mapped[int] = mapped_column(default=0)
+    last_activity_date: Mapped[date | None] = mapped_column(nullable=True)
+    lesson_xp_total: Mapped[int] = mapped_column(default=0)
+
+    user: Mapped["User"] = relationship(back_populates="streak")
+
+
+class AssistantConversation(Base):
+    __tablename__ = "assistant_conversations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(255), default="New chat")
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="assistant_conversations")
+    messages: Mapped[list["AssistantMessage"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+    )
+
+
+class AssistantMessage(Base):
+    __tablename__ = "assistant_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("assistant_conversations.id"))
+    role: Mapped[str] = mapped_column(String(20))  # 'user' | 'assistant'
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    conversation: Mapped["AssistantConversation"] = relationship(
+        back_populates="messages"
+    )

@@ -47,7 +47,7 @@ export default function ResponseForm({
         <button
           type="submit"
           disabled={text.trim().length === 0 || loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-2.5 text-sm font-medium text-white transition hover:shadow-lg hover:shadow-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-purple-solid inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading && (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

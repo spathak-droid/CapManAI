@@ -1,6 +1,11 @@
-import Link from "next/link";
+"use client";
 
-export default function HomePage() {
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import StudentHome from "@/components/StudentHome";
+import EducatorHome from "@/components/EducatorHome";
+
+function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Background grid */}
@@ -13,9 +18,8 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative flex min-h-[85vh] flex-col items-center justify-center px-4 text-center">
-        <h1 className="gradient-text mb-5 text-6xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl">
-          CapMan AI
-        </h1>
+        <h1 className="sr-only">CapMan AI</h1>
+        <img src="/logo.svg" alt="" className="mb-6 h-28 w-auto sm:h-36 lg:h-40" aria-hidden="true" />
 
         <p className="mb-4 text-xl font-medium tracking-tight text-zinc-300 sm:text-2xl">
           Master Trading Through AI-Powered Scenarios
@@ -31,16 +35,16 @@ export default function HomePage() {
         {/* CTA Buttons */}
         <div className="flex flex-col gap-4 sm:flex-row">
           <Link
-            href="/scenario"
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/30"
+            href="/auth/login"
+            className="btn-purple-solid inline-flex items-center justify-center rounded-full px-8 py-3 text-base shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02]"
           >
-            Start Training
+            Get Started
           </Link>
           <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.06] px-8 py-3 text-base font-semibold text-zinc-300 transition-all hover:bg-white/[0.1]"
+            href="/auth/register"
+            className="btn-primary-glow inline-flex items-center justify-center rounded-full px-8 py-3 text-base font-semibold"
           >
-            Educator Dashboard
+            Create Account
           </Link>
         </div>
       </section>
@@ -49,7 +53,7 @@ export default function HomePage() {
       <section className="relative mx-auto max-w-5xl px-4 pb-24 sm:px-6">
         <div className="grid gap-6 md:grid-cols-3">
           {/* Card 1 — AI-Generated Scenarios */}
-          <div className="group rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6 transition-colors hover:border-white/[0.12]">
+          <div className="card-glow group p-6 transition-shadow hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
               <svg
                 className="h-5 w-5 text-blue-400"
@@ -75,7 +79,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 2 — Instant Grading & Feedback */}
-          <div className="group rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6 transition-colors hover:border-white/[0.12]">
+          <div className="card-glow group p-6 transition-shadow hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10">
               <svg
                 className="h-5 w-5 text-green-400"
@@ -101,7 +105,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 3 — MTSS-Powered Tiers */}
-          <div className="group rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6 transition-colors hover:border-white/[0.12]">
+          <div className="card-glow group p-6 transition-shadow hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
               <svg
                 className="h-5 w-5 text-emerald-400"
@@ -129,4 +133,20 @@ export default function HomePage() {
       </section>
     </div>
   );
+}
+
+export default function HomePage() {
+  const { user, loading } = useAuth();
+
+  // Still loading auth state — show nothing (avoids flash)
+  if (loading) return null;
+
+  // Not logged in — show marketing landing page
+  if (!user) return <LandingPage />;
+
+  // Logged in as educator
+  if (user.role === "educator") return <EducatorHome />;
+
+  // Logged in as student (or any other role)
+  return <StudentHome />;
 }

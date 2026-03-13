@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import ScenarioCard from "@/components/ScenarioCard";
 import ResponseForm from "@/components/ResponseForm";
 import GradeDisplay from "@/components/GradeDisplay";
+import { ScenarioCardSkeleton } from "@/components/skeletons/ScenarioCardSkeleton";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   generateScenario,
   submitResponse,
@@ -68,6 +70,7 @@ export default function ScenarioPage() {
   const [probeExchanges, setProbeExchanges] = useState<ProbeExchange[]>([]);
   const [grade, setGrade] = useState<Grade | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { refetchUser } = useAuth();
 
   const resetFlow = useCallback(() => {
     setScenario(null);
@@ -148,30 +151,36 @@ export default function ScenarioPage() {
         );
         setGrade(g);
         setPhase("graded");
+        await refetchUser();
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
             : "Failed to submit probe response",
         );
-        setPhase("probing");
+        // Go back to scenario_displayed so user can retry from scratch
+        // instead of looping on the last probe question
+        setPhase("scenario_displayed");
       }
     }
   }
 
   const selectClass =
-    "w-full bg-zinc-800/50 border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/30 appearance-none cursor-pointer transition-colors hover:border-white/[0.15]";
+    "w-full bg-zinc-800/60 border border-white/[0.1] rounded-xl px-3 py-2.5 text-white text-sm focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 appearance-none cursor-pointer transition-colors hover:border-white/[0.18]";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-      {/* Page Header */}
-      <h1 className="mb-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-        Scenario Training
-      </h1>
-      <p className="mb-10 text-zinc-500">
-        Generate an AI-powered trading scenario, write your analysis, answer
-        follow-up questions, and receive detailed grading.
-      </p>
+      {/* Hero header */}
+      <div className="mb-10 relative">
+        <div className="absolute -left-2 top-0 h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 blur-2xl" aria-hidden />
+        <h1 className="relative bg-gradient-to-r from-blue-400 via-violet-400 to-fuchsia-400 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          Scenario Training
+        </h1>
+        <p className="mt-3 text-base text-zinc-400 max-w-xl">
+          Generate an AI-powered trading scenario, write your analysis, answer
+          follow-up questions, and receive detailed grading.
+        </p>
+      </div>
 
       {/* Error Banner */}
       {error && (
@@ -182,12 +191,16 @@ export default function ScenarioPage() {
 
       {/* Phase: Idle or Graded — show params + Generate button */}
       {(phase === "idle" || phase === "graded") && (
-        <div className="mb-8 space-y-6">
+        <div className="mb-8 space-y-6 animate-fade-in">
           {/* Param selectors */}
-          <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6 backdrop-blur-sm">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-zinc-900/80 p-6 shadow-[0_0_32px_rgba(139,92,246,0.08)]">
+            <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-violet-500/10 blur-3xl" aria-hidden />
+            <div className="relative grid grid-cols-2 gap-5 sm:grid-cols-4">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                  </span>
                   Market
                 </label>
                 <select
@@ -206,8 +219,11 @@ export default function ScenarioPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  </span>
                   Instrument
                 </label>
                 <select
@@ -226,8 +242,11 @@ export default function ScenarioPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
+                  </span>
                   Complexity
                 </label>
                 <select
@@ -242,8 +261,11 @@ export default function ScenarioPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-500/20 text-violet-400">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                  </span>
                   Skill
                 </label>
                 <select
@@ -267,18 +289,22 @@ export default function ScenarioPage() {
 
           <button
             onClick={handleGenerate}
-            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-4 text-lg font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:brightness-110 active:scale-[0.98]"
+            className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-violet-700 to-fuchsia-700 px-6 py-4 text-lg font-semibold text-white shadow-[0_0_32px_rgba(139,92,246,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] transition-all hover:shadow-[0_0_40px_rgba(139,92,246,0.35)] hover:scale-[1.01] active:scale-[0.99]"
           >
-            {phase === "graded" ? "Generate New Scenario" : "Generate Scenario"}
+            <span className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,255,255,0.15),transparent)]" aria-hidden />
+            <span className="relative flex items-center justify-center gap-3">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              {phase === "graded" ? "Generate New Scenario" : "Generate Scenario"}
+            </span>
           </button>
         </div>
       )}
 
       {/* Phase: Loading */}
       {phase === "loading" && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-4 h-8 w-8 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
-          <p className="text-zinc-500 text-sm">
+        <div className="mb-8">
+          <ScenarioCardSkeleton />
+          <p className="mt-4 text-center text-sm text-zinc-500">
             Generating your scenario...
           </p>
         </div>
@@ -287,7 +313,11 @@ export default function ScenarioPage() {
       {/* Scenario Card */}
       {scenario && phase !== "idle" && phase !== "loading" && (
         <div className="mb-8">
-          <ScenarioCard scenario={scenario} />
+          <ScenarioCard
+            scenario={scenario}
+            skillTarget={skillTarget}
+            complexity={complexity}
+          />
         </div>
       )}
 
@@ -319,10 +349,7 @@ export default function ScenarioPage() {
         <div className="space-y-6">
           {/* Previously answered probes */}
           {probeExchanges.map((pe, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border border-white/[0.06] bg-zinc-900/50 p-4"
-            >
+            <div key={idx} className="card-glow rounded-xl p-4">
               <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
                 Follow-Up {idx + 1}
               </p>

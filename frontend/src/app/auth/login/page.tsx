@@ -45,7 +45,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md">
-        <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-8 backdrop-blur-sm">
+        <div className="card-glow p-8 backdrop-blur-sm">
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-semibold text-white">Welcome back</h1>
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 py-3 font-medium text-white transition hover:shadow-lg hover:shadow-blue-500/25 disabled:opacity-50"
+              className="btn-purple-solid w-full rounded-xl py-3 disabled:opacity-50"
             >
               {submitting ? "Signing in..." : "Sign In"}
             </button>

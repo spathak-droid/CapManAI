@@ -1,5 +1,6 @@
 """Application settings loaded from environment variables."""
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 
@@ -7,7 +8,10 @@ class Settings(BaseSettings):
     """CapMan AI backend configuration."""
 
     DATABASE_URL: str = "postgresql+asyncpg://localhost/capman"
-    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENROUTER_API_KEY", "OPEN_ROUTER_API_KEY"),
+    )
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_MODEL: str = "anthropic/claude-sonnet-4-20250514"
     FIREBASE_PROJECT_ID: str = "capmanai"
@@ -18,8 +22,8 @@ class Settings(BaseSettings):
 
     @property
     def openrouter_api_key(self) -> str:
-        """Alias for OPENROUTER_API_KEY."""
-        return self.OPENROUTER_API_KEY
+        """OpenRouter API key (from OPENROUTER_API_KEY or OPEN_ROUTER_API_KEY)."""
+        return (self.OPENROUTER_API_KEY or "").strip()
 
     @property
     def openrouter_model(self) -> str:

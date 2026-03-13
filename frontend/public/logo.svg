@@ -1,0 +1,28 @@
+<svg width="500" height="300" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00F2FE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4FACFE;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(150, 20)">
+    <path d="M40 130 Q100 110 100 130 L100 170 Q100 150 40 170 Z" fill="#E2E8F0" opacity="0.9"/>
+    <path d="M160 130 Q100 110 100 130 L100 170 Q100 150 160 170 Z" fill="#CBD5E0" />
+    
+    <path d="M70 120 Q70 70 100 70 Q130 70 130 120 Z" fill="#FFFFFF"/>
+    
+    <path d="M60 70 L100 50 L140 70 L100 90 Z" fill="#FFFFFF"/>
+    <rect x="98" y="70" width="4" height="15" fill="#FFFFFF"/>
+    
+    <path d="M60 150 L90 130 L115 145 L155 90" fill="none" stroke="url(#cyan-glow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M140 90 L155 90 L155 105" fill="none" stroke="url(#cyan-glow)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <circle cx="150" cy="60" r="4" fill="#00F2FE" />
+    <circle cx="50" cy="100" r="3" fill="#00F2FE" opacity="0.6" />
+  </g>
+
+  <text x="250" y="240" font-family="Verdana, Geneva, sans-serif" font-weight="bold" font-size="52" text-anchor="middle" fill="#FFFFFF" letter-spacing="2">CAPMAN <tspan fill="url(#cyan-glow)">AI</tspan></text>
+  
+  <text x="250" y="275" font-family="Verdana, Geneva, sans-serif" font-size="12" text-anchor="middle" fill="#A0AEC0" letter-spacing="4">TEACHING STUDENTS TO TEACH FINANCE</text>
+</svg>

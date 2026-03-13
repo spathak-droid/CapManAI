@@ -1,22 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchLeaderboard } from "@/lib/api";
-import type { LeaderboardEntry } from "@/lib/types";
+import { useLeaderboard } from "@/lib/hooks";
+import { LeaderboardSkeleton } from "@/components/skeletons/LeaderboardSkeleton";
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchLeaderboard()
-      .then(setEntries)
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load leaderboard"),
-      )
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: entries, error, isLoading } = useLeaderboard();
 
   function rankBadge(rank: number) {
     if (rank === 1)
@@ -56,22 +44,20 @@ export default function LeaderboardPage() {
       </p>
 
       {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
-        </div>
+      {isLoading && (
+        <LeaderboardSkeleton />
       )}
 
       {/* Error */}
       {error && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400 text-sm">
-          {error}
+          {error instanceof Error ? error.message : "Failed to load leaderboard"}
         </div>
       )}
 
-      {/* Table */}
-      {!loading && !error && (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-zinc-900/30 backdrop-blur-sm">
+      {/* Content */}
+      {!isLoading && !error && (
+        <div className="card-glow overflow-hidden backdrop-blur-sm">
           <table className="w-full text-left">
             <thead className="bg-zinc-800/50">
               <tr>
@@ -90,7 +76,7 @@ export default function LeaderboardPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {(entries ?? []).map((entry) => (
                 <tr
                   key={entry.user_id}
                   className={`border-b border-white/[0.04] transition-colors hover:bg-white/[0.02] ${
@@ -127,7 +113,7 @@ export default function LeaderboardPage() {
                   </td>
                 </tr>
               ))}
-              {entries.length === 0 && (
+              {(entries ?? []).length === 0 && (
                 <tr>
                   <td
                     colSpan={4}

@@ -30,6 +30,8 @@ export interface Scenario {
   situation: string;
   market_data: Record<string, unknown>;
   question: string;
+  /** Lesson scenario only: multiple choice options; no LLM grading */
+  multiple_choice?: { options: string[]; correct_index: number };
 }
 
 export interface ProbeResponse {
@@ -82,4 +84,156 @@ export interface StudentTierInfo {
   overall_tier: string;
   avg_score: number;
   skill_tiers: Record<string, string>;
+}
+
+// --- Lessons Types ---
+
+export type LessonTrack = "foundation" | "core" | "capstone";
+export type LessonQuizItemType = "mcq" | "scenario" | "reflection";
+
+export interface QuizItemOption {
+  id: string;
+  text: string;
+}
+
+export interface QuizItem {
+  item_id: string;
+  item_type: LessonQuizItemType;
+  prompt: string;
+  options: QuizItemOption[];
+  correct_option_id?: string | null;
+  explanation: string;
+  why_it_matters: string;
+}
+
+export interface LessonChunkDetail {
+  chunk_id: string;
+  module_id: string;
+  order: number;
+  title: string;
+  estimated_minutes: number;
+  learning_goal: string;
+  explain_text: string;
+  example_text: string;
+  key_takeaway: string;
+  common_mistakes: string[];
+  quick_check_prompts: string[];
+  quiz_items: QuizItem[];
+}
+
+export interface LessonModuleSummary {
+  module_id: string;
+  title: string;
+  track: LessonTrack;
+  order: number;
+  objective: string | null;
+  estimated_minutes: number;
+  prerequisite_ids: string[];
+  chunk_ids: string[];
+  chunk_count: number;
+}
+
+export interface LessonModuleDetail extends LessonModuleSummary {
+  chunks: LessonChunkDetail[];
+}
+
+export interface LessonItemAnswer {
+  item_id: string;
+  selected_option_id?: string;
+  response_text?: string;
+}
+
+export interface QuizAttemptRequest {
+  answers: LessonItemAnswer[];
+}
+
+export interface QuizItemFeedback {
+  item_id: string;
+  correct: boolean | null;
+  feedback: string;
+  why_it_matters: string;
+}
+
+export interface QuizAttemptResponse {
+  score_percent: number;
+  mastered: boolean;
+  recommended_retry: boolean;
+  attempt_number: number;
+  latest_score: number;
+  best_score: number;
+  item_feedback: QuizItemFeedback[];
+  xp_earned: number;
+  badges_awarded: string[];
+}
+
+export interface ChunkCompleteResponse {
+  completed: boolean;
+  xp_earned: number;
+  badges_awarded: string[];
+}
+
+export interface ModuleProgress {
+  module_id: string;
+  completed_chunks: number;
+  total_chunks: number;
+  completion_percent: number;
+  mastered_chunks: number;
+  mastered: boolean;
+}
+
+export interface ChunkProgress {
+  completed: boolean;
+  best_score: number;
+  last_score: number;
+  mastered: boolean;
+  attempts: number;
+}
+
+export interface LessonProgressSummary {
+  program_completion_percent: number;
+  lesson_xp_total: number;
+  module_progress: ModuleProgress[];
+  chunk_progress: Record<string, ChunkProgress>;
+  badges: string[];
+  next_module_id: string | null;
+  next_chunk_id: string | null;
+}
+
+export interface StreakInfo {
+  current_streak: number;
+  last_activity_date: string | null;
+}
+
+// --- Assistant (AI chat) types ---
+
+export interface AssistantMessagePayload {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantConversationListItem {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssistantMessageOut {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface AssistantConversationDetail {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: AssistantMessageOut[];
+}
+
+export interface AssistantChatResponse {
+  conversation_id: number;
+  message: AssistantMessagePayload;
 }

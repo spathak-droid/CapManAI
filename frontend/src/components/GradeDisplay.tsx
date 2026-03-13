@@ -51,7 +51,7 @@ export default function GradeDisplay({ grade }: GradeDisplayProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-6">
+    <div className="card-glow p-6">
       {/* Overall Score and XP */}
       <div className="mb-6 flex items-center justify-between">
         <div>

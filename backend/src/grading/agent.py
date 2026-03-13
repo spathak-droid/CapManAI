@@ -118,9 +118,17 @@ async def _call_openrouter(
     system_prompt: str, user_prompt: str
 ) -> str:
     """Make a chat completion call to OpenRouter and return the content."""
+    api_key = settings.openrouter_api_key
+    if not api_key:
+        logger.error(
+            "OPENROUTER_API_KEY (or OPEN_ROUTER_API_KEY) is not set in backend .env"
+        )
+        raise ValueError(
+            "OpenRouter API key not set. Add OPENROUTER_API_KEY to backend/.env and restart."
+        )
     url = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -228,6 +236,21 @@ class GradingAgent:
                 overall_score=overall,
                 feedback_text=str(raw["feedback_text"]),
             )
-        except Exception:
-            logger.exception("Failed to grade via LLM, returning fallback")
+        except ValueError as e:
+            if "API key" in str(e):
+                logger.error("Grading unavailable: %s", e)
+                return GradeResult(
+                    technical_accuracy=3.0,
+                    risk_awareness=3.0,
+                    strategy_fit=3.0,
+                    reasoning_clarity=3.0,
+                    overall_score=3.0,
+                    feedback_text=(
+                        "Grading is unavailable: OpenRouter API key is not set. "
+                        "Add OPENROUTER_API_KEY (or OPEN_ROUTER_API_KEY) to backend/.env and restart the backend."
+                    ),
+                )
+            raise
+        except Exception as e:
+            logger.exception("Failed to grade via LLM: %s", e)
             return _fallback_grade()

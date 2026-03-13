@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 
@@ -10,9 +10,15 @@ const publicLinks = [
   { href: "/about", label: "About" },
 ];
 
-const authedLinks = [
+const studentLinks = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
+  { href: "/lessons", label: "Lessons" },
+  { href: "/scenario", label: "Train" },
+  { href: "/leaderboard", label: "Leaderboard" },
+];
+
+const educatorLinks = [
+  { href: "/", label: "Home" },
   { href: "/scenario", label: "Train" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/dashboard", label: "Dashboard" },
@@ -30,6 +36,7 @@ function getInitials(name: string): string {
 export default function NavBar() {
   const { user, loading, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -63,7 +70,11 @@ export default function NavBar() {
     setMobileMenuOpen(false);
   }
 
-  const links = user ? authedLinks : publicLinks;
+  const links = user
+    ? user.role === "educator"
+      ? educatorLinks
+      : studentLinks
+    : publicLinks;
 
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
@@ -74,17 +85,8 @@ export default function NavBar() {
     <nav className="sticky top-0 z-50 border-b border-white/[0.06] bg-black/50 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
-          </span>
-          <span className="text-lg font-bold tracking-tight text-white">
-            CapMan{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-              AI
-            </span>
-          </span>
+        <Link href="/" className="flex items-center">
+          <img src="/logo.svg" alt="CapMan AI" className="h-9 w-auto" />
         </Link>
 
         {/* Desktop Nav Links */}
@@ -95,12 +97,11 @@ export default function NavBar() {
               href={link.href}
               className={`group relative px-3 py-2 text-sm font-medium transition-colors ${
                 isActive(link.href)
-                  ? "text-white"
+                  ? "text-violet-300 [text-shadow:0_0_12px_rgba(139,92,246,0.5)]"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
               {link.label}
-              {/* Active / hover bottom bar */}
               <span
                 className={`absolute inset-x-3 -bottom-[13px] h-px transition-opacity ${
                   isActive(link.href)
@@ -165,9 +166,10 @@ export default function NavBar() {
                     </div>
                     <div className="p-1">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setDropdownOpen(false);
-                          logout();
+                          await logout();
+                          router.push("/");
                         }}
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition-colors hover:bg-white/[0.04] hover:text-red-300"
                       >
@@ -278,9 +280,10 @@ export default function NavBar() {
                     </span>
                   </div>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       handleNavClick();
-                      logout();
+                      await logout();
+                      router.push("/");
                     }}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/[0.04] hover:text-red-300"
                   >

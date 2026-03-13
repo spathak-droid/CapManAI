@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchDashboardOverview, fetchMTSSTiers } from "@/lib/api";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardOverview, useMTSSTiers } from "@/lib/hooks";
 import MTSSHeatmap from "@/components/MTSSHeatmap";
-import type { ClassOverview, StudentTierInfo } from "@/lib/types";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 const SKILL_LABELS: Record<string, string> = {
   price_action: "Price Action",
@@ -49,23 +51,20 @@ function formatSkillName(key: string): string {
 }
 
 export default function DashboardPage() {
-  const [overview, setOverview] = useState<ClassOverview | null>(null);
-  const [students, setStudents] = useState<StudentTierInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  useEffect(() => {
-    Promise.all([fetchDashboardOverview(), fetchMTSSTiers()])
-      .then(([ov, st]) => {
-        setOverview(ov);
-        setStudents(st);
-      })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load dashboard"),
-      )
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: overview, error: overviewError, isLoading: overviewLoading } = useDashboardOverview();
+  const { data: students, error: studentsError, isLoading: studentsLoading } = useMTSSTiers();
+
+  if (!authLoading && user?.role !== "educator") {
+    router.replace("/");
+    return null;
+  }
+
+  const loading = overviewLoading || studentsLoading;
+  const error = overviewError || studentsError;
 
   const tierKeys = ["tier_1", "tier_2", "tier_3"];
   const skillKeys = overview ? Object.keys(overview.skill_breakdown) : [];
@@ -87,16 +86,12 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Loading State ── */}
-      {loading && (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 rounded-full border-2 border-zinc-700 border-t-blue-500 animate-spin" />
-        </div>
-      )}
+      {loading && <DashboardSkeleton />}
 
       {/* ── Error State ── */}
       {error && (
         <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400 text-sm">
-          {error}
+          {error instanceof Error ? error.message : "Failed to load dashboard"}
         </div>
       )}
 
@@ -155,7 +150,7 @@ export default function DashboardPage() {
           </div>
 
           {skillKeys.length > 0 ? (
-            <div className="mb-12 overflow-hidden rounded-2xl border border-white/[0.06] bg-zinc-900/30">
+            <div className="card-glow mb-12 overflow-hidden">
               <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-800/50">
                   <tr>
@@ -202,7 +197,7 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <div className="mb-12 rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-10 text-center text-zinc-500">
+            <div className="card-glow mb-12 p-10 text-center text-zinc-500">
               No skill breakdown data available yet.
             </div>
           )}
@@ -212,8 +207,8 @@ export default function DashboardPage() {
             Student Details
           </h2>
 
-          {students.length > 0 ? (
-            <div className="mb-12 overflow-hidden rounded-2xl border border-white/[0.06] bg-zinc-900/30">
+          {students && students.length > 0 ? (
+            <div className="card-glow mb-12 overflow-hidden">
               <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-800/50">
                   <tr>
@@ -281,13 +276,13 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <div className="mb-12 rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-10 text-center text-zinc-500">
+            <div className="card-glow mb-12 p-10 text-center text-zinc-500">
               No student tier data available yet.
             </div>
           )}
 
           {/* ── MTSS Heatmap ── */}
-          {students.length > 0 && (
+          {students && students.length > 0 && (
             <>
               <h2 className="mb-4 text-xl font-semibold text-white">
                 MTSS Heatmap
