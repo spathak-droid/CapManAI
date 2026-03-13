@@ -18,6 +18,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(100), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     role: Mapped[str] = mapped_column(String(20))  # student or educator
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     xp_total: Mapped[int] = mapped_column(default=0)
     level: Mapped[int] = mapped_column(default=1)

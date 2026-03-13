@@ -1,6 +1,6 @@
 """API route definitions for CapMan AI."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from src.api.schemas import (
     GradeRequest,
@@ -10,6 +10,8 @@ from src.api.schemas import (
     RespondRequest,
     RespondResponse,
 )
+from src.auth.dependencies import get_current_user, require_role
+from src.db.models import User
 from src.gamification.leaderboard import LeaderboardEntry, get_leaderboard
 from src.gamification.xp import calculate_level, xp_to_next_level
 from src.grading.agent import GradingAgent, ProbingAgent
@@ -45,14 +47,20 @@ _user_xp_store: dict[int, dict[str, object]] = {
 
 
 @router.post("/api/scenarios/generate")
-async def generate_scenario(params: ScenarioParams) -> ScenarioResult:
+async def generate_scenario(
+    params: ScenarioParams,
+    user: User = Depends(get_current_user),
+) -> ScenarioResult:
     """Generate a new trading scenario using LLM."""
     generator = ScenarioGenerator()
     return await generator.generate(params)
 
 
 @router.post("/api/scenarios/respond")
-async def respond_to_scenario(req: RespondRequest) -> RespondResponse:
+async def respond_to_scenario(
+    req: RespondRequest,
+    user: User = Depends(get_current_user),
+) -> RespondResponse:
     """Submit a response to a trading scenario."""
     # Mock response_id until DB integration is wired up
     mock_response_id = (req.scenario_id * 1000) + req.user_id
@@ -60,7 +68,10 @@ async def respond_to_scenario(req: RespondRequest) -> RespondResponse:
 
 
 @router.post("/api/scenarios/probe")
-async def probe_response(req: ProbeRequest) -> ProbeResponse:
+async def probe_response(
+    req: ProbeRequest,
+    user: User = Depends(get_current_user),
+) -> ProbeResponse:
     """Generate probing follow-up questions for a response."""
     questions = await _probing_agent.generate_probes(
         scenario_text=req.scenario_text,
@@ -71,7 +82,10 @@ async def probe_response(req: ProbeRequest) -> ProbeResponse:
 
 
 @router.post("/api/scenarios/grade")
-async def grade_response(req: GradeRequest) -> GradeResponse:
+async def grade_response(
+    req: GradeRequest,
+    user: User = Depends(get_current_user),
+) -> GradeResponse:
     """Grade a scenario response with probing answers."""
     result = await _grading_agent.grade(
         scenario_text=req.scenario_text,
@@ -92,7 +106,10 @@ async def grade_response(req: GradeRequest) -> GradeResponse:
 
 
 @router.get("/api/gamification/xp/{user_id}")
-async def get_user_xp(user_id: int) -> dict[str, object]:
+async def get_user_xp(
+    user_id: int,
+    user: User = Depends(get_current_user),
+) -> dict[str, object]:
     """Get XP details for a user."""
     user_data = _user_xp_store.get(user_id)
     if user_data is None:
@@ -114,13 +131,16 @@ async def get_user_xp(user_id: int) -> dict[str, object]:
 @router.get("/api/leaderboard")
 async def get_leaderboard_route(
     limit: int = 20,
+    user: User = Depends(get_current_user),
 ) -> list[LeaderboardEntry]:
     """Get the current leaderboard rankings."""
     return get_leaderboard(limit=limit)
 
 
 @router.get("/api/mtss/tiers")
-async def get_mtss_tiers() -> list[dict[str, object]]:
+async def get_mtss_tiers(
+    user: User = Depends(require_role("educator")),
+) -> list[dict[str, object]]:
     """Get MTSS tier classifications for all demo students."""
     results: list[dict[str, object]] = []
     for student in DEMO_STUDENTS:
@@ -141,6 +161,8 @@ async def get_mtss_tiers() -> list[dict[str, object]]:
 
 
 @router.get("/api/dashboard/overview")
-async def get_dashboard_overview() -> ClassOverview:
+async def get_dashboard_overview(
+    user: User = Depends(require_role("educator")),
+) -> ClassOverview:
     """Get dashboard overview data with tier distribution."""
     return get_class_overview(DEMO_STUDENTS)
