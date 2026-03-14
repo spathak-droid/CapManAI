@@ -278,3 +278,96 @@ class AssistantConversationRenameRequest(BaseModel):
     """Body for PATCH /api/assistant/conversations/:id."""
 
     title: str
+
+
+# --- Dynamic Leaderboard schemas ---
+
+
+class DynamicLeaderboardEntry(BaseModel):
+    """A single entry on the dynamic leaderboard."""
+
+    rank: int
+    user_id: int
+    username: str
+    mastery_score: float
+    repetition_count: int
+    xp_total: int
+    composite_score: float
+
+
+class UserRank(BaseModel):
+    """Rank details for a single user."""
+
+    user_id: int
+    username: str
+    rank: int
+    mastery_score: float
+    repetition_count: int
+    xp_total: int
+    composite_score: float
+    total_users: int
+
+
+# --- MTSS granular schemas ---
+
+
+class StudentSkillBreakdown(BaseModel):
+    """Detailed skill breakdown for a single student."""
+
+    user_id: int
+    username: str
+    skills: dict[str, dict[str, object]]  # skill_name -> {score, tier, attempts}
+
+
+class ObjectiveDistribution(BaseModel):
+    """Class-wide tier distribution for a single learning objective."""
+
+    objective_id: str
+    objective_name: str
+    tier_1_count: int
+    tier_2_count: int
+    tier_3_count: int
+    total_students: int
+
+
+class InterventionRecommendation(BaseModel):
+    """Tier-specific intervention recommendation for a skill."""
+
+    skill: str
+    current_tier: str
+    score: float
+    recommendation: str
+    suggested_activities: list[str]
+
+
+# --- RAG schemas ---
+
+
+class DocumentIngestRequest(BaseModel):
+    """Request body for ingesting a document into the RAG pipeline."""
+
+    source_file: str
+    content: str
+
+
+class DocumentIngestResponse(BaseModel):
+    """Response after document ingestion."""
+
+    doc_id: str
+    chunks_created: int
+
+
+class RAGSearchResult(BaseModel):
+    """A single RAG search result."""
+
+    chunk_id: int
+    source_file: str
+    content: str
+    score: float
+
+
+class RAGSearchResponse(BaseModel):
+    """Response from RAG search endpoint."""
+
+    query: str
+    results: list[RAGSearchResult]

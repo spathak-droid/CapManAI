@@ -200,14 +200,20 @@ class LessonContext(BaseModel):
 class ScenarioGenerator:
     """Generates trading scenarios via LLM calls through OpenRouter."""
 
-    async def generate(self, params: ScenarioParams) -> ScenarioResult:
+    async def generate(
+        self, params: ScenarioParams, rag_context: str | None = None
+    ) -> ScenarioResult:
         """Generate a trading scenario from the given parameters.
 
         Calls the OpenRouter API. Falls back to a hardcoded scenario
         if the API call fails for any reason.
+
+        Args:
+            params: Scenario generation parameters.
+            rag_context: Optional RAG context for grounding in CapMan concepts.
         """
         try:
-            return await self._call_llm(params)
+            return await self._call_llm(params, rag_context=rag_context)
         except Exception:
             logger.exception("LLM call failed, returning fallback scenario")
             return self._get_fallback(params)
@@ -223,7 +229,9 @@ class ScenarioGenerator:
             logger.exception("Lesson scenario LLM failed, returning fallback")
             return FALLBACK_SCENARIOS[0]  # AAPL with chart-ready data
 
-    async def _call_llm(self, params: ScenarioParams) -> ScenarioResult:
+    async def _call_llm(
+        self, params: ScenarioParams, rag_context: str | None = None
+    ) -> ScenarioResult:
         """Call OpenRouter chat completions API."""
         objective = LearningObjective(params.skill_target)
         skill_description = OBJECTIVE_DESCRIPTIONS[objective]
@@ -236,10 +244,17 @@ class ScenarioGenerator:
             instrument_type=params.instrument_type,
         )
 
+        system_content = SYSTEM_PROMPT
+        if rag_context:
+            system_content = (
+                f"Use the following reference material:\n{rag_context}\n\n"
+                + system_content
+            )
+
         payload: dict[str, Any] = {
             "model": settings.openrouter_model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": user_prompt},
             ],
             "response_format": {"type": "json_object"},

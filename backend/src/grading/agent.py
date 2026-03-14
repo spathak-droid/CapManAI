@@ -191,6 +191,7 @@ class GradingAgent:
         scenario_text: str,
         student_response: str,
         probe_exchanges: list[ProbeExchange],
+        rag_context: str | None = None,
     ) -> GradeResult:
         """Grade a student's complete response including probe answers.
 
@@ -198,6 +199,7 @@ class GradingAgent:
             scenario_text: The original scenario description.
             student_response: The student's initial answer.
             probe_exchanges: List of ProbeExchange from probing phase.
+            rag_context: Optional RAG context for domain-specific accuracy.
 
         Returns:
             GradeResult with dimension scores, overall score, and feedback.
@@ -221,7 +223,13 @@ class GradingAgent:
             d_rc=rc_dim.description,
         )
         try:
-            content = await _call_openrouter(GRADING_SYSTEM_PROMPT, user_prompt)
+            system_prompt = GRADING_SYSTEM_PROMPT
+            if rag_context:
+                system_prompt = (
+                    f"Use the following reference material:\n{rag_context}\n\n"
+                    + system_prompt
+                )
+            content = await _call_openrouter(system_prompt, user_prompt)
             raw = json.loads(content)
             ta = float(raw["technical_accuracy"])
             ra = float(raw["risk_awareness"])

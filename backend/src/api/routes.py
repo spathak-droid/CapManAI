@@ -7,12 +7,15 @@ from sqlalchemy import func, select
 
 from src.api.schemas import (
     ChunkCompleteResponse,
+    DynamicLeaderboardEntry,
     GradeRequest,
     GradeResponse,
+    InterventionRecommendation,
     LessonChunkDetail,
     LessonModuleDetail,
     LessonModuleSummary,
     LessonProgressSummary,
+    ObjectiveDistribution,
     ProbeRequest,
     ProbeResponse,
     QuizAttemptRequest,
@@ -20,6 +23,8 @@ from src.api.schemas import (
     RespondRequest,
     RespondResponse,
     StreakInfo,
+    StudentSkillBreakdown,
+    UserRank,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,14 +35,26 @@ from src.gamification.leaderboard import (
     LeaderboardEntry,
     get_leaderboard,
 )
+from src.gamification.ranking import (
+    get_dynamic_leaderboard,
+    get_user_rank,
+    recalculate_rankings,
+)
 from src.gamification.xp import calculate_level, xp_to_next_level
 from src.grading.agent import GradingAgent, ProbingAgent
 from src.mtss.classifier import (
     DEMO_STUDENTS,
     ClassOverview,
+    MTSSTier,
     classify_tier,
     get_class_overview,
+    get_demo_students,
     get_student_tiers,
+)
+from src.mtss.objectives import OBJECTIVE_DESCRIPTIONS, LearningObjective
+from src.mtss.repository import (
+    get_class_objective_distribution,
+    get_student_skill_scores,
 )
 from src.lessons.repository import (
     fetch_chunk_def,
@@ -55,7 +72,15 @@ from src.lessons.service import (
     list_module_chunks,
     list_modules,
 )
-from src.api.schemas import LessonScenarioRequest
+from src.api.schemas import (
+    DocumentIngestRequest,
+    DocumentIngestResponse,
+    LessonScenarioRequest,
+    RAGSearchResponse,
+    RAGSearchResult,
+)
+from src.rag.ingest import _generate_doc_id, ingest_document
+from src.rag.retriever import search as rag_search
 from src.scenario_gen.generator import (
     LessonContext,
     ScenarioGenerator,
@@ -203,6 +228,42 @@ async def get_leaderboard_route(
     return await get_leaderboard(db, limit=limit)
 
 
+@router.get("/api/leaderboard/dynamic")
+async def get_dynamic_leaderboard_route(
+    sort_by: str = "composite",
+    limit: int = 20,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[DynamicLeaderboardEntry]:
+    """Get the dynamic leaderboard with composite rankings.
+
+    Query params:
+        sort_by: 'mastery', 'repetition', or 'composite' (default).
+        limit: Max entries to return (default 20).
+    """
+    await recalculate_rankings(db)
+    rows = await get_dynamic_leaderboard(db, sort_by=sort_by, limit=limit)
+    return [DynamicLeaderboardEntry.model_validate(r) for r in rows]
+
+
+@router.get("/api/leaderboard/me")
+async def get_my_rank(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserRank:
+    """Get the authenticated user's rank info."""
+    await recalculate_rankings(db)
+    rank_info = await get_user_rank(db, _user.id)
+    if rank_info is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No ranking data found for user",
+        )
+    return UserRank.model_validate(rank_info)
+
+
 @router.get("/api/mtss/tiers")
 async def get_mtss_tiers(
     _user: User = Depends(require_role("educator")),
@@ -237,6 +298,178 @@ async def get_dashboard_overview(
 ) -> ClassOverview:
     """Get dashboard overview data with tier distribution."""
     return get_class_overview(DEMO_STUDENTS)
+
+
+@router.get("/api/mtss/student/{user_id}/skills")
+async def get_student_skills(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> StudentSkillBreakdown:
+    """Return detailed skill breakdown for a student (DB with demo fallback)."""
+    skill_rows = await get_student_skill_scores(db, user_id)
+    if skill_rows:
+        user_obj = await db.get(User, user_id)
+        username = user_obj.username if user_obj else f"user_{user_id}"
+        skills: dict[str, dict[str, object]] = {}
+        for row in skill_rows:
+            skills[row.skill_id] = {
+                "score": row.score,
+                "tier": classify_tier(row.score).value,
+                "attempts": row.attempts,
+            }
+        return StudentSkillBreakdown(
+            user_id=user_id, username=username, skills=skills
+        )
+
+    # Fallback to demo data
+    for student in get_demo_students():
+        if student.user_id == user_id:
+            skills = {}
+            for skill_id, score in student.skill_scores.items():
+                skills[skill_id] = {
+                    "score": score,
+                    "tier": classify_tier(score).value,
+                    "attempts": 0,
+                }
+            return StudentSkillBreakdown(
+                user_id=student.user_id,
+                username=student.username,
+                skills=skills,
+            )
+
+    return StudentSkillBreakdown(user_id=user_id, username="unknown", skills={})
+
+
+@router.get("/api/mtss/objectives")
+async def get_objective_distributions(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[ObjectiveDistribution]:
+    """Return class-wide tier distribution per learning objective."""
+    db_dist = await get_class_objective_distribution(db)
+
+    if db_dist:
+        results: list[ObjectiveDistribution] = []
+        for obj_id, counts in db_dist.items():
+            # Look up human-readable name
+            try:
+                obj_enum = LearningObjective(obj_id)
+                obj_name = OBJECTIVE_DESCRIPTIONS.get(obj_enum, obj_id)
+            except ValueError:
+                obj_name = obj_id
+            results.append(
+                ObjectiveDistribution(
+                    objective_id=obj_id,
+                    objective_name=obj_name,
+                    tier_1_count=counts.get("tier_1", 0),
+                    tier_2_count=counts.get("tier_2", 0),
+                    tier_3_count=counts.get("tier_3", 0),
+                    total_students=counts.get("total", 0),
+                )
+            )
+        return results
+
+    # Fallback: compute from demo students
+    demo = get_demo_students()
+    skill_dist: dict[str, dict[str, int]] = {}
+    for student in demo:
+        for skill_id, score in student.skill_scores.items():
+            if skill_id not in skill_dist:
+                skill_dist[skill_id] = {
+                    "tier_1": 0,
+                    "tier_2": 0,
+                    "tier_3": 0,
+                    "total": 0,
+                }
+            tier = classify_tier(score)
+            skill_dist[skill_id][tier.value] += 1
+            skill_dist[skill_id]["total"] += 1
+
+    results = []
+    for skill_id, counts in skill_dist.items():
+        try:
+            obj_enum = LearningObjective(skill_id)
+            obj_name = OBJECTIVE_DESCRIPTIONS.get(obj_enum, skill_id)
+        except ValueError:
+            obj_name = skill_id
+        results.append(
+            ObjectiveDistribution(
+                objective_id=skill_id,
+                objective_name=obj_name,
+                tier_1_count=counts["tier_1"],
+                tier_2_count=counts["tier_2"],
+                tier_3_count=counts["tier_3"],
+                total_students=counts["total"],
+            )
+        )
+    return results
+
+
+def _generate_interventions(
+    skill_scores: dict[str, float],
+) -> list[InterventionRecommendation]:
+    """Generate intervention recommendations based on skill scores and tiers."""
+    recommendations: list[InterventionRecommendation] = []
+    for skill, score in skill_scores.items():
+        tier = classify_tier(score)
+        if tier == MTSSTier.TIER_3:
+            rec = InterventionRecommendation(
+                skill=skill,
+                current_tier=tier.value,
+                score=score,
+                recommendation="Intensive support needed",
+                suggested_activities=[
+                    f"Guided walkthrough on {skill} fundamentals",
+                    f"One-on-one tutoring session for {skill}",
+                    f"Scaffolded practice problems for {skill}",
+                ],
+            )
+        elif tier == MTSSTier.TIER_2:
+            rec = InterventionRecommendation(
+                skill=skill,
+                current_tier=tier.value,
+                score=score,
+                recommendation="Targeted practice recommended",
+                suggested_activities=[
+                    f"Focused exercises on {skill}",
+                    f"Peer study group for {skill}",
+                    f"Review {skill} worked examples",
+                ],
+            )
+        else:
+            rec = InterventionRecommendation(
+                skill=skill,
+                current_tier=tier.value,
+                score=score,
+                recommendation="On track",
+                suggested_activities=[
+                    f"Advanced {skill} challenge scenarios",
+                    f"Mentor others in {skill}",
+                ],
+            )
+        recommendations.append(rec)
+    return recommendations
+
+
+@router.get("/api/mtss/interventions/{user_id}")
+async def get_interventions(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[InterventionRecommendation]:
+    """Return tier-specific intervention recommendations for a student."""
+    skill_rows = await get_student_skill_scores(db, user_id)
+    if skill_rows:
+        score_map = {row.skill_id: row.score for row in skill_rows}
+        return _generate_interventions(score_map)
+
+    # Fallback to demo
+    for student in get_demo_students():
+        if student.user_id == user_id:
+            return _generate_interventions(student.skill_scores)
+
+    return []
 
 
 def _to_chunk_response(chunk: Any) -> LessonChunkDetail:
@@ -507,3 +740,43 @@ async def get_lessons_catalog_chunk(
             for item in quiz_items
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# RAG endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/api/rag/ingest")
+async def rag_ingest(
+    req: DocumentIngestRequest,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> DocumentIngestResponse:
+    """Ingest a document into the RAG pipeline (educator-only)."""
+    chunks = await ingest_document(db, source_file=req.source_file, content=req.content)
+    await db.commit()
+    doc_id = _generate_doc_id(req.source_file)
+    return DocumentIngestResponse(doc_id=doc_id, chunks_created=len(chunks))
+
+
+@router.get("/api/rag/search")
+async def rag_search_endpoint(
+    q: str,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> RAGSearchResponse:
+    """Search document chunks by semantic similarity."""
+    results = await rag_search(db, query=q, top_k=5)
+    return RAGSearchResponse(
+        query=q,
+        results=[
+            RAGSearchResult(
+                chunk_id=int(r["chunk_id"]),  # type: ignore[arg-type]
+                source_file=str(r["source_file"]),
+                content=str(r["content"]),
+                score=float(r["score"]),  # type: ignore[arg-type]
+            )
+            for r in results
+        ],
+    )

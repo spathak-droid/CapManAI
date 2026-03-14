@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.assistant_routes import router as assistant_router
 from src.api.routes import router
 from src.auth.routes import auth_router
+from src.realtime.routes import router as realtime_router
 from src.core.config import settings
 from src.db.database import async_session_factory
 from src.lessons.persistence import seed_lessons_to_db
@@ -40,6 +41,7 @@ app.add_middleware(
 app.include_router(router)
 app.include_router(assistant_router)
 app.include_router(auth_router)
+app.include_router(realtime_router)
 
 
 @app.get("/health")

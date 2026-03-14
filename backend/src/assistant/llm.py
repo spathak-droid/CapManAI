@@ -22,8 +22,16 @@ Format your replies so they are easy to scan:
 Be concise, accurate, and supportive. When relevant, tie answers to lessons or scenario training."""
 
 
-async def chat_completion(messages: list[dict[str, str]]) -> str:
-    """Call OpenRouter chat completions with the given messages; returns assistant content."""
+async def chat_completion(
+    messages: list[dict[str, str]],
+    rag_context: str | None = None,
+) -> str:
+    """Call OpenRouter chat completions with the given messages; returns assistant content.
+
+    Args:
+        messages: List of message dicts with 'role' and 'content'.
+        rag_context: Optional RAG context to prepend to the system message.
+    """
     api_key = settings.openrouter_api_key
     if not api_key:
         logger.error(
@@ -32,6 +40,22 @@ async def chat_completion(messages: list[dict[str, str]]) -> str:
         raise ValueError(
             "OpenRouter API key not set. Add OPENROUTER_API_KEY to backend/.env and restart."
         )
+
+    # Optionally inject RAG context into the system message
+    if rag_context:
+        enriched_messages: list[dict[str, str]] = []
+        for msg in messages:
+            if msg["role"] == "system":
+                enriched_msg = dict(msg)
+                enriched_msg["content"] = (
+                    f"Use the following reference material:\n{rag_context}\n\n"
+                    + msg["content"]
+                )
+                enriched_messages.append(enriched_msg)
+            else:
+                enriched_messages.append(msg)
+        messages = enriched_messages
+
     url = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",

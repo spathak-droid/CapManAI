@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -215,6 +215,21 @@ class AssistantConversation(Base):
     )
 
 
+class LeaderboardSnapshot(Base):
+    __tablename__ = "leaderboard_snapshots"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    mastery_score: Mapped[float] = mapped_column(default=0.0)
+    repetition_count: Mapped[int] = mapped_column(default=0)
+    composite_rank: Mapped[float] = mapped_column(default=0.0)
+    calculated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    user: Mapped["User"] = relationship()
+
+
 class AssistantMessage(Base):
     __tablename__ = "assistant_messages"
 
@@ -226,4 +241,41 @@ class AssistantMessage(Base):
 
     conversation: Mapped["AssistantConversation"] = relationship(
         back_populates="messages"
+    )
+
+
+class DocumentChunk(Base):
+    """Stores chunked document content with embeddings for RAG retrieval."""
+
+    __tablename__ = "document_chunks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    doc_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_file: Mapped[str] = mapped_column(String(512), nullable=False)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(JSON, nullable=True)  # type: ignore[assignment]
+    metadata_: Mapped[dict[str, object]] = mapped_column(
+        "metadata", JSON, default=dict
+    )  # type: ignore[assignment]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class LearningObjectiveProgress(Base):
+    __tablename__ = "learning_objective_progress"
+    __table_args__ = (
+        UniqueConstraint("user_id", "objective_id", name="uq_user_objective"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    objective_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    score_history: Mapped[list[dict[str, object]]] = mapped_column(
+        JSON, default=list
+    )  # type: ignore[assignment]
+    current_tier: Mapped[str] = mapped_column(String(20), default="tier_1")
+    last_assessed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
