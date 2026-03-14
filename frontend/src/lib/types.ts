@@ -237,3 +237,51 @@ export interface AssistantChatResponse {
   conversation_id: number;
   message: AssistantMessagePayload;
 }
+
+// --- Granular MTSS Types ---
+
+export interface StudentSkillBreakdown {
+  user_id: number;
+  username: string;
+  skills: Record<string, { score: number; tier: string; attempts: number }>;
+}
+
+export interface ObjectiveDistribution {
+  objective_id: string;
+  objective_name: string;
+  tier_1_count: number;
+  tier_2_count: number;
+  tier_3_count: number;
+  total_students: number;
+}
+
+export interface InterventionRecommendation {
+  skill: string;
+  current_tier: string;
+  score: number;
+  recommendation: string;
+  suggested_activities: string[];
+}
+
+// --- Dynamic Leaderboard Types ---
+
+export interface DynamicLeaderboardEntry {
+  rank: number;
+  user_id: number;
+  username: string;
+  mastery_score: number;
+  repetition_count: number;
+  xp_total: number;
+  composite_score: number;
+}
+
+export interface UserRank {
+  user_id: number;
+  username: string;
+  rank: number;
+  mastery_score: number;
+  repetition_count: number;
+  xp_total: number;
+  composite_score: number;
+  total_users: number;
+}

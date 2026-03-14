@@ -10,6 +10,11 @@ import {
   fetchMTSSTiers,
   fetchLessonModule,
   fetchLessonChunk,
+  getStudentSkills,
+  getObjectiveDistributions,
+  getStudentInterventions,
+  getDynamicLeaderboard,
+  getMyRank,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -20,6 +25,11 @@ import type {
   StudentTierInfo,
   LessonModuleDetail,
   LessonChunkDetail,
+  StudentSkillBreakdown,
+  ObjectiveDistribution,
+  InterventionRecommendation,
+  DynamicLeaderboardEntry,
+  UserRank,
 } from "./types";
 
 // SWR config: dedupe requests within 5 minutes, don't refetch on window focus
@@ -78,4 +88,44 @@ export function useLessonChunk(chunkId: string | null) {
     () => fetchLessonChunk(chunkId!),
     CACHE_OPTIONS,
   );
+}
+
+// --- Granular MTSS hooks ---
+
+export function useStudentSkills(userId: number | null) {
+  return useSWR<StudentSkillBreakdown>(
+    userId ? `mtss-student-skills-${userId}` : null,
+    () => getStudentSkills(userId!),
+    CACHE_OPTIONS,
+  );
+}
+
+export function useObjectiveDistributions() {
+  return useSWR<ObjectiveDistribution[]>(
+    "mtss-objectives",
+    getObjectiveDistributions,
+    CACHE_OPTIONS,
+  );
+}
+
+export function useStudentInterventions(userId: number | null) {
+  return useSWR<InterventionRecommendation[]>(
+    userId ? `mtss-interventions-${userId}` : null,
+    () => getStudentInterventions(userId!),
+    CACHE_OPTIONS,
+  );
+}
+
+// --- Dynamic Leaderboard hooks ---
+
+export function useDynamicLeaderboard(sortBy: string) {
+  return useSWR<DynamicLeaderboardEntry[]>(
+    `dynamic-leaderboard-${sortBy}`,
+    () => getDynamicLeaderboard(sortBy),
+    CACHE_OPTIONS,
+  );
+}
+
+export function useMyRank() {
+  return useSWR<UserRank>("my-rank", getMyRank, CACHE_OPTIONS);
 }

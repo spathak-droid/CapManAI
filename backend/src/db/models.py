@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -278,4 +278,81 @@ class LearningObjectiveProgress(Base):
     current_tier: Mapped[str] = mapped_column(String(20), default="tier_1")
     last_assessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Challenge(Base):
+    """Head-to-head challenge between two users."""
+
+    __tablename__ = "challenges"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    challenger_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    opponent_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    scenario_id: Mapped[int | None] = mapped_column(
+        ForeignKey("scenarios.id"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), default="pending"
+    )  # pending, active, grading, complete
+    skill_target: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    complexity: Mapped[int] = mapped_column(default=3)
+    winner_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    responses: Mapped[list["ChallengeResponse"]] = relationship(
+        back_populates="challenge"
+    )
+
+
+class ChallengeResponse(Base):
+    """A user's response to a head-to-head challenge."""
+
+    __tablename__ = "challenge_responses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    challenge_id: Mapped[int] = mapped_column(
+        ForeignKey("challenges.id"), nullable=False
+    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    answer_text: Mapped[str] = mapped_column(Text, nullable=False)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    grade_id: Mapped[int | None] = mapped_column(
+        ForeignKey("grades.id"), nullable=True
+    )
+
+    challenge: Mapped["Challenge"] = relationship(back_populates="responses")
+    grade: Mapped["Grade | None"] = relationship()
+
+
+class MatchmakingQueue(Base):
+    """Queue entry for matchmaking users into challenges."""
+
+    __tablename__ = "matchmaking_queue"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), nullable=False, unique=True
+    )
+    skill_target: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    elo_rating: Mapped[float] = mapped_column(Float, default=1000.0)
+    queued_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    matched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    challenge_id: Mapped[int | None] = mapped_column(
+        ForeignKey("challenges.id"), nullable=True
     )

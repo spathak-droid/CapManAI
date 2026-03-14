@@ -371,3 +371,49 @@ class RAGSearchResponse(BaseModel):
 
     query: str
     results: list[RAGSearchResult]
+
+
+# --- Challenge schemas ---
+
+
+class QueueJoinRequest(BaseModel):
+    """Request to join the matchmaking queue."""
+
+    skill_target: str | None = None
+
+
+class QueueStatusResponse(BaseModel):
+    """Matchmaking queue status for the current user."""
+
+    in_queue: bool
+    queued_at: str | None = None
+    skill_target: str | None = None
+
+
+class ChallengeSubmitRequest(BaseModel):
+    """Request to submit a challenge response."""
+
+    answer_text: str
+
+
+class ChallengeDetail(BaseModel):
+    """Details about a challenge."""
+
+    id: int
+    challenger_id: int
+    opponent_id: int | None
+    status: str
+    skill_target: str | None
+    complexity: int
+    winner_id: int | None
+    created_at: str
+
+
+class ChallengeResultDetail(BaseModel):
+    """Results of a completed challenge."""
+
+    challenge_id: int
+    winner_id: int | None
+    challenger_grade: dict[str, object] | None
+    opponent_grade: dict[str, object] | None
+    xp_earned: int

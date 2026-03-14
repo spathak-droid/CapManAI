@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import NavBar from "@/components/NavBar";
 import FloatingAssistantWidget from "@/components/FloatingAssistantWidget";
 import PrefetchData from "@/components/PrefetchData";
@@ -39,10 +40,12 @@ export default function RootLayout({
         }}
       >
         <AuthProvider>
-          <PrefetchData />
-          <NavBar />
-          <main>{children}</main>
-          <FloatingAssistantWidget />
+          <RealtimeProvider>
+            <PrefetchData />
+            <NavBar />
+            <main>{children}</main>
+            <FloatingAssistantWidget />
+          </RealtimeProvider>
         </AuthProvider>
       </body>
     </html>

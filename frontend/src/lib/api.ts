@@ -20,6 +20,11 @@ import type {
   AssistantConversationDetail,
   AssistantConversationListItem,
   AssistantMessagePayload,
+  StudentSkillBreakdown,
+  ObjectiveDistribution,
+  InterventionRecommendation,
+  DynamicLeaderboardEntry,
+  UserRank,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -254,6 +259,35 @@ export async function deleteAssistantConversation(id: number): Promise<void> {
   await request(`/api/assistant/conversations/${id}`, {
     method: "DELETE",
   });
+}
+
+// --- Granular MTSS API ---
+
+export async function getStudentSkills(userId: number): Promise<StudentSkillBreakdown> {
+  return request<StudentSkillBreakdown>(`/api/mtss/student/${userId}/skills`);
+}
+
+export async function getObjectiveDistributions(): Promise<ObjectiveDistribution[]> {
+  return request<ObjectiveDistribution[]>("/api/mtss/objectives");
+}
+
+export async function getStudentInterventions(userId: number): Promise<InterventionRecommendation[]> {
+  return request<InterventionRecommendation[]>(`/api/mtss/interventions/${userId}`);
+}
+
+// --- Dynamic Leaderboard API ---
+
+export async function getDynamicLeaderboard(
+  sortBy?: string,
+): Promise<DynamicLeaderboardEntry[]> {
+  const query = sortBy ? `?sort_by=${sortBy}` : "";
+  return request<DynamicLeaderboardEntry[]>(
+    `/api/leaderboard/dynamic${query}`,
+  );
+}
+
+export async function getMyRank(): Promise<UserRank> {
+  return request<UserRank>("/api/leaderboard/me");
 }
 
 export { ApiError };
