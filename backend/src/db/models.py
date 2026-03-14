@@ -336,6 +336,51 @@ class ChallengeResponse(Base):
     grade: Mapped["Grade | None"] = relationship()
 
 
+class PeerReviewAssignment(Base):
+    """Assignment linking a reviewer to a reviewee's response."""
+
+    __tablename__ = "peer_review_assignments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reviewer_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    reviewee_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    response_id: Mapped[int] = mapped_column(ForeignKey("responses.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="assigned")  # assigned, submitted, expired
+    due_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    review: Mapped["PeerReview | None"] = relationship(back_populates="assignment")
+
+
+class PeerReview(Base):
+    """A completed peer review with rubric scores and feedback."""
+
+    __tablename__ = "peer_reviews"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    assignment_id: Mapped[int] = mapped_column(
+        ForeignKey("peer_review_assignments.id"), nullable=False
+    )
+    technical_accuracy: Mapped[float] = mapped_column(Float, nullable=False)
+    risk_awareness: Mapped[float] = mapped_column(Float, nullable=False)
+    strategy_fit: Mapped[float] = mapped_column(Float, nullable=False)
+    reasoning_clarity: Mapped[float] = mapped_column(Float, nullable=False)
+    overall_score: Mapped[float] = mapped_column(Float, nullable=False)
+    feedback_text: Mapped[str] = mapped_column(Text, nullable=False)
+    helpfulness_rating: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # 1-5, rated by reviewee
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    assignment: Mapped["PeerReviewAssignment"] = relationship(back_populates="review")
+
+
 class MatchmakingQueue(Base):
     """Queue entry for matchmaking users into challenges."""
 

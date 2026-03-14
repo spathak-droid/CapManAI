@@ -25,6 +25,12 @@ import type {
   InterventionRecommendation,
   DynamicLeaderboardEntry,
   UserRank,
+  QueueStatusResponse,
+  ChallengeDetail,
+  ChallengeResultDetail,
+  PeerReviewAssignment,
+  PeerReviewAssignmentDetail,
+  PeerReviewDetail,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -288,6 +294,94 @@ export async function getDynamicLeaderboard(
 
 export async function getMyRank(): Promise<UserRank> {
   return request<UserRank>("/api/leaderboard/me");
+}
+
+// --- Challenges API ---
+
+export async function joinQueue(skillTarget?: string): Promise<ChallengeDetail> {
+  return request<ChallengeDetail>("/api/challenges/queue", {
+    method: "POST",
+    body: JSON.stringify({ skill_target: skillTarget }),
+  });
+}
+
+export async function leaveQueue(): Promise<void> {
+  await request("/api/challenges/queue", { method: "DELETE" });
+}
+
+export async function getQueueStatus(): Promise<QueueStatusResponse> {
+  return request<QueueStatusResponse>("/api/challenges/queue/status");
+}
+
+export async function submitChallengeResponse(
+  challengeId: number,
+  answerText: string,
+): Promise<unknown> {
+  return request(`/api/challenges/${challengeId}/submit`, {
+    method: "POST",
+    body: JSON.stringify({ answer_text: answerText }),
+  });
+}
+
+export async function getChallenge(challengeId: number): Promise<ChallengeDetail> {
+  return request<ChallengeDetail>(`/api/challenges/${challengeId}`);
+}
+
+export async function getMyChallenges(): Promise<ChallengeDetail[]> {
+  return request<ChallengeDetail[]>("/api/challenges/me");
+}
+
+export async function getChallengeResult(
+  challengeId: number,
+): Promise<ChallengeResultDetail> {
+  return request<ChallengeResultDetail>(`/api/challenges/${challengeId}/result`);
+}
+
+// --- Peer Review API ---
+
+export async function getMyAssignments(): Promise<PeerReviewAssignment[]> {
+  return request<PeerReviewAssignment[]>("/api/peer-review/assignments");
+}
+
+export async function getAssignmentDetail(
+  id: number,
+): Promise<PeerReviewAssignmentDetail> {
+  return request<PeerReviewAssignmentDetail>(
+    `/api/peer-review/assignments/${id}`,
+  );
+}
+
+export async function submitPeerReview(
+  assignmentId: number,
+  data: {
+    technical_accuracy: number;
+    risk_awareness: number;
+    strategy_fit: number;
+    reasoning_clarity: number;
+    feedback_text: string;
+  },
+): Promise<PeerReviewDetail> {
+  return request<PeerReviewDetail>(
+    `/api/peer-review/assignments/${assignmentId}/submit`,
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export async function getReceivedReviews(): Promise<PeerReviewDetail[]> {
+  return request<PeerReviewDetail[]>("/api/peer-review/received");
+}
+
+export async function rateHelpfulness(
+  reviewId: number,
+  rating: number,
+): Promise<unknown> {
+  return request(`/api/peer-review/reviews/${reviewId}/rate`, {
+    method: "POST",
+    body: JSON.stringify({ rating }),
+  });
 }
 
 export { ApiError };

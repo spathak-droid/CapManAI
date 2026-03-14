@@ -14,6 +14,8 @@ const studentLinks = [
   { href: "/", label: "Home" },
   { href: "/lessons", label: "Lessons" },
   { href: "/scenario", label: "Train" },
+  { href: "/challenges", label: "Challenges" },
+  { href: "/peer-review", label: "Peer Review" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 

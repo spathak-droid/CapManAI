@@ -417,3 +417,49 @@ class ChallengeResultDetail(BaseModel):
     challenger_grade: dict[str, object] | None
     opponent_grade: dict[str, object] | None
     xp_earned: int
+
+
+# --- Peer Review schemas ---
+
+
+class PeerReviewSubmitRequest(BaseModel):
+    """Request body for submitting a peer review."""
+
+    technical_accuracy: float = Field(ge=1.0, le=5.0)
+    risk_awareness: float = Field(ge=1.0, le=5.0)
+    strategy_fit: float = Field(ge=1.0, le=5.0)
+    reasoning_clarity: float = Field(ge=1.0, le=5.0)
+    feedback_text: str = Field(min_length=10)
+
+
+class PeerReviewAssignmentOut(BaseModel):
+    """Assignment returned from the API."""
+
+    id: int
+    reviewer_id: int
+    reviewee_id: int
+    response_id: int
+    status: str
+    due_at: str | None
+    created_at: str
+
+
+class PeerReviewOut(BaseModel):
+    """Completed peer review returned from the API."""
+
+    id: int
+    assignment_id: int
+    technical_accuracy: float
+    risk_awareness: float
+    strategy_fit: float
+    reasoning_clarity: float
+    overall_score: float
+    feedback_text: str
+    helpfulness_rating: int | None
+    created_at: str
+
+
+class HelpfulnessRatingRequest(BaseModel):
+    """Request body for rating review helpfulness."""
+
+    rating: int = Field(ge=1, le=5)

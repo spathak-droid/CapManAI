@@ -285,3 +285,62 @@ export interface UserRank {
   composite_score: number;
   total_users: number;
 }
+
+// --- Challenge Types ---
+
+export interface QueueStatusResponse {
+  in_queue: boolean;
+  queued_at: string | null;
+  skill_target: string | null;
+}
+
+export interface ChallengeDetail {
+  id: number;
+  challenger_id: number;
+  opponent_id: number | null;
+  status: string;
+  skill_target: string | null;
+  complexity: number;
+  winner_id: number | null;
+  created_at: string;
+}
+
+export interface ChallengeResultDetail {
+  challenge_id: number;
+  winner_id: number | null;
+  challenger_grade: Record<string, unknown> | null;
+  opponent_grade: Record<string, unknown> | null;
+  xp_earned: number;
+}
+
+// --- Peer Review Types ---
+
+export interface PeerReviewAssignment {
+  id: number;
+  reviewer_id: number;
+  reviewee_id: number;
+  response_id: number;
+  status: string;
+  due_at: string | null;
+  created_at: string;
+}
+
+export interface PeerReviewDetail {
+  id: number;
+  assignment_id: number;
+  technical_accuracy: number;
+  risk_awareness: number;
+  strategy_fit: number;
+  reasoning_clarity: number;
+  overall_score: number;
+  feedback_text: string;
+  helpfulness_rating: number | null;
+  created_at: string;
+}
+
+export interface PeerReviewAssignmentDetail extends PeerReviewAssignment {
+  answer_text?: string;
+  scenario_situation?: string;
+  scenario_question?: string;
+  scenario_market_data?: Record<string, unknown>;
+}

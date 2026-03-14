@@ -10,6 +10,7 @@ from src.api.assistant_routes import router as assistant_router
 from src.api.routes import router
 from src.auth.routes import auth_router
 from src.challenges.routes import router as challenges_router
+from src.peer_review.routes import router as peer_review_router
 from src.realtime.routes import router as realtime_router
 from src.core.config import settings
 from src.db.database import async_session_factory
@@ -43,6 +44,7 @@ app.include_router(router)
 app.include_router(assistant_router)
 app.include_router(auth_router)
 app.include_router(challenges_router)
+app.include_router(peer_review_router)
 app.include_router(realtime_router)
 
 

@@ -15,6 +15,8 @@ import {
   getStudentInterventions,
   getDynamicLeaderboard,
   getMyRank,
+  getMyAssignments,
+  getReceivedReviews,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -30,6 +32,8 @@ import type {
   InterventionRecommendation,
   DynamicLeaderboardEntry,
   UserRank,
+  PeerReviewAssignment,
+  PeerReviewDetail,
 } from "./types";
 
 // SWR config: dedupe requests within 5 minutes, don't refetch on window focus
@@ -128,4 +132,22 @@ export function useDynamicLeaderboard(sortBy: string) {
 
 export function useMyRank() {
   return useSWR<UserRank>("my-rank", getMyRank, CACHE_OPTIONS);
+}
+
+// --- Peer Review hooks ---
+
+export function usePeerReviewAssignments() {
+  return useSWR<PeerReviewAssignment[]>(
+    "peer-review-assignments",
+    getMyAssignments,
+    CACHE_OPTIONS,
+  );
+}
+
+export function useReceivedReviews() {
+  return useSWR<PeerReviewDetail[]>(
+    "peer-review-received",
+    getReceivedReviews,
+    CACHE_OPTIONS,
+  );
 }
