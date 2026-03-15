@@ -4,7 +4,7 @@ import csv
 import io
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
@@ -1474,6 +1474,7 @@ async def send_educator_message(
         sender_id=_user.id,
         recipient_id=req.recipient_id,
         content=req.content,
+        image_url=req.image_url,
     )
     db.add(msg)
     await db.commit()
@@ -1500,6 +1501,7 @@ async def send_educator_message(
         recipient_id=msg.recipient_id,
         recipient_name=recipient.name or recipient.username,
         content=msg.content,
+        image_url=msg.image_url,
         is_read=msg.is_read,
         created_at=msg.created_at.isoformat(),
     )
@@ -1607,6 +1609,7 @@ async def get_educator_thread(
                     (recipient.name or recipient.username) if recipient else "Unknown"
                 ),
                 content=msg.content,
+                image_url=msg.image_url,
                 is_read=msg.is_read,
                 created_at=msg.created_at.isoformat(),
             )
@@ -1633,6 +1636,7 @@ async def student_reply(
         sender_id=_user.id,
         recipient_id=req.recipient_id,
         content=req.content,
+        image_url=req.image_url,
     )
     db.add(msg)
     await db.commit()
@@ -1659,6 +1663,7 @@ async def student_reply(
         recipient_id=msg.recipient_id,
         recipient_name=recipient.name or recipient.username,
         content=msg.content,
+        image_url=msg.image_url,
         is_read=msg.is_read,
         created_at=msg.created_at.isoformat(),
     )
@@ -1761,6 +1766,7 @@ async def student_thread(
                     (recipient.name or recipient.username) if recipient else "Unknown"
                 ),
                 content=msg.content,
+                image_url=msg.image_url,
                 is_read=msg.is_read,
                 created_at=msg.created_at.isoformat(),
             )
@@ -1898,6 +1904,48 @@ async def list_educators_for_student(
         {"id": e.id, "username": e.username, "name": e.name}
         for e in educators
     ]
+
+
+@router.post("/api/messages/upload-image")
+async def upload_message_image(
+    file: UploadFile = File(...),
+    _user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    """Upload an image for use in a message. Returns the URL."""
+    import os
+    import uuid
+
+    from fastapi import HTTPException, status
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files are allowed",
+        )
+
+    # Max 5MB
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image too large (max 5MB)",
+        )
+
+    upload_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "uploads",
+        "messages",
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+
+    ext = os.path.splitext(file.filename or "image.png")[1] or ".png"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    return {"image_url": f"/uploads/messages/{filename}"}
 
 
 @router.get("/api/messages/unread-count")

@@ -449,6 +449,7 @@ export interface DirectMessageOut {
   recipient_id: number;
   recipient_name: string;
   content: string;
+  image_url?: string | null;
   is_read: boolean;
   created_at: string;
 }

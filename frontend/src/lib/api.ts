@@ -538,10 +538,10 @@ export async function fetchEducatorThread(userId: number): Promise<DirectMessage
   return request<DirectMessageOut[]>(`/api/educator/messages/${userId}`);
 }
 
-export async function sendEducatorMessage(recipientId: number, content: string): Promise<DirectMessageOut> {
+export async function sendEducatorMessage(recipientId: number, content: string, imageUrl?: string): Promise<DirectMessageOut> {
   return request<DirectMessageOut>("/api/educator/messages", {
     method: "POST",
-    body: JSON.stringify({ recipient_id: recipientId, content }),
+    body: JSON.stringify({ recipient_id: recipientId, content, image_url: imageUrl }),
   });
 }
 
@@ -553,15 +553,33 @@ export async function fetchStudentThread(educatorId: number): Promise<DirectMess
   return request<DirectMessageOut[]>(`/api/messages/thread/${educatorId}`);
 }
 
-export async function sendStudentReply(recipientId: number, content: string): Promise<DirectMessageOut> {
+export async function sendStudentReply(recipientId: number, content: string, imageUrl?: string): Promise<DirectMessageOut> {
   return request<DirectMessageOut>("/api/messages/reply", {
     method: "POST",
-    body: JSON.stringify({ recipient_id: recipientId, content }),
+    body: JSON.stringify({ recipient_id: recipientId, content, image_url: imageUrl }),
   });
 }
 
 export async function fetchEducatorsForStudent(): Promise<{ id: number; username: string; name: string | null }[]> {
   return request("/api/messages/educators");
+}
+
+export async function uploadMessageImage(file: File): Promise<{ image_url: string }> {
+  const currentUser = auth.currentUser;
+  const headers: Record<string, string> = {};
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_URL}/api/messages/upload-image`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  return res.json();
 }
 
 export async function markMessageRead(messageId: number): Promise<void> {

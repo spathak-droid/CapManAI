@@ -4,8 +4,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEducatorThreads, useEducatorThread, useStudentRoster, useUnreadCount } from "@/lib/hooks";
-import { sendEducatorMessage, markMessageRead } from "@/lib/api";
+import { sendEducatorMessage, markMessageRead, uploadMessageImage } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api";
 import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
+import EmojiPicker from "@/components/EmojiPicker";
 import type { MessageThreadSummary, StudentRosterEntry } from "@/lib/types";
 
 function getInitials(name: string): string {
@@ -156,6 +158,11 @@ export default function EducatorMessagesPage() {
   const [showPicker, setShowPicker] = useState(false);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: threads, mutate: mutateThreads } = useEducatorThreads();
@@ -205,16 +212,47 @@ export default function EducatorMessagesPage() {
     setShowPicker(false);
   }, []);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large (max 5MB)");
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessageText((prev) => prev + emoji);
+    setShowEmoji(false);
+  };
+
   const handleSend = async () => {
-    if (!messageText.trim() || !selectedUserId || sending) return;
+    if ((!messageText.trim() && !imageFile) || !selectedUserId || sending) return;
     setSending(true);
     try {
-      await sendEducatorMessage(selectedUserId, messageText.trim());
+      let imageUrl: string | undefined;
+      if (imageFile) {
+        setUploading(true);
+        const result = await uploadMessageImage(imageFile);
+        imageUrl = result.image_url;
+        setUploading(false);
+      }
+      await sendEducatorMessage(selectedUserId, messageText.trim(), imageUrl);
       setMessageText("");
+      clearImage();
       await mutateMessages();
       await mutateThreads();
     } catch (err) {
       console.error("Failed to send message:", err);
+      setUploading(false);
     } finally {
       setSending(false);
     }
@@ -326,6 +364,14 @@ export default function EducatorMessagesPage() {
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      {msg.image_url && (
+                        <img
+                          src={`${getApiBaseUrl()}${msg.image_url}`}
+                          alt="Shared image"
+                          className="mt-2 max-w-full rounded-lg max-h-64 cursor-pointer"
+                          onClick={() => window.open(`${getApiBaseUrl()}${msg.image_url}`, "_blank")}
+                        />
+                      )}
                       <p
                         className={`mt-1 text-xs ${
                           isMe ? "text-violet-200/60" : "text-zinc-500"
@@ -342,7 +388,49 @@ export default function EducatorMessagesPage() {
 
             {/* Input */}
             <div className="border-t border-white/[0.06] px-6 py-4">
-              <div className="flex items-end gap-3">
+              {/* Image preview */}
+              {imagePreview && (
+                <div className="mb-3 relative inline-block">
+                  <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border border-zinc-700" />
+                  <button
+                    onClick={clearImage}
+                    className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs"
+                  >
+                    x
+                  </button>
+                </div>
+              )}
+              <div className="flex items-end gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <div className="relative">
+                  <button
+                    onClick={() => setShowEmoji(!showEmoji)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-zinc-500 transition-colors hover:text-zinc-300 hover:bg-white/[0.06]"
+                    title="Emoji"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+                    </svg>
+                  </button>
+                  {showEmoji && (
+                    <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmoji(false)} />
+                  )}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-zinc-500 transition-colors hover:text-zinc-300 hover:bg-white/[0.06]"
+                  title="Attach image"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                </button>
                 <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
@@ -353,12 +441,19 @@ export default function EducatorMessagesPage() {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!messageText.trim() || sending}
+                  disabled={(!messageText.trim() && !imageFile) || sending || uploading}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition-colors hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                  </svg>
+                  {uploading ? (
+                    <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>

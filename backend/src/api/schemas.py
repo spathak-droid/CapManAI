@@ -624,6 +624,7 @@ class DirectMessageCreate(BaseModel):
 
     recipient_id: int
     content: str
+    image_url: str | None = None
 
 
 class DirectMessageOut(BaseModel):
@@ -635,6 +636,7 @@ class DirectMessageOut(BaseModel):
     recipient_id: int
     recipient_name: str
     content: str
+    image_url: str | None = None
     is_read: bool
     created_at: str
 
