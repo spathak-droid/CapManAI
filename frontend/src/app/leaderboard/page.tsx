@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLeaderboard, useDynamicLeaderboard, useMyRank } from "@/lib/hooks";
 import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 import { LeaderboardSkeleton } from "@/components/skeletons/LeaderboardSkeleton";
+import { useTextReveal, usePopIn, useScrollReveal, gsap } from "@/lib/gsap";
 
 type SortTab = "composite" | "mastery" | "xp";
 
@@ -32,10 +33,64 @@ export default function LeaderboardPage() {
   const isLoading = isXpTab ? xpLoading : dynamicLoading;
   const error = isXpTab ? xpError : dynamicError;
 
+  // GSAP animation refs
+  const titleRef = useTextReveal<HTMLHeadingElement>();
+  const rankCardRef = usePopIn<HTMLDivElement>({ delay: 0.2 });
+  const tabsRef = useScrollReveal<HTMLDivElement>();
+  const xpTableRef = useRef<HTMLTableSectionElement>(null);
+  const dynamicTableRef = useRef<HTMLTableSectionElement>(null);
+  const rank1BadgeRef = useRef<HTMLSpanElement>(null);
+
+  // Stagger-animate table rows when data or activeTab changes
+  useEffect(() => {
+    const tbody = isXpTab ? xpTableRef.current : dynamicTableRef.current;
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll("tr");
+    if (!rows.length) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(rows, {
+        opacity: 0,
+        x: -20,
+        stagger: 0.05,
+        duration: 0.4,
+        ease: "power2.out",
+      });
+    }, tbody);
+
+    return () => {
+      ctx.revert();
+    };
+  }, [activeTab, xpEntries, dynamicEntries, isXpTab, isLoading]);
+
+  // Glow pulse for rank 1 badge
+  useEffect(() => {
+    const el = rank1BadgeRef.current;
+    if (!el) return;
+
+    const tween = gsap.to(el, {
+      keyframes: [
+        { boxShadow: "0 0 8px 2px rgba(234,179,8,0.3)", duration: 0.8 },
+        { boxShadow: "0 0 20px 6px rgba(234,179,8,0.6)", duration: 0.8 },
+        { boxShadow: "0 0 8px 2px rgba(234,179,8,0.3)", duration: 0.8 },
+      ],
+      repeat: -1,
+      ease: "sine.inOut",
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, [xpEntries, dynamicEntries, isLoading]);
+
   function rankBadge(rank: number) {
     if (rank === 1)
       return (
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 text-sm font-bold text-black shadow-lg shadow-yellow-500/30">
+        <span
+          ref={rank1BadgeRef}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 text-sm font-bold text-black shadow-lg shadow-yellow-500/30"
+        >
           1
         </span>
       );
@@ -61,7 +116,10 @@ export default function LeaderboardPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Page Header */}
-      <h1 className="mb-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+      <h1
+        ref={titleRef}
+        className="mb-2 text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent"
+      >
         Leaderboard
       </h1>
       <p className="mb-6 text-zinc-500">
@@ -71,7 +129,10 @@ export default function LeaderboardPage() {
 
       {/* User Rank Card */}
       {myRank && (
-        <div className="mb-6 rounded-xl border border-purple-500/20 bg-purple-500/[0.07] p-4 backdrop-blur-sm">
+        <div
+          ref={rankCardRef}
+          className="mb-6 rounded-xl border border-purple-500/20 bg-purple-500/[0.07] p-4 backdrop-blur-sm"
+        >
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               {rankBadge(myRank.rank)}
@@ -110,7 +171,7 @@ export default function LeaderboardPage() {
       )}
 
       {/* Sort Tabs */}
-      <div className="mb-6 flex gap-2">
+      <div ref={tabsRef} className="mb-6 flex gap-2">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -159,7 +220,7 @@ export default function LeaderboardPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={xpTableRef}>
                 {(xpEntries ?? []).map((entry) => (
                   <tr
                     key={entry.user_id}
@@ -249,7 +310,7 @@ export default function LeaderboardPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody ref={dynamicTableRef}>
                 {(dynamicEntries ?? []).map((entry) => (
                   <tr
                     key={entry.user_id}

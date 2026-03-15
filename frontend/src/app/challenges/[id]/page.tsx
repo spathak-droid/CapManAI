@@ -54,8 +54,24 @@ export default function ChallengePage() {
           const r = await getChallengeResult(challengeId);
           setResult(r);
           setPhase("complete");
+        } else if (c.status === "grading") {
+          setPhase("grading");
         } else if (c.status === "active") {
-          setPhase("active");
+          // Check if current user already submitted
+          const iAmChallenger = c.challenger_id === user?.id;
+          const iAlreadySubmitted = iAmChallenger
+            ? c.challenger_submitted
+            : c.opponent_submitted;
+          if (iAlreadySubmitted) {
+            setPhase("waiting");
+            // Check if opponent also submitted
+            const opponentAlsoSubmitted = iAmChallenger
+              ? c.opponent_submitted
+              : c.challenger_submitted;
+            if (opponentAlsoSubmitted) setOpponentSubmitted(true);
+          } else {
+            setPhase("active");
+          }
         } else {
           setPhase("active");
         }
@@ -67,13 +83,14 @@ export default function ChallengePage() {
       }
     }
     load();
-  }, [challengeId]);
+  }, [challengeId, user?.id]);
 
-  // Listen for opponent submitted
+  // Listen for opponent submitted — both are in, move to grading
   useRealtimeEvent(
     "opponent_submitted",
     useCallback(() => {
       setOpponentSubmitted(true);
+      setPhase((prev) => (prev === "waiting" ? "grading" : prev));
     }, []),
   );
 
@@ -118,13 +135,44 @@ export default function ChallengePage() {
     ),
   );
 
+  // Safety net: if stuck in grading for >10s, check once via HTTP
+  useEffect(() => {
+    if (phase !== "grading") return;
+    const timer = setTimeout(async () => {
+      try {
+        const c = await getChallenge(challengeId);
+        if (c.status === "complete") {
+          const r = await getChallengeResult(challengeId);
+          setResult(r);
+          setPhase("complete");
+          await refetchUser();
+        }
+      } catch {
+        // ignore
+      }
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [phase, challengeId, refetchUser]);
+
   async function handleSubmit() {
     if (!answer.trim()) return;
     setError(null);
     setPhase("submitting");
     try {
-      await submitChallengeResponse(challengeId, answer);
-      setPhase("waiting");
+      const res = await submitChallengeResponse(challengeId, answer) as {
+        challenge_status: string;
+      };
+      // If both submitted, backend already started grading
+      if (res.challenge_status === "complete") {
+        const r = await getChallengeResult(challengeId);
+        setResult(r);
+        setPhase("complete");
+        await refetchUser();
+      } else if (res.challenge_status === "grading") {
+        setPhase("grading");
+      } else {
+        setPhase("waiting");
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to submit response",
@@ -214,11 +262,17 @@ export default function ChallengePage() {
                 Challenge Scenario
               </span>
             </div>
-            <p className="text-sm text-zinc-300 leading-relaxed">
-              The scenario has been loaded. Analyze the trading situation and
-              submit your best response below. Both you and your opponent receive
-              the same scenario.
-            </p>
+            {challenge.scenario_text ? (
+              <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                {challenge.scenario_text}
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                The scenario has been loaded. Analyze the trading situation and
+                submit your best response below. Both you and your opponent receive
+                the same scenario.
+              </p>
+            )}
           </div>
 
           {/* Opponent submitted notification */}

@@ -4,6 +4,7 @@ export interface AuthUser {
   id: number;
   username: string;
   email: string;
+  name: string | null;
   role: string;
   xp_total: number;
   level: number;
@@ -48,6 +49,16 @@ export interface GradeRequest {
   scenario_text: string;
   student_response: string;
   probe_exchanges: ProbeExchange[];
+  skill_target?: string;
+}
+
+export interface SkillScoreInfo {
+  score: number;
+  attempts: number;
+}
+
+export interface MySkillsResponse {
+  skills: Record<string, SkillScoreInfo>;
 }
 
 export interface Grade {
@@ -119,6 +130,7 @@ export interface LessonChunkDetail {
   common_mistakes: string[];
   quick_check_prompts: string[];
   quiz_items: QuizItem[];
+  supplementary_context: string;
 }
 
 export interface LessonModuleSummary {
@@ -288,6 +300,14 @@ export interface UserRank {
 
 // --- Challenge Types ---
 
+export interface OpenChallengeEntry {
+  challenge_id: number;
+  user_id: number;
+  username: string;
+  skill_target: string | null;
+  created_at: string;
+}
+
 export interface QueueStatusResponse {
   in_queue: boolean;
   queued_at: string | null;
@@ -303,6 +323,9 @@ export interface ChallengeDetail {
   complexity: number;
   winner_id: number | null;
   created_at: string;
+  challenger_submitted?: boolean;
+  opponent_submitted?: boolean;
+  scenario_text?: string | null;
 }
 
 export interface ChallengeResultDetail {
@@ -343,4 +366,20 @@ export interface PeerReviewAssignmentDetail extends PeerReviewAssignment {
   scenario_situation?: string;
   scenario_question?: string;
   scenario_market_data?: Record<string, unknown>;
+}
+
+// --- Badge Types ---
+
+export interface BadgeInfo {
+  key: string;
+  name: string;
+  description: string;
+  category: "level" | "streak" | "mastery" | "milestone";
+  earned: boolean;
+}
+
+export interface BadgesResponse {
+  badges: BadgeInfo[];
+  total_earned: number;
+  total_available: number;
 }

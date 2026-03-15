@@ -25,12 +25,14 @@ import type {
   InterventionRecommendation,
   DynamicLeaderboardEntry,
   UserRank,
-  QueueStatusResponse,
   ChallengeDetail,
   ChallengeResultDetail,
+  OpenChallengeEntry,
   PeerReviewAssignment,
   PeerReviewAssignmentDetail,
   PeerReviewDetail,
+  BadgesResponse,
+  MySkillsResponse,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -134,6 +136,7 @@ export async function submitProbeResponse(
   scenarioText: string,
   studentResponse: string,
   probeExchanges: ProbeExchange[],
+  skillTarget?: string,
 ): Promise<Grade> {
   return request<Grade>("/api/scenarios/grade", {
     method: "POST",
@@ -142,6 +145,7 @@ export async function submitProbeResponse(
       scenario_text: scenarioText,
       student_response: studentResponse,
       probe_exchanges: probeExchanges,
+      skill_target: skillTarget ?? "price_action",
     }),
   });
 }
@@ -181,6 +185,13 @@ export async function updateRole(role: string): Promise<AuthUser> {
   return request<AuthUser>("/api/auth/me/role", {
     method: "PATCH",
     body: JSON.stringify({ role }),
+  });
+}
+
+export async function updateProfile(data: { name?: string; role?: string }): Promise<AuthUser> {
+  return request<AuthUser>("/api/auth/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(data),
   });
 }
 
@@ -298,19 +309,15 @@ export async function getMyRank(): Promise<UserRank> {
 
 // --- Challenges API ---
 
-export async function joinQueue(skillTarget?: string): Promise<ChallengeDetail> {
-  return request<ChallengeDetail>("/api/challenges/queue", {
+export async function createOpenChallenge(skillTarget?: string): Promise<ChallengeDetail> {
+  return request<ChallengeDetail>("/api/challenges/create", {
     method: "POST",
     body: JSON.stringify({ skill_target: skillTarget }),
   });
 }
 
-export async function leaveQueue(): Promise<void> {
-  await request("/api/challenges/queue", { method: "DELETE" });
-}
-
-export async function getQueueStatus(): Promise<QueueStatusResponse> {
-  return request<QueueStatusResponse>("/api/challenges/queue/status");
+export async function cancelOpenChallenge(challengeId: number): Promise<void> {
+  await request(`/api/challenges/cancel/${challengeId}`, { method: "DELETE" });
 }
 
 export async function submitChallengeResponse(
@@ -335,6 +342,16 @@ export async function getChallengeResult(
   challengeId: number,
 ): Promise<ChallengeResultDetail> {
   return request<ChallengeResultDetail>(`/api/challenges/${challengeId}/result`);
+}
+
+export async function getOpenChallenges(): Promise<OpenChallengeEntry[]> {
+  return request<OpenChallengeEntry[]>("/api/challenges/open");
+}
+
+export async function acceptChallenge(challengeId: number): Promise<ChallengeDetail> {
+  return request<ChallengeDetail>(`/api/challenges/accept/${challengeId}`, {
+    method: "POST",
+  });
 }
 
 // --- Peer Review API ---
@@ -382,6 +399,18 @@ export async function rateHelpfulness(
     method: "POST",
     body: JSON.stringify({ rating }),
   });
+}
+
+// --- Badges API ---
+
+export async function fetchMyBadges(): Promise<BadgesResponse> {
+  return request<BadgesResponse>("/api/badges/me");
+}
+
+// --- Skills API ---
+
+export async function fetchMySkills(): Promise<MySkillsResponse> {
+  return request<MySkillsResponse>("/api/skills/me");
 }
 
 export { ApiError };

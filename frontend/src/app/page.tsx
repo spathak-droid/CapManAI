@@ -1,31 +1,111 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import StudentHome from "@/components/StudentHome";
-import EducatorHome from "@/components/EducatorHome";
+import { HomeSkeleton } from "@/components/skeletons/HomeSkeleton";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+
+const StudentHome = dynamic(() => import("@/components/StudentHome"), {
+  loading: () => <HomeSkeleton />,
+});
+const EducatorHome = dynamic(() => import("@/components/EducatorHome"), {
+  loading: () => <DashboardSkeleton />,
+});
+import {
+  gsap,
+  usePopIn,
+  useTextReveal,
+  useScrollReveal,
+  useStaggerReveal,
+  useParallax,
+} from "@/lib/gsap";
 
 function LandingPage() {
+  // 1. Logo — scale bounce entrance with slight delay
+  const logoRef = usePopIn<HTMLImageElement>({ delay: 0.2 });
+
+  // 2. Hero text — word-by-word reveal
+  const heroTextRef = useTextReveal<HTMLParagraphElement>({
+    delay: 0.4,
+    stagger: 0.06,
+  });
+
+  // 3. Description paragraph — scroll reveal with delay after title
+  const descRef = useScrollReveal<HTMLParagraphElement>({ delay: 0.7 });
+
+  // 4. CTA buttons container — scroll reveal with delay after description
+  const ctaRef = useScrollReveal<HTMLDivElement>({ delay: 0.9 });
+
+  // 5. Feature cards grid — stagger reveal so cards cascade in
+  const gridRef = useStaggerReveal<HTMLDivElement>({
+    stagger: 0.12,
+    y: 40,
+  });
+
+  // 6. Background glow — subtle parallax on scroll
+  const glowParallaxRef = useParallax<HTMLDivElement>(0.3);
+
+  // Breathing/pulsing glow animation ref
+  const glowInnerRef = useRef<HTMLDivElement>(null);
+
+  // Radial glow breathing animation
+  useEffect(() => {
+    const el = glowInnerRef.current;
+    if (!el) return;
+
+    const tween = gsap.to(el, {
+      scale: 1.2,
+      duration: 4,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Background grid */}
       <div className="bg-grid absolute inset-0" />
 
       {/* Radial glow behind hero */}
-      <div className="pointer-events-none absolute left-1/2 top-[18%] -translate-x-1/2 -translate-y-1/2">
-        <div className="h-[480px] w-[480px] rounded-full bg-blue-500/10 blur-3xl" />
+      <div
+        ref={glowParallaxRef}
+        className="pointer-events-none absolute left-1/2 top-[18%] -translate-x-1/2 -translate-y-1/2"
+      >
+        <div
+          ref={glowInnerRef}
+          className="h-[480px] w-[480px] rounded-full bg-blue-500/10 blur-3xl"
+        />
       </div>
 
       {/* Hero Section */}
       <section className="relative flex min-h-[85vh] flex-col items-center justify-center px-4 text-center">
         <h1 className="sr-only">CapMan AI</h1>
-        <img src="/logo.svg" alt="" className="mb-6 h-28 w-auto sm:h-36 lg:h-40" aria-hidden="true" />
+        <img
+          ref={logoRef}
+          src="/logo.svg"
+          alt=""
+          className="mb-6 h-28 w-auto sm:h-36 lg:h-40"
+          aria-hidden="true"
+        />
 
-        <p className="mb-4 text-xl font-medium tracking-tight text-zinc-300 sm:text-2xl">
+        <p
+          ref={heroTextRef}
+          className="mb-4 text-xl font-medium tracking-tight text-zinc-300 sm:text-2xl"
+        >
           Master Trading Through AI-Powered Scenarios
         </p>
 
-        <p className="mb-10 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">
+        <p
+          ref={descRef}
+          className="mb-10 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg"
+        >
           Practice capital management with realistic, AI-generated trading
           scenarios. Receive instant grading with detailed feedback, track your
           skill growth, and compete on the leaderboard. Built for students and
@@ -33,7 +113,7 @@ function LandingPage() {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div ref={ctaRef} className="flex flex-col gap-4 sm:flex-row">
           <Link
             href="/auth/login"
             className="btn-purple-solid inline-flex items-center justify-center rounded-full px-8 py-3 text-base shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02]"
@@ -51,7 +131,7 @@ function LandingPage() {
 
       {/* Features Section */}
       <section className="relative mx-auto max-w-5xl px-4 pb-24 sm:px-6">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div ref={gridRef} className="grid gap-6 md:grid-cols-3">
           {/* Card 1 — AI-Generated Scenarios */}
           <div className="card-glow group p-6 transition-shadow hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">

@@ -16,9 +16,14 @@
 
 /* --- Base --- */
 body {
-  background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.bg-body-gradient {
+  background-color: #09090b;
+  background-image: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(59,130,246,0.08), rgba(139,92,246,0.04), transparent);
+  background-attachment: fixed;
 }
 
 /* --- Focus rings --- */
@@ -132,6 +137,10 @@ html {
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* --- Animation utilities --- */

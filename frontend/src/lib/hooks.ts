@@ -17,6 +17,8 @@ import {
   getMyRank,
   getMyAssignments,
   getReceivedReviews,
+  fetchMyBadges,
+  fetchMySkills,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -34,6 +36,8 @@ import type {
   UserRank,
   PeerReviewAssignment,
   PeerReviewDetail,
+  BadgesResponse,
+  MySkillsResponse,
 } from "./types";
 
 // SWR config: dedupe requests within 5 minutes, don't refetch on window focus
@@ -150,4 +154,16 @@ export function useReceivedReviews() {
     getReceivedReviews,
     CACHE_OPTIONS,
   );
+}
+
+// --- Badge hooks ---
+
+export function useMyBadges() {
+  return useSWR<BadgesResponse>("my-badges", fetchMyBadges, CACHE_OPTIONS);
+}
+
+// --- Skills hooks ---
+
+export function useMySkills() {
+  return useSWR<MySkillsResponse>("my-skills", fetchMySkills, CACHE_OPTIONS);
 }
