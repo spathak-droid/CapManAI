@@ -78,7 +78,7 @@ function SkillBar({ skill, score, index }: { skill: { id: string; label: string 
 
   return (
     <div className="group flex items-center gap-3">
-      <span className="text-sm text-zinc-400 w-40 group-hover:text-zinc-200 transition-colors">
+      <span className="text-xs sm:text-sm text-zinc-400 w-24 sm:w-40 group-hover:text-zinc-200 transition-colors shrink-0">
         {skill.label}
       </span>
       <div className="flex-1 h-2 rounded-full bg-zinc-800/80 overflow-hidden">
@@ -432,7 +432,7 @@ export default function StudentHome() {
       )}
 
       {/* ── Two-Column: Continue Training + Quick Actions ── */}
-      <div className="grid gap-4 lg:grid-cols-5 mb-8">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5 mb-8">
         {/* Continue Training — spans 3 cols */}
         <div
           ref={continueRef}
@@ -534,7 +534,7 @@ export default function StudentHome() {
       </div>
 
       {/* ── Two-Column: Skills + Badges ── */}
-      <div className="grid gap-4 lg:grid-cols-3 mb-8">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3 mb-8">
         {/* Skills — spans 2 cols */}
         <div ref={skillRef} className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-zinc-900/60 p-6">
           <div className="flex items-center justify-between mb-5">

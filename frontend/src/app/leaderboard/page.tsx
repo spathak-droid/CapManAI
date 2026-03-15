@@ -210,16 +210,16 @@ export default function LeaderboardPage() {
             <table className="w-full text-left">
               <thead className="bg-zinc-800/50">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-4 text-xs font-medium uppercase tracking-wider text-zinc-500 sm:px-6">
                     Rank
                   </th>
-                  <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-4 text-xs font-medium uppercase tracking-wider text-zinc-500 sm:px-6">
                     Trader
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 sm:px-6">
                     XP
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  <th className="hidden px-4 py-4 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-cell sm:px-6">
                     Level
                   </th>
                 </tr>
@@ -240,8 +240,8 @@ export default function LeaderboardPage() {
                               : ""
                     }`}
                   >
-                    <td className="px-6 py-4">{rankBadge(entry.rank)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 sm:px-6">{rankBadge(entry.rank)}</td>
+                    <td className="px-4 py-4 sm:px-6">
                       <span
                         className={`font-semibold ${
                           myRank && entry.user_id === myRank.user_id
@@ -259,12 +259,12 @@ export default function LeaderboardPage() {
                         )}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-4 text-right sm:px-6">
                       <span className="font-mono text-blue-400 font-semibold">
                         {entry.xp_total.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="hidden px-4 py-4 text-right sm:table-cell sm:px-6">
                       <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
                         Lv. {entry.level}
                       </span>

@@ -150,7 +150,7 @@ export default function BadgesPage() {
             </p>
 
             {/* Stats row */}
-            <div className="mt-5 flex items-center gap-8">
+            <div className="mt-5 flex items-center gap-4 sm:gap-8">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Earned</p>
                 <p className="text-3xl font-bold tabular-nums text-white mt-0.5">

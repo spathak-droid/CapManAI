@@ -260,7 +260,7 @@ export default function PeerReviewPage() {
           </div>
 
           {/* Right — Quick stats pills */}
-          <div className="pr-hero-stats flex items-center gap-3 shrink-0">
+          <div className="pr-hero-stats flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2 rounded-2xl border border-amber-500/20 bg-amber-500/[0.08] px-4 py-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400">
                 <svg
@@ -473,7 +473,7 @@ export default function PeerReviewPage() {
                   }`}
                 />
 
-                <div className="flex items-center justify-between p-5 pl-6">
+                <div className="flex flex-col gap-3 p-5 pl-6 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white group-hover:text-cyan-100 transition-colors">
                       Review Assignment #{assignment.id}

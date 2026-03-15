@@ -62,8 +62,8 @@ function SkeletonRow() {
     <tr className="border-b border-white/[0.04]">
       <td className="px-5 py-3.5"><div className="h-4 w-24 bg-zinc-700 rounded animate-pulse" /></td>
       <td className="px-5 py-3.5"><div className="h-5 w-12 bg-zinc-700 rounded-full animate-pulse" /></td>
-      <td className="px-5 py-3.5 text-right"><div className="h-4 w-10 bg-zinc-700 rounded animate-pulse ml-auto" /></td>
-      <td className="px-5 py-3.5"><div className="h-5 w-20 bg-zinc-700 rounded-full animate-pulse" /></td>
+      <td className="hidden px-5 py-3.5 text-right sm:table-cell"><div className="h-4 w-10 bg-zinc-700 rounded animate-pulse ml-auto" /></td>
+      <td className="hidden px-5 py-3.5 sm:table-cell"><div className="h-5 w-20 bg-zinc-700 rounded-full animate-pulse" /></td>
     </tr>
   );
 }
@@ -112,7 +112,7 @@ export default function EducatorHome() {
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
       {/* 1. Welcome Header — always visible immediately */}
       <div className="animate-slide-up" style={{ animationDelay: "0ms" }}>
-        <h1 className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-4xl font-bold tracking-tight">
+        <h1 className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-2xl sm:text-4xl font-bold tracking-tight">
           Welcome back, {user?.username}
         </h1>
         <p className="text-zinc-500 mt-1 mb-8">Your class at a glance</p>
@@ -158,7 +158,7 @@ export default function EducatorHome() {
 
       {/* Announcements Section */}
       <div
-        className="animate-slide-up grid gap-4 md:grid-cols-2 mb-8"
+        className="animate-slide-up grid gap-4 grid-cols-1 md:grid-cols-2 mb-8"
         style={{ animationDelay: "75ms" }}
       >
         <AnnouncementComposer />
@@ -179,7 +179,7 @@ export default function EducatorHome() {
 
       {/* 3. Class Snapshot — skeleton while loading, hidden when empty */}
       {(overviewLoading || totalStudents > 0) && <div
-        className="animate-slide-up grid md:grid-cols-3 gap-4 mb-8"
+        className="animate-slide-up grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8"
         style={{ animationDelay: "100ms" }}
       >
         {overviewLoading ? (
@@ -259,7 +259,7 @@ export default function EducatorHome() {
                 </>
               )}
             </div>
-            <div className="flex justify-between mt-3 text-sm">
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between mt-3 text-sm">
               <span className="text-emerald-400">
                 Tier 1 — {tier1Count} ({totalStudents > 0 ? Math.round((tier1Count / totalStudents) * 100) : 0}%)
               </span>
@@ -289,8 +289,8 @@ export default function EducatorHome() {
               <tr>
                 <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Student</th>
                 <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Tier</th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right">Avg Score</th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Weakest Skill</th>
+                <th className="hidden px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right sm:table-cell">Avg Score</th>
+                <th className="hidden px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-cell">Weakest Skill</th>
               </tr>
             </thead>
             <tbody>
@@ -309,8 +309,8 @@ export default function EducatorHome() {
               <tr>
                 <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Student</th>
                 <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Tier</th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right">Avg Score</th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Weakest Skill</th>
+                <th className="hidden px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right sm:table-cell">Avg Score</th>
+                <th className="hidden px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 sm:table-cell">Weakest Skill</th>
               </tr>
             </thead>
             <tbody>
@@ -331,10 +331,10 @@ export default function EducatorHome() {
                         {tierLabel(student.overall_tier)}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono text-zinc-200">
+                    <td className="hidden px-5 py-3.5 text-right font-mono text-zinc-200 sm:table-cell">
                       {student.avg_score.toFixed(1)}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="hidden px-5 py-3.5 sm:table-cell">
                       {weakest ? (
                         <span
                           className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${tierBadgeClasses(weakest.tier)}`}
@@ -361,7 +361,7 @@ export default function EducatorHome() {
 
       {/* 7. Quick Actions — always visible */}
       <div
-        className="animate-slide-up grid gap-4 md:grid-cols-5 mb-8"
+        className="animate-slide-up grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 sm:gap-4 mb-8"
         style={{ animationDelay: "250ms" }}
       >
         <Link
