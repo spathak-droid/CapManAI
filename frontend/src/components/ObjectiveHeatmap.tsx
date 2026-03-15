@@ -17,7 +17,7 @@ export default function ObjectiveHeatmap({ objectives }: ObjectiveHeatmapProps) 
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {objectives.map((obj) => {
+      {objectives.map((obj, index) => {
         const total = obj.total_students || 1;
         const t1Pct = Math.round((obj.tier_1_count / total) * 100);
         const t2Pct = Math.round((obj.tier_2_count / total) * 100);
@@ -26,7 +26,8 @@ export default function ObjectiveHeatmap({ objectives }: ObjectiveHeatmapProps) 
         return (
           <div
             key={obj.objective_id}
-            className="card-glow p-5 flex flex-col gap-3"
+            className="card-glow p-5 flex flex-col gap-3 animate-slide-up hover:scale-[1.02] transition-all"
+            style={{ animationDelay: `${index * 60}ms`, animationFillMode: "backwards" }}
           >
             <h3 className="text-sm font-semibold text-white leading-tight line-clamp-2">
               {obj.objective_name}
@@ -40,21 +41,21 @@ export default function ObjectiveHeatmap({ objectives }: ObjectiveHeatmapProps) 
             <div className="h-5 rounded-full overflow-hidden flex bg-zinc-800">
               {obj.tier_1_count > 0 && (
                 <div
-                  className="bg-green-500 transition-all"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all"
                   style={{ width: `${t1Pct}%` }}
                   title={`Tier 1: ${obj.tier_1_count}`}
                 />
               )}
               {obj.tier_2_count > 0 && (
                 <div
-                  className="bg-yellow-500 transition-all"
+                  className="bg-gradient-to-r from-amber-600 to-amber-400 transition-all"
                   style={{ width: `${t2Pct}%` }}
                   title={`Tier 2: ${obj.tier_2_count}`}
                 />
               )}
               {obj.tier_3_count > 0 && (
                 <div
-                  className="bg-red-500 transition-all"
+                  className="bg-gradient-to-r from-red-600 to-red-400 transition-all"
                   style={{ width: `${t3Pct}%` }}
                   title={`Tier 3: ${obj.tier_3_count}`}
                 />
@@ -63,12 +64,12 @@ export default function ObjectiveHeatmap({ objectives }: ObjectiveHeatmapProps) 
 
             {/* Tier counts legend */}
             <div className="flex justify-between text-xs">
-              <span className="flex items-center gap-1 text-green-400">
-                <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" />
                 {obj.tier_1_count}
               </span>
-              <span className="flex items-center gap-1 text-yellow-400">
-                <span className="h-2 w-2 rounded-full bg-yellow-500 inline-block" />
+              <span className="flex items-center gap-1 text-amber-400">
+                <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
                 {obj.tier_2_count}
               </span>
               <span className="flex items-center gap-1 text-red-400">

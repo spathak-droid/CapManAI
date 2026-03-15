@@ -191,6 +191,10 @@ async def auto_assign_peer_reviews(
     candidates = list(result.scalars().all())
 
     if not candidates:
+        logger.warning(
+            "No peer review candidates: skill=%s user=%s (user_score=%s)",
+            skill_target, user_id, user_score,
+        )
         return []
 
     # 3. Prefer similar-level users when we have a reference score.
@@ -214,10 +218,15 @@ async def auto_assign_peer_reviews(
             reviewer_id=candidate.user_id,
             reviewee_id=user_id,
             response_id=response_id,
-            status="pending",
+            status="assigned",
         )
         db.add(assignment)
         assignments.append(assignment)
+
+    logger.info(
+        "Peer review: skill=%s user=%s candidates=%d selected=%d",
+        skill_target, user_id, len(candidates), len(selected),
+    )
 
     if assignments:
         await db.flush()

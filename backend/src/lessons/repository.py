@@ -16,14 +16,15 @@ async def get_ordered_structure(
         select(LessonModule.module_id).order_by(LessonModule.order_index)
     )
     ordered_ids = [row[0] for row in result.all()]
-    chunk_ids_by_module: dict[str, list[str]] = {}
-    for module_id in ordered_ids:
-        chunks = await db.execute(
-            select(LessonChunk.chunk_id).where(
-                LessonChunk.module_id == module_id
-            ).order_by(LessonChunk.order_index)
-        )
-        chunk_ids_by_module[module_id] = [r[0] for r in chunks.all()]
+    # Single query for ALL chunks instead of one per module
+    chunks_result = await db.execute(
+        select(LessonChunk.module_id, LessonChunk.chunk_id)
+        .order_by(LessonChunk.module_id, LessonChunk.order_index)
+    )
+    chunk_ids_by_module: dict[str, list[str]] = {mid: [] for mid in ordered_ids}
+    for module_id, chunk_id in chunks_result.all():
+        if module_id in chunk_ids_by_module:
+            chunk_ids_by_module[module_id].append(chunk_id)
     return ordered_ids, chunk_ids_by_module
 
 

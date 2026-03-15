@@ -14,6 +14,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
+import { mutate } from "swr";
 import { auth } from "@/lib/firebase";
 import type { AuthUser } from "@/lib/types";
 import { fetchCurrentUser, fetchCurrentUserWithToken, updateProfile } from "@/lib/api";
@@ -95,6 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await signOut(auth);
     setUser(null);
+    // Clear all SWR caches so the next user doesn't see stale data
+    await mutate(() => true, undefined, { revalidate: false });
   }, []);
 
   const refetchUser = useCallback(async () => {

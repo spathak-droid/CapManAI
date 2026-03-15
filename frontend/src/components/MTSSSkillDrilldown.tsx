@@ -38,13 +38,26 @@ function tierLabel(tier: string): string {
 function scoreBarColor(tier: string): string {
   switch (tier) {
     case "tier_1":
-      return "bg-emerald-500";
+      return "bg-gradient-to-r from-emerald-600 to-emerald-400";
     case "tier_2":
-      return "bg-amber-500";
+      return "bg-gradient-to-r from-amber-600 to-amber-400";
     case "tier_3":
-      return "bg-red-500";
+      return "bg-gradient-to-r from-red-600 to-red-400";
     default:
       return "bg-zinc-500";
+  }
+}
+
+function tierGlowClass(tier: string): string {
+  switch (tier) {
+    case "tier_1":
+      return "hover:shadow-[0_0_12px_rgba(16,185,129,0.12)]";
+    case "tier_2":
+      return "hover:shadow-[0_0_12px_rgba(245,158,11,0.12)]";
+    case "tier_3":
+      return "hover:shadow-[0_0_12px_rgba(239,68,68,0.12)]";
+    default:
+      return "";
   }
 }
 
@@ -102,7 +115,7 @@ export default function MTSSSkillDrilldown({ userId, username }: MTSSSkillDrilld
         return (
           <div
             key={skill}
-            className="rounded-xl border border-white/[0.06] bg-zinc-900/50 overflow-hidden"
+            className={`rounded-xl border border-white/[0.06] bg-zinc-900/50 overflow-hidden transition-shadow ${tierGlowClass(info.tier)}`}
           >
             {/* Skill row */}
             <button
@@ -155,7 +168,10 @@ export default function MTSSSkillDrilldown({ userId, username }: MTSSSkillDrilld
             {isExpanded && intervention && (
               <div className="border-t border-white/[0.06] p-4 bg-zinc-900/30">
                 <div className="mb-3">
-                  <p className="text-xs uppercase tracking-wider text-zinc-500 mb-1">
+                  <p className="text-xs uppercase tracking-wider text-zinc-500 mb-1 flex items-center gap-1.5">
+                    <svg className="h-3.5 w-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                    </svg>
                     Recommendation
                   </p>
                   <p className="text-sm text-zinc-300">{intervention.recommendation}</p>
@@ -172,7 +188,7 @@ export default function MTSSSkillDrilldown({ userId, username }: MTSSSkillDrilld
                           key={idx}
                           className="flex items-start gap-2 text-sm text-zinc-400"
                         >
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gradient-to-br from-violet-400 to-purple-600 flex-shrink-0" />
                           {activity}
                         </li>
                       ))}

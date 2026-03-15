@@ -1,6 +1,8 @@
 """OpenRouter chat completion for the AI assistant."""
 
+import json
 import logging
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -101,3 +103,57 @@ async def chat_completion(
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
+
+
+async def chat_completion_stream(
+    messages: list[dict[str, str]],
+    rag_context: str | None = None,
+) -> AsyncIterator[str]:
+    """Stream chat completion tokens from OpenRouter. Yields content delta strings."""
+    api_key = settings.openrouter_api_key
+    if not api_key:
+        raise ValueError("OpenRouter API key not set.")
+
+    # Same RAG context injection as chat_completion
+    if rag_context:
+        enriched_messages: list[dict[str, str]] = []
+        for msg in messages:
+            if msg["role"] == "system":
+                enriched_msg = dict(msg)
+                enriched_msg["content"] = (
+                    f"Use the following reference material:\n{rag_context}\n\n"
+                    + msg["content"]
+                )
+                enriched_messages.append(enriched_msg)
+            else:
+                enriched_messages.append(msg)
+        messages = enriched_messages
+
+    url = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload: dict[str, Any] = {
+        "model": settings.openrouter_model,
+        "messages": messages,
+        "temperature": 0.4,
+        "stream": True,
+    }
+    client = _get_http_client()
+    async with client.stream("POST", url, headers=headers, json=payload) as resp:
+        resp.raise_for_status()
+        async for line in resp.aiter_lines():
+            if not line.startswith("data: "):
+                continue
+            data_str = line[6:]
+            if data_str.strip() == "[DONE]":
+                break
+            try:
+                chunk = json.loads(data_str)
+            except json.JSONDecodeError:
+                continue
+            delta = chunk.get("choices", [{}])[0].get("delta", {})
+            content = delta.get("content")
+            if content:
+                yield content

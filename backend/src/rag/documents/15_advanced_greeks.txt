@@ -1,0 +1,165 @@
+ADVANCED GREEKS: BEYOND DELTA AND GAMMA
+
+Why the Basic Greeks Are Not Enough
+
+Every options trader learns delta, gamma, theta, vega, and rho. These first-order sensitivities tell you how an option's price changes when one variable moves while everything else stays fixed. But in real markets, nothing stays fixed. Volatility and price move together. Delta changes as time passes. Gamma itself changes with the underlying price and volatility.
+
+The advanced Greeks — sometimes called second-order or third-order Greeks — capture these interactions. They explain why your P&L sometimes looks nothing like your delta and theta projections predicted. Understanding them is not academic. It is the difference between understanding your risk and being blindsided by it.
+
+Gamma Exposure (GEX): The Market's Hidden Hand
+
+GEX is not a traditional Greek but a market-level metric derived from gamma. It measures the total gamma exposure of options market makers across all strikes and expirations.
+
+The formula for a single strike:
+
+GEX = OI * Gamma * 100 * Spot^2 / 100
+
+Where OI is open interest, Gamma is the per-share gamma, and Spot is the current price. The factor of 100 accounts for the option multiplier (each contract represents 100 shares). You sum across all strikes and expirations for the total market GEX.
+
+To compute the dollar hedging flow per 1-point move: if dealers are net short $5 billion in gamma at SPY 450, they must buy or sell approximately $5B / 450 = ~$11 million in stock for every 1-point move in SPY. If SPY drops from 450 to 449, dealers must sell about $11 million. If it drops to 448, another $11 million. This selling amplifies the decline.
+
+The GEX flip level is the price where dealers switch from positive gamma (long gamma) to negative gamma (short gamma). Above the flip level, dealer hedging dampens moves (they sell into rallies and buy dips). Below the flip level, dealer hedging amplifies moves (they sell into declines and buy into rallies). The flip level acts like a volatility switch.
+
+In practice, GEX is concentrated around major strikes — round numbers like SPY 450, 460, 470 — and near the largest open interest. Market makers servicing these strikes do the bulk of the hedging.
+
+Typical GEX values for SPY: +$5B to +$15B in calm, bullish markets (dealers are long gamma, suppressing volatility). Around zero during transitions. Negative $5B to $15B during selloffs (dealers are short gamma, amplifying volatility).
+
+Practical GEX example: On a day when SPY GEX is +$10B at the 450 level, imagine SPY dips from 450 to 448. Dealers, who are long gamma, must buy the dip (they are getting shorter delta and need to hedge by buying). This buying support limits the decline. SPY might bounce off 448 and return to 450. Now imagine GEX flips to -$8B at 440 after a sharp decline. SPY drops from 440 to 438. Dealers, who are short gamma, must sell into the decline. This selling pressure extends the decline. SPY might cascade to 435 before finding support.
+
+Vanna: Where Volatility Meets Delta
+
+Vanna is the rate of change of delta with respect to volatility, or equivalently, the rate of change of vega with respect to the underlying price.
+
+Vanna = dDelta/dVol = dVega/dSpot
+
+Typical values range from 0.01 to 0.05 for near-the-money options. But the sign and magnitude matter enormously.
+
+For a call option that is slightly out of the money: vanna is positive. As volatility rises, delta increases (the option acts more like stock). As volatility falls, delta decreases (the option acts less like stock).
+
+For a put option that is slightly out of the money: vanna is negative. As volatility rises, the put's delta becomes more negative (more stock-like). As volatility falls, the put's delta moves toward zero (less stock-like).
+
+Why this matters in practice: Consider the monthly options expiration. As expiration approaches, if the market is calm and IV is declining, vanna effects cause out-of-the-money put deltas to shrink (move toward zero). Dealers who are hedging these puts have been short stock. As the put deltas shrink, dealers must buy stock to reduce their hedge. This "vanna flow" creates buying pressure and pushes the market higher into expiration — the well-known expiration drift higher.
+
+The opposite occurs during selloffs. If IV spikes, OTM put deltas increase (become more negative), forcing dealers to sell more stock to hedge. This vanna-driven selling can cascade and amplify moves, especially when combined with negative GEX.
+
+Vanna is most impactful near large open interest strikes, particularly monthly expirations with significant put OI. The "vanna window" — typically 5-7 days before monthly expiration — is when these flows are strongest.
+
+Charm: Delta Decay Over Time
+
+Charm measures how delta changes as time passes, holding everything else constant.
+
+Charm = dDelta/dTime
+
+Also called "delta bleed" or "delta decay." For out-of-the-money options, delta generally shrinks as time passes (the option becomes less likely to end up in the money). For in-the-money options, delta moves toward 1.0 (for calls) or -1.0 (for puts) as the option becomes more certain to expire in the money.
+
+The practical effect: If you buy a 30-delta call and hold it, without any movement in the underlying, your delta will gradually decline — perhaps from 0.30 to 0.27 after a week. Your position is becoming less directionally sensitive. To maintain the same directional exposure, you would need to buy more calls or additional stock.
+
+Charm is largest for near-the-money options close to expiration. In the final week before expiry, an option with 0.45 delta might decay to 0.35 delta overnight — a significant change that requires rehedging.
+
+The weekend effect: Charm operates on calendar time, not just trading time. Over a weekend, two days of delta decay occur without any price movement. Dealers who are hedging customer option positions must adjust their hedges on Friday afternoon to account for the weekend's charm. This can create noticeable buying or selling pressure in the last hour of Friday trading.
+
+For weekly options expiring Friday, charm accelerates dramatically starting Wednesday. A 0.30 delta call on Wednesday might be a 0.15 delta call by Friday morning if the stock has not moved. This charm-driven delta decay forces rapid rehedging.
+
+Vomma (Volga): The Convexity of Vega
+
+Vomma measures the rate of change of vega with respect to volatility.
+
+Vomma = dVega/dVol
+
+Vomma tells you whether your vega exposure accelerates or decelerates as volatility moves. It is the "gamma of vega" — just as gamma measures the curvature of your delta exposure, vomma measures the curvature of your vega exposure.
+
+Vomma is largest for far out-of-the-money options. An OTM option has small vega, but as vol rises, that vega increases rapidly. A deep OTM SPY put might have a vega of $0.02 when IV is 15%, but $0.15 when IV is 40%. Vomma captures this acceleration.
+
+Why it matters: Consider a portfolio that is vega-neutral but has significant vomma exposure. If you are long vomma (long far OTM options), a vol spike benefits you more than expected because your vega increases as vol rises. Conversely, if you are short vomma (short far OTM options, like in a short strangle), a vol spike hurts you more than your vega hedge predicted because the vega of your short options increases as vol rises.
+
+In the tail-risk hedging world, vomma is why far OTM puts can be effective crash protection despite having tiny initial delta and vega. During a crash, vol explodes, and vomma causes these puts' vega to skyrocket — they gain value from the vol expansion far beyond what their initial Greeks suggested.
+
+Typical vomma values: near-ATM options have vomma close to zero (vega is already near maximum). Options at 10-25 delta have the highest vomma. This is why "wing" options are sometimes called "vomma options."
+
+Color: Gamma Acceleration Over Time
+
+Color measures how gamma changes as time passes.
+
+Color = dGamma/dTime
+
+Gamma increases for near-the-money options as expiration approaches. Color quantifies this acceleration. In the final days before expiration, gamma for ATM options can increase dramatically — doubling or tripling in the last two days.
+
+Why it matters: If you are short ATM options near expiry, your gamma risk is growing every day. A position that was manageable with 10 days to go becomes dangerous with 2 days to go, even if the stock price has not moved. Color tells you how fast this risk is growing.
+
+For SPY ATM options with 5 days to expiry, gamma might be 0.05 (delta changes by 0.05 per $1 move). With 1 day to expiry, gamma might be 0.15. That tripling happened because of color — the time decay of gamma in reverse (gamma grows as time shrinks).
+
+This is why market makers who are short near-term ATM options become increasingly nervous as expiry approaches. Their hedging costs accelerate because gamma is accelerating.
+
+Speed: How Gamma Changes With Price
+
+Speed measures the rate of change of gamma with respect to the underlying price.
+
+Speed = dGamma/dSpot
+
+While gamma tells you how delta changes, speed tells you how gamma itself changes as the stock moves. It is a third-order Greek.
+
+Speed is highest for options near the money and close to expiration. As a stock moves away from a strike, gamma at that strike decreases. Speed quantifies how fast.
+
+Practical relevance: In a fast-moving market, your gamma exposure changes as the stock moves. If you are short the SPY 450 straddle and SPY drops from 450 to 445, your gamma at the 450 strike decreases (the options are now OTM). But your delta loss from the 5-point move was worse than what your initial gamma predicted because gamma was higher at 450 than at 445 — speed captures this asymmetry.
+
+Speed is why the P&L of a gamma-hedged portfolio in a large move is never exactly what the Greeks predicted. The "gamma slippage" from speed means your hedge was imperfect over the move.
+
+Zomma: Gamma's Sensitivity to Volatility
+
+Zomma measures how gamma changes with respect to volatility.
+
+Zomma = dGamma/dVol
+
+When volatility rises, gamma for ATM options generally decreases (the probability distribution flattens, reducing the peak), while gamma for OTM options increases (they become more relevant). Zomma captures this shift.
+
+This is critically important for short strangles. If you sell a 25-delta strangle and vol spikes, the gamma of your short options increases (zomma effect). Not only are you losing money from vega, but your gamma risk — the risk from the underlying moving — is also increasing. You are getting hit from two directions simultaneously.
+
+Conversely, if you are long a straddle and vol drops, your gamma decreases. Your position becomes less responsive to the underlying's movement, even though you are still paying theta. This is the double whammy of being long premium in a declining-vol environment.
+
+Case Study: GME in January 2021
+
+GameStop in January 2021 is a masterclass in advanced Greeks driving price action.
+
+Starting conditions: GME at $20, massive open interest in call options at strikes from $20 to $60. Dealers were short these calls (they sold to retail buyers). Short interest in the stock was approximately 140% of the float.
+
+The feedback loop:
+
+1. Retail traders bought far OTM calls ($40, $50, $60 strikes). These had low delta (~0.10), so dealers initially needed to buy modest amounts of stock to hedge.
+
+2. As GME rose from $20 to $30, the calls' delta increased (gamma effect). Dealers bought more stock. Positive GEX amplified the move because dealers were short gamma — they were forced to buy as the stock rose.
+
+3. Vanna kicked in. As GME rose, implied volatility also rose (unusual for stock price increases, but driven by the unusual demand). Rising vol pushed call deltas higher (vanna), forcing even more dealer buying.
+
+4. The $40 and $50 strike calls went from 0.10 delta to 0.50 delta. Dealers who initially hedged with a few thousand shares now needed tens of thousands of shares per contract. Gamma exposure was extremely negative — dealers were massively short gamma and had to buy aggressively into the rally.
+
+5. GME went from $30 to $150 to $483 in days. Vomma caused the far OTM calls' vega to explode as IV went from 100% to 500%+. Color and speed effects meant gamma was changing rapidly as the stock moved through strikes.
+
+6. The GEX flip never came — there were almost no strikes above $60 with significant call open interest when the move started, so there was no positive gamma wall above. It was negative GEX all the way up.
+
+The result: a feedback loop where price increases forced dealer buying, which caused further price increases, which forced more dealer buying. The advanced Greeks — GEX, vanna, vomma, and speed — were the transmission mechanism.
+
+When Each Greek Matters Most
+
+Vanna: Most important near large open interest strikes, especially monthly expirations. Watch for the vanna window 5-7 days before expiration. Most impactful when IV is changing (declining into expiry = bullish vanna flow, spiking in a selloff = bearish vanna flow).
+
+Charm: Critical in expiration week, especially for short-dated options. Drives the delta decay that forces dealer rehedging. Watch on Fridays (weekend effect) and Wednesday-Friday of expiration week.
+
+GEX: Most relevant for daily and intraday directional bias. Positive GEX = suppressed volatility, pinning action. Negative GEX = amplified volatility, trending moves. The GEX flip level is a key inflection point for market behavior.
+
+Vomma: Matters most for portfolios with significant wing exposure (far OTM options). Critical during vol regime changes — a spike from VIX 15 to VIX 30 will reveal vomma exposure.
+
+Color: Important for anyone trading near-term options, especially within 5 days of expiry. Your risk profile is changing even if the stock is not moving.
+
+Speed: Matters during large, fast moves. If the underlying moves 3%+ in a session, speed explains why your hedged position's P&L diverges from expectations.
+
+Zomma: Important when vol and price move simultaneously — which is most of the time. In a selloff, both falling prices and rising vol conspire to increase your gamma risk if you are short options.
+
+Key Takeaways
+
+1. GEX (Gamma Exposure) reveals whether dealer hedging will amplify or dampen market moves. Positive GEX suppresses vol; negative GEX amplifies it.
+2. Vanna links delta and volatility. It drives the expiration drift higher (declining vol reduces put hedges, forcing buying) and amplifies selloffs (rising vol increases put hedges, forcing selling).
+3. Charm causes delta to decay with time. It is strongest in expiration week and creates rehedging flows, especially on Fridays.
+4. Vomma is the convexity of vega. Far OTM options have the most vomma, which is why they can explode in value during crashes.
+5. Color, speed, and zomma are third-order Greeks that explain why positions behave differently from simple Greek projections during large moves or near expiry.
+6. The GME saga was driven by the interaction of negative GEX, vanna, and vomma creating a self-reinforcing feedback loop.
+7. No single Greek tells the whole story. Understanding the interactions between Greeks — especially how they compound during stress — is what separates sophisticated risk management from naive Greek-based projections.

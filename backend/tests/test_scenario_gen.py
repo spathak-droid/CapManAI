@@ -73,9 +73,9 @@ class TestFallbackScenarios:
     """Tests for hardcoded fallback scenarios."""
 
     def test_fallback_count(self) -> None:
-        assert len(FALLBACK_SCENARIOS) == 3
+        assert len(FALLBACK_SCENARIOS) == 11
 
-    @pytest.mark.parametrize("idx", range(3))
+    @pytest.mark.parametrize("idx", range(11))
     def test_fallback_well_formed(self, idx: int) -> None:
         s = FALLBACK_SCENARIOS[idx]
         assert isinstance(s, ScenarioResult)

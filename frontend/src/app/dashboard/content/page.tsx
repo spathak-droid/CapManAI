@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRAGDocuments } from "@/lib/hooks";
@@ -20,8 +20,13 @@ export default function ContentManagementPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect non-educators
+  useEffect(() => {
+    if (!authLoading && user?.role !== "educator") {
+      router.replace("/");
+    }
+  }, [authLoading, user?.role, router]);
+
   if (!authLoading && user?.role !== "educator") {
-    router.replace("/");
     return null;
   }
 

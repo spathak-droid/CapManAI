@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,8 +29,13 @@ export default function MTSSAnalyticsPage() {
   const { data: objectives, error: objError, isLoading: objLoading } = useObjectiveDistributions();
   const { data: students, error: studentsError, isLoading: studentsLoading } = useMTSSTiers();
 
+  useEffect(() => {
+    if (!authLoading && user?.role !== "educator") {
+      router.replace("/");
+    }
+  }, [authLoading, user?.role, router]);
+
   if (!authLoading && user?.role !== "educator") {
-    router.replace("/");
     return null;
   }
 
@@ -40,16 +45,16 @@ export default function MTSSAnalyticsPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-zinc-500">
-        <Link href="/" className="hover:text-zinc-300 transition-colors">
+      <nav className="mb-6 flex items-center gap-2 text-sm text-zinc-400">
+        <Link href="/" className="hover:text-zinc-200 transition-colors">
           Home
         </Link>
-        <span>/</span>
-        <Link href="/dashboard" className="hover:text-zinc-300 transition-colors">
+        <span className="text-zinc-600">/</span>
+        <Link href="/dashboard" className="hover:text-zinc-200 transition-colors">
           Dashboard
         </Link>
-        <span>/</span>
-        <span className="text-zinc-300">MTSS Analytics</span>
+        <span className="text-zinc-600">/</span>
+        <span className="text-zinc-200 font-medium">MTSS Analytics</span>
       </nav>
 
       {/* Page Header */}
@@ -113,12 +118,14 @@ export default function MTSSAnalyticsPage() {
 
             {students && students.length > 0 ? (
               <div className="space-y-2">
-                {students.map((student) => {
+                {students.map((student, index) => {
                   const isExpanded = expandedStudentId === student.user_id;
+                  const displayName = student.name || student.username;
                   return (
                     <div
                       key={student.user_id}
-                      className="card-glow overflow-hidden"
+                      className="card-glow overflow-hidden animate-slide-up hover:shadow-[0_0_20px_rgba(139,92,246,0.08)] transition-shadow"
+                      style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
                     >
                       {/* Student header row */}
                       <button
@@ -130,11 +137,11 @@ export default function MTSSAnalyticsPage() {
                         <div className="flex items-center gap-4">
                           {/* Avatar placeholder */}
                           <div className="h-9 w-9 rounded-full bg-violet-500/20 flex items-center justify-center text-sm font-bold text-violet-400">
-                            {student.username.charAt(0).toUpperCase()}
+                            {displayName.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-zinc-200">
-                              {student.username}
+                              {displayName}
                             </p>
                             <p className="text-xs text-zinc-500">
                               Avg: {student.avg_score.toFixed(1)}

@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -442,7 +442,8 @@ class DirectMessage(Base):
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, default=None)
+    image_content_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

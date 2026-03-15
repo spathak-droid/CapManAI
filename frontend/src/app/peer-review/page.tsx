@@ -170,6 +170,13 @@ export default function PeerReviewPage() {
   const cardsRef = useStaggerReveal<HTMLDivElement>({ stagger: 0.08, y: 24 });
   const tabBarRef = useScrollReveal<HTMLDivElement>({ y: 20, delay: 0.2 });
 
+  // Redirect non-students
+  useEffect(() => {
+    if (!authLoading && authUser && authUser.role !== "student") {
+      router.replace("/");
+    }
+  }, [authLoading, authUser, router]);
+
   // Hero entrance animation
   useEffect(() => {
     if (!heroRef.current) return;
@@ -199,7 +206,6 @@ export default function PeerReviewPage() {
   }, []);
 
   if (!authLoading && authUser && authUser.role !== "student") {
-    router.replace("/");
     return null;
   }
 

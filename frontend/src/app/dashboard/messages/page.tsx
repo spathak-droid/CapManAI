@@ -241,14 +241,13 @@ export default function EducatorMessagesPage() {
     if ((!messageText.trim() && !imageFile) || !selectedUserId || sending) return;
     setSending(true);
     try {
-      let imageUrl: string | undefined;
+      let imageData: { image_data_b64: string; content_type: string } | undefined;
       if (imageFile) {
         setUploading(true);
-        const result = await uploadMessageImage(imageFile);
-        imageUrl = result.image_url;
+        imageData = await uploadMessageImage(imageFile);
         setUploading(false);
       }
-      await sendEducatorMessage(selectedUserId, messageText.trim(), imageUrl);
+      await sendEducatorMessage(selectedUserId, messageText.trim(), imageData);
       setMessageText("");
       clearImage();
       await mutateMessages();
@@ -261,6 +260,12 @@ export default function EducatorMessagesPage() {
     }
   };
 
+  useEffect(() => {
+    if (!authLoading && user?.role !== "educator") {
+      router.replace("/");
+    }
+  }, [authLoading, user?.role, router]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -269,7 +274,6 @@ export default function EducatorMessagesPage() {
   };
 
   if (!authLoading && user?.role !== "educator") {
-    router.replace("/");
     return null;
   }
 

@@ -1,4 +1,4 @@
-"""Add image_url to direct_messages.
+"""Replace image_url with image_data and image_content_type in direct_messages.
 
 Revision ID: 010_image_url
 Revises: 009_announcements_messages
@@ -18,8 +18,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column("direct_messages", sa.Column("image_url", sa.String(500), nullable=True))
+    op.add_column("direct_messages", sa.Column("image_data", sa.LargeBinary(), nullable=True))
+    op.add_column("direct_messages", sa.Column("image_content_type", sa.String(50), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("direct_messages", "image_url")
+    op.drop_column("direct_messages", "image_content_type")
+    op.drop_column("direct_messages", "image_data")

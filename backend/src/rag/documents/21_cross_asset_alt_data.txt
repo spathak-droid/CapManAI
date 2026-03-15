@@ -1,0 +1,179 @@
+CROSS-ASSET SIGNALS AND ALTERNATIVE DATA
+
+Why Cross-Asset Analysis Matters
+
+Most traders watch one screen — their stock charts or their options chain. Professionals watch many screens. They track copper futures to gauge industrial demand. They watch the yen for carry trade stress. They monitor credit default swaps for corporate health signals. They check satellite data for real-time economic activity.
+
+Cross-asset analysis works because global financial markets are interconnected. A move in one market creates ripple effects across others. Sometimes these ripples arrive days before the equity market reacts — giving attentive traders an informational edge that no amount of stock chart analysis can provide.
+
+This document covers the cross-asset signals and alternative data sources that practitioners use to anticipate equity and volatility moves. Some are traditional (gold, copper, currencies). Others are unconventional (satellite imagery, credit card data, shipping traffic). All provide context that improves decision-making.
+
+Fundamental Signals for Volatility Context
+
+Valuation metrics are not timing tools, but they reveal vulnerability to volatility shocks.
+
+Price-to-Earnings (P/E) ratio and vol sensitivity: High P/E stocks are more sensitive to volatility events than low P/E stocks. A stock trading at 40x earnings has significant "air" in its valuation — future growth expectations that can be repriced quickly. When the VIX spikes or interest rates rise unexpectedly, a 40x P/E stock might drop 15-25%, while a 12x P/E stock drops 5-10%.
+
+The S&P 500's P/E and forward vol: When the S&P 500 trades above 25x trailing earnings, forward 12-month realized volatility has averaged 19.5% (since 1990). When the P/E is below 15x, forward 12-month realized vol has averaged 14.8%. High valuations do not cause volatility, but they mean there is more to lose when a shock arrives.
+
+Free Cash Flow (FCF) yield and rate sensitivity: FCF yield = free cash flow / market cap. A stock with a 2% FCF yield is sensitive to rate changes because its value depends heavily on discounting future cash flows. A 1% rise in rates can reduce the present value of distant cash flows by 10-15% for these long-duration equities. Conversely, a stock with an 8% FCF yield is self-funding — its value depends less on future promises and more on current cash generation.
+
+Practical framework: Rank your portfolio by FCF yield. The lowest-yielding positions are your greatest rate risk. When MOVE spikes or the 10-year yield breaks out, these are the positions to reduce first.
+
+Short Interest: The Squeeze and Signal
+
+Short interest data, published bimonthly by exchanges, reveals how many shares investors have sold short — and therefore must eventually buy back.
+
+Key metrics:
+
+Short interest percentage (SI%): Short shares / total shares outstanding (or float). Above 10% is elevated. Above 20% is extreme and indicates significant bearish conviction.
+
+Days to cover: Short shares / average daily volume. Tells you how many days it would take all short sellers to cover, assuming they are the only buyers. Above 3 days is notable. Above 5 days is elevated. Above 10 days is extreme.
+
+Cost to borrow (CTB): The annualized interest rate short sellers pay to borrow shares. Normal is 0.25-1%. When CTB exceeds 5%, shares are "hard to borrow" — short sellers are paying significant financing costs. CTB above 20% signals extreme short demand and potential squeeze risk. Rising CTB often precedes squeezes because it indicates increasing demand for borrowed shares (new shorts being added).
+
+Short interest as a contrarian signal: Stocks in the top decile of short interest have historically underperformed over 6-12 months (the shorts tend to be right on fundamentals). But stocks in the top decile that start rising have the strongest squeeze potential, as shorts cover and amplify the move.
+
+Sector short interest: Elevated short interest across an entire sector (e.g., regional banks in March 2023, with average SI% above 15%) signals systemic concern. When sector-wide shorts begin covering simultaneously, the sector squeeze can be powerful.
+
+The Gold/Copper Ratio: Dr. Copper Meets the Safe Haven
+
+Gold and copper represent opposite ends of the economic sensitivity spectrum. Gold is a safe haven — it rises during uncertainty, inflation, and financial stress. Copper is an industrial metal — it rises during economic expansion and construction booms. The ratio between them provides a clean read on market risk appetite.
+
+How to calculate: Gold price per ounce / Copper price per pound. As of a typical reading, gold at $2,000/oz and copper at $4.00/lb gives a ratio of 500.
+
+Interpretation:
+
+Rising ratio (gold outperforming copper): Risk-off. The market is prioritizing safety over growth. This correlates with rising VIX, falling equity prices, and widening credit spreads. During the COVID crash, the gold/copper ratio spiked from 550 to 900 as gold surged and copper collapsed.
+
+Falling ratio (copper outperforming gold): Risk-on. The market is pricing in economic growth. This correlates with falling VIX, rising equity prices, and tightening credit spreads. During the 2020-2021 recovery, the ratio fell from 900 to 400 as copper doubled while gold traded sideways.
+
+The ratio often leads equities by 1-2 weeks. When gold starts outperforming copper while equities are still near highs, it is an early warning that risk appetite is shifting.
+
+Extreme ratio levels: Above 700 has historically coincided with recession fears or active recessions. Below 400 has coincided with economic booms. The ratio mean-reverts over time, so extreme readings in either direction suggest the associated risk regime is mature.
+
+Bitcoin Correlation: The Evolving Relationship
+
+Bitcoin's correlation to traditional risk assets has shifted dramatically over the past decade.
+
+Pre-2020 (uncorrelated): Bitcoin moved independently of equities, driven primarily by crypto-native factors (halvings, exchange launches, regulatory events). The correlation with the S&P 500 was approximately 0.05 — essentially random.
+
+2020-2022 (increasingly correlated): As institutional investors adopted Bitcoin and crypto became part of the broader risk asset universe, the correlation spiked. During 2022, the BTC-SPX 90-day rolling correlation exceeded 0.50 for extended periods. Both assets were driven by the same macro forces: Fed policy, inflation expectations, risk appetite.
+
+2023-present (partially decorrelating): As the initial institutional wave was absorbed and crypto developed its own catalysts (ETF approvals, halving cycles), the correlation moderated to 0.20-0.35. Bitcoin still sells off with equities during acute panic (correlation spikes in crises) but has more independent movement during calm periods.
+
+What this means for equity/vol traders: When BTC correlation is high (above 0.40), a sharp Bitcoin selloff can signal or even cause equity selling (through liquidation of leveraged positions, margin calls on crypto-equity portfolios, and sentiment contagion). The May 2022 Terra/Luna collapse coincided with a 5% equity decline, partly through this contagion channel.
+
+When BTC is decorrelated (below 0.20), crypto moves provide less information about equity direction. But they still serve as a sentiment indicator — extreme crypto fear (Bitcoin Fear & Greed Index below 10) often coincides with broad risk aversion that eventually affects equities.
+
+Geopolitical and Sanctions Risk
+
+Geopolitical events create abrupt, often unhedgeable volatility shocks. Unlike earnings or FOMC meetings, they are not on a calendar.
+
+Energy vol spillover: Geopolitical events affecting oil-producing regions (Middle East, Russia) create immediate energy volatility that spills into equities. The Russia/Ukraine conflict in February 2022 pushed crude oil from $90 to $130 (+44%) in two weeks. This energy price shock raised inflation expectations, forced the Fed to be more aggressive, and contributed to the 2022 bear market in equities.
+
+Key relationships: Oil price spikes → airline/transport stocks decline (fuel costs), energy stocks rally, consumer discretionary weakens (gasoline prices reduce spending). Natural gas spikes → utility costs rise, European industrial production falls, fertilizer costs increase (affecting agriculture).
+
+Sanctions and supply chain disruption: The Russia sanctions of 2022 removed a major commodity producer from the global economy, disrupting palladium (autocatalysts), neon (semiconductors), wheat (food), and fertilizer supply chains. Tracking BDI (Baltic Dry Index, a measure of shipping costs), container rates, and semiconductor lead times can provide early signals of supply chain normalization or deterioration.
+
+For vol traders: Geopolitical risk cannot be modeled or predicted, but it can be prepared for. Maintaining a small long-volatility position (VIX calls, SPX put spreads) is insurance against geopolitical shocks. The cost of this insurance (typically 1-2% of portfolio per quarter) is often recovered in a single event.
+
+Satellite and Alternative Data
+
+The rise of alternative data has given institutional investors access to real-time economic indicators that previously required waiting for monthly government reports.
+
+Shipping and port traffic: Satellite imagery of ports and shipping lanes provides real-time trade flow data. During the COVID recovery, tracking container ships at major ports (Los Angeles, Shanghai, Rotterdam) gave early signals of supply chain bottlenecks months before official data confirmed the problem. Companies like Orbital Insight and SpaceKnow process satellite imagery to generate daily indices.
+
+Parking lot occupancy: Retail sales data is released monthly with a significant lag. But satellite images of parking lots at Walmart, Target, Costco, and shopping malls provide weekly (or even daily) proxies for consumer activity. Before quarterly earnings, comparing parking lot fullness to prior quarters gives an edge in predicting same-store sales.
+
+Credit card data: Companies like Mastercard, Visa, and data aggregators sell anonymized, aggregated transaction data. Analysts can see whether consumer spending at Amazon, Apple stores, or restaurants is accelerating or decelerating in real-time — weeks before earnings reports. This data has become so widely used that it now moves stocks pre-earnings (the "data leak" effect).
+
+Job postings: Tracking LinkedIn job postings, Indeed listings, and Glassdoor data by company provides real-time signals about hiring momentum. A surge in engineering postings at a tech company might signal product investment (bullish). A freeze in postings might signal cost-cutting ahead (potentially bearish or efficiency-positive depending on context).
+
+Web traffic: SimilarWeb and other providers track website visits and app downloads. For e-commerce, fintech, and SaaS companies, web traffic trends correlate with revenue trends. A 20% decline in website traffic for a major e-commerce player is a red flag heading into earnings.
+
+Limitations: Alternative data is noisy, expensive ($50,000-$500,000+ per year for institutional datasets), and increasingly priced in as more firms adopt it. The edge from any single alternative dataset decays over time as it becomes more widely used.
+
+ESG-Driven Flows and Sector Impact
+
+Environmental, Social, and Governance (ESG) investing has grown to over $30 trillion in assets under management globally. This massive capital pool creates structural market effects.
+
+Sector underweights/overweights: ESG funds systematically underweight fossil fuels, tobacco, weapons, and gambling stocks. They overweight clean energy, technology, and healthcare. This creates a "green premium" — ESG-compliant stocks trade at slightly higher valuations (and lower expected returns) due to consistent fund inflows, while excluded stocks trade at discounts.
+
+Flow impact on vol: When ESG funds receive inflows (which they consistently have since 2018), buying concentrates in compliant stocks. When outflows occur, selling concentrates in the same names. This concentration amplifies volatility for ESG-favorite stocks during fund flow events.
+
+The energy sector paradox: ESG underweighting of energy stocks meant that when energy prices spiked in 2022, most portfolios were underexposed. XLE (Energy ETF) returned +65% while ESG-heavy portfolios missed the rally. This created performance chasing — some ESG funds relaxed energy exclusions, adding late buying pressure.
+
+Commodity Volatility Spillover
+
+Commodity prices affect equity sectors in direct and quantifiable ways.
+
+Oil → Airlines/Transports: Fuel is 25-35% of airline operating costs. A 20% rise in jet fuel can reduce airline earnings by 15-25% if unhedged. Southwest Airlines' historical practice of aggressive fuel hedging (locking in prices via futures) gave it a cost advantage during oil spikes. Delta, United, and American hedge less, making their stocks more vol-sensitive to oil.
+
+Copper → Industrials: Copper is used in wiring, construction, and electronics. Rising copper prices signal strong industrial demand (bullish for CAT, DE, EMR) but also raise input costs. The net effect depends on whether the copper rise is demand-driven (positive) or supply-constrained (mixed — demand may not be as strong as prices suggest).
+
+Agricultural commodities → Food stocks: Wheat, corn, and soybean prices affect food producers (GIS, CPB, K) and restaurants (MCD, SBUX). Rising agricultural prices squeeze margins unless companies can pass costs through to consumers. Food inflation in 2022-2023 initially hurt food stocks (margin compression) before benefiting them (pricing power exceeded expectations).
+
+Lumber → Housing: Lumber prices correlate with housing market activity. The lumber crash of mid-2022 (down 60% from the 2021 peak) signaled cooling housing demand months before the housing data confirmed the slowdown.
+
+Put/Call Ratio Across Asset Classes
+
+The put/call ratio is not just an equity metric. Tracking it across asset classes reveals divergences that signal regime shifts.
+
+Equity put/call ratio: The CBOE equity put/call ratio normally ranges from 0.60 to 0.80. Above 1.0 = extreme fear (more puts than calls being traded). Below 0.50 = extreme complacency (heavy call speculation). Extremes are contrarian signals, similar to sentiment indicators.
+
+Treasury put/call ratio: Heavy put buying on Treasury options (TLT puts, for example) signals expectations of rising rates. When the Treasury P/C ratio diverges from the equity P/C ratio — for example, Treasury puts surging while equity puts are calm — it suggests rates vol is building that has not yet infected equities. This divergence preceded the 2022 selloff.
+
+Commodity put/call ratio: Elevated put buying on commodity ETFs (GLD, USO, SLV) signals expectations of economic slowdown or deflation. Conversely, heavy call buying on commodities signals inflation expectations.
+
+Cross-asset divergence: The most powerful signal is when the put/call ratios across asset classes tell different stories. If equity P/C is at 0.55 (complacent), Treasury P/C is at 1.2 (panicking about rates), and commodity P/C is at 0.90 (concerned about inflation), the rates and commodity markets are pricing in risk that equities are ignoring. This divergence typically resolves with equities catching down to what bonds and commodities are signaling.
+
+Currency Volatility as an Equity Signal
+
+Currency markets are the largest financial market ($7+ trillion daily volume), and their volatility often provides advance warning of equity moves.
+
+USD/JPY and the carry trade: Japan's ultra-low interest rates (near 0% for decades) made the yen a popular funding currency for carry trades. Investors borrow in yen and invest in higher-yielding assets (US equities, emerging market bonds). When the yen strengthens rapidly (USD/JPY falling), carry traders face losses and must unwind — selling their equity positions to repay yen borrowings.
+
+USD/JPY vol as a signal: When 1-month USD/JPY implied volatility exceeds 12% (compared to a normal 7-8%), carry trade stress is elevated. This has preceded equity selloffs multiple times. The metric spiked to 15%+ before the August 2024 unwind.
+
+EUR/USD for European exposure: US companies with significant European revenue (many S&P 500 names derive 20-40% of revenue from Europe) are sensitive to EUR/USD moves. A weakening euro (EUR/USD falling) reduces the dollar value of European earnings. EUR/USD implied vol above 10% signals uncertainty about European economic conditions that can spill into US equities with European exposure.
+
+Emerging market (EM) FX vol: Currencies like the Mexican peso (MXN), Brazilian real (BRL), and Turkish lira (TRY) serve as barometers for global risk appetite. When EM currencies sell off simultaneously, it signals a broad risk-off move that typically reaches developed equity markets. The JP Morgan EM FX Volatility Index above 12% has preceded S&P 500 pullbacks approximately 70% of the time.
+
+Case Study: August 2024 — The Yen Carry Trade Unwind
+
+The August 2024 volatility event demonstrates how cross-asset dynamics can trigger an equity crash with no equity-specific catalyst.
+
+Background: For years, the Bank of Japan maintained ultra-low rates while the Fed hiked to 5.25-5.50%. This created an enormous interest rate differential, incentivizing carry trades: borrow yen at near-0%, invest in US assets earning 5%+. Trillions of dollars in carry trade positions accumulated.
+
+July 31, 2024: The Bank of Japan unexpectedly raised its policy rate from 0.10% to 0.25% and signaled further tightening. This was a small rate move by global standards but a seismic shift for Japan's zero-rate regime.
+
+The unwind:
+- August 1-2: USD/JPY falls from 153 to 149 (yen strengthening). Carry traders face losses on the FX leg. Implied vol on USD/JPY doubles from 8% to 16%.
+- August 2: US July payrolls report comes in weak (114k vs 175k expected). Recession fears compound the carry trade stress. S&P 500 drops 1.8%.
+- August 5 (Monday): The Nikkei 225 drops 12.4% — the largest single-day decline since 1987's Black Monday. The yen surges (USD/JPY hits 141.7, from 153 just days earlier — a 7.4% move in a major currency pair, which is extraordinary). VIX spikes to 65 intraday (from 23 on August 1), the highest level since March 2020. S&P 500 futures drop 4.3% overnight.
+- August 5 (US session): The S&P 500 opens down 3%, hitting session lows. But the selling exhausts itself. The S&P closes down 3.0%, and VIX settles at 38.6 (well below the 65 intraday spike).
+- August 6-9: Rapid recovery. The Nikkei bounces 10% on August 6. The S&P recovers most of the decline by August 9. VIX collapses back to 20 within a week.
+
+The cross-asset anatomy:
+1. Currency market moved first (yen strengthening began July 31).
+2. Bond market moved second (US Treasury yields fell as recession fears and flight-to-safety drove buying).
+3. Japanese equities moved third (Nikkei crashed as yen strength destroyed exporter earnings and carry trades unwound).
+4. US equity VIX spiked last but most dramatically (from 23 to 65 intraday).
+
+A trader watching USD/JPY implied volatility and yen spot price action had 3-4 days of advance warning before the VIX spike. The yen move from 153 to 149 on August 1-2 was the signal. By the time VIX hit 65, the trade was already mature.
+
+The resolution was fast because the underlying trigger was positioning-related, not fundamental. No recession materialized. No financial institution failed. The carry trade simply unwound in a compressed timeframe, creating a volatility event that reversed once forced selling was exhausted.
+
+Key Takeaways
+
+1. High P/E stocks (above 25x) are more sensitive to vol shocks. Low FCF yield stocks are most sensitive to rate moves. Know your portfolio's vulnerability profile.
+2. Short interest above 20% with rising cost to borrow signals squeeze risk. Days to cover above 5 amplifies the squeeze when a catalyst arrives.
+3. The gold/copper ratio is a clean risk-on/risk-off indicator. A rising ratio (gold outperforming) leads equity weakness by 1-2 weeks.
+4. Bitcoin's equity correlation has been unstable — high (0.50+) during 2022, moderating since. Sharp crypto selloffs can still trigger equity contagion.
+5. Geopolitical shocks create unhedgeable vol. Maintaining small long-vol positions insures against events that cannot be timed.
+6. Alternative data (satellite, credit card, web traffic) provides real-time economic signals but is increasingly priced in and expensive.
+7. ESG flows (over $30T AUM) create structural over/underweights that amplify sector volatility during fund flow events.
+8. Commodity price moves spill into equity sectors with quantifiable relationships (oil to airlines, copper to industrials, agriculture to food).
+9. Cross-asset put/call ratio divergences — where one market is panicking while another is complacent — signal upcoming convergence.
+10. Currency volatility, especially USD/JPY and EM FX, often leads equity volatility by days. The August 2024 yen carry trade unwind is a masterclass in cross-asset signal propagation.

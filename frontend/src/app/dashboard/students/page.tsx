@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentRoster } from "@/lib/hooks";
@@ -45,15 +45,20 @@ export default function StudentRosterPage() {
     );
   }, [students, search]);
 
+  useEffect(() => {
+    if (!authLoading && user?.role !== "educator") {
+      router.replace("/");
+    }
+  }, [authLoading, user?.role, router]);
+
   if (!authLoading && user?.role !== "educator") {
-    router.replace("/");
     return null;
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Page Header */}
-      <div className="mb-8">
+      <div className="mb-8 animate-slide-up">
         <h1 className="mb-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
           Student Roster
         </h1>
@@ -63,14 +68,25 @@ export default function StudentRosterPage() {
       </div>
 
       {/* Search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search by name or username..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md rounded-xl border border-white/[0.08] bg-zinc-900/60 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20"
-        />
+      <div className="mb-6 animate-slide-up" style={{ animationDelay: "30ms" }}>
+        <div className="relative w-full max-w-md">
+          <svg
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name or username..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl border border-white/[0.08] bg-zinc-900/60 pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-all focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 focus:shadow-[0_0_15px_rgba(139,92,246,0.1)]"
+          />
+        </div>
       </div>
 
       {/* Loading */}
@@ -100,7 +116,7 @@ export default function StudentRosterPage() {
               {search ? "No students match your search." : "No students found."}
             </div>
           ) : (
-            <div className="card-glow overflow-hidden">
+            <div className="card-glow overflow-hidden animate-slide-up" style={{ animationDelay: "60ms" }}>
               <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-800/50">
                   <tr>
@@ -125,28 +141,34 @@ export default function StudentRosterPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((student) => (
+                  {filtered.map((student, i) => (
                     <tr
                       key={student.id}
-                      className="cursor-pointer border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]"
+                      className="animate-slide-up cursor-pointer border-b border-white/[0.04] transition-colors duration-200 hover:bg-violet-500/[0.04]"
+                      style={{ animationDelay: `${i * 30}ms` }}
                       onClick={() =>
                         router.push(`/dashboard/students/${student.id}`)
                       }
                     >
                       <td className="px-5 py-3.5">
-                        <div>
-                          <span className="font-medium text-zinc-200">
-                            {student.name || student.username}
-                          </span>
-                          {student.name && (
-                            <span className="ml-2 text-xs text-zinc-500">
-                              @{student.username}
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-xs font-bold text-white">
+                            {(student.name || student.username || "?")[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="font-medium text-zinc-200">
+                              {student.name || student.username}
                             </span>
-                          )}
+                            {student.name && (
+                              <span className="ml-2 text-xs text-zinc-500">
+                                @{student.username}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400 ring-1 ring-blue-500/20">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-400 ring-1 ring-blue-500/20 shadow-[0_0_8px_rgba(59,130,246,0.08)]">
                           Lv. {student.level}
                         </span>
                       </td>

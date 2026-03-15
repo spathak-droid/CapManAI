@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import traceback
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
@@ -11,8 +10,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-
 logger = logging.getLogger(__name__)
 
 from src.api.assistant_routes import router as assistant_router
@@ -66,12 +63,6 @@ app.include_router(auth_router)
 app.include_router(challenges_router)
 app.include_router(peer_review_router)
 app.include_router(realtime_router)
-
-# Serve uploaded files (message images, etc.)
-uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
-
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:

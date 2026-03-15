@@ -3,7 +3,10 @@
 import base64
 import csv
 import io
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import Response as FastAPIResponse, StreamingResponse
@@ -417,7 +420,7 @@ async def grade_response(
                 await db.commit()
                 await db.refresh(user)
     except Exception:
-        pass  # Don't fail the grade response if persistence fails (e.g. test env)
+        logger.exception("XP persistence failed")
 
     # Upsert SkillScore for the targeted skill
     try:
@@ -447,22 +450,31 @@ async def grade_response(
                 )
             await db.commit()
     except Exception:
-        pass  # Don't fail the grade response if skill persistence fails
+        logger.exception("Skill score persistence failed")
 
     # Auto-assign peer reviews (best-effort, don't block grading)
     try:
         if isinstance(_user, User) and linked_response_id:
             from src.peer_review.service import auto_assign_peer_reviews
 
-            await auto_assign_peer_reviews(
+            assignments = await auto_assign_peer_reviews(
                 db,
                 response_id=linked_response_id,
                 user_id=_user.id,
                 skill_target=req.skill_target,
             )
             await db.commit()
+            logger.info(
+                "Peer review auto-assign: user=%s response=%s skill=%s assigned=%d",
+                _user.id, linked_response_id, req.skill_target, len(assignments),
+            )
+        else:
+            logger.warning(
+                "Peer review skipped: user_type=%s linked_response_id=%s",
+                type(_user).__name__, linked_response_id,
+            )
     except Exception:
-        pass  # Don't fail the grade response if peer assignment fails
+        logger.exception("Peer review auto-assign failed")
 
     return GradeResponse(
         technical_accuracy=result.technical_accuracy,

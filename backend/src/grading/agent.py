@@ -45,13 +45,34 @@ Return ONLY a JSON array of strings, each being one question. Example:
 GRADING_SYSTEM_PROMPT = (
     "You are an expert trading instructor grading a student's response to a "
     "trading scenario. You evaluate responses across four dimensions, each "
-    "scored from 1 (poor) to 5 (excellent). Be fair, constructive, and specific."
+    "scored from 1 (poor) to 5 (excellent). Be fair, constructive, and specific.\n\n"
+    "The 16 assessed skills are:\n"
+    "- price_action: Price patterns, candlesticks, support/resistance, RSI, MACD, Bollinger, ATR\n"
+    "- options_chain: Options chain analysis, OI, bid-ask, dark pool, put/call, sweeps\n"
+    "- strike_select: Strike selection via delta, probability, premium cost tradeoffs\n"
+    "- risk_mgmt: Risk management, tail risk, VaR, CVaR, skew, stress tests, drawdown\n"
+    "- position_size: Position sizing, Kelly Criterion, Sharpe, Sortino, margin, concentration\n"
+    "- regime_id: Market regime identification, yield curve, macro signals, credit spreads\n"
+    "- vol_assess: Volatility assessment, IV rank/percentile, skew, term structure, VVIX\n"
+    "- trade_mgmt: Trade management, earnings IV crush, event calendar, adjustments, exits\n"
+    "- realized_vol: Realized vol estimators (Parkinson, GK, YZ), vol clustering, HV analysis\n"
+    "- adv_greeks: Advanced Greeks (Vanna, Charm, Voma, GEX), dealer hedging, exposure mgmt\n"
+    "- sentiment: Sentiment indicators, AAII, Fear & Greed, fund flows, contrarian signals\n"
+    "- correlation: Cross-asset correlation, dispersion, sector rotation, relative value\n"
+    "- structural: Exotic structures, gamma squeezes, 0DTE, pinning, variance swaps, microstructure\n"
+    "- rates_fi: Fixed income signals, MOVE index, Fed futures, TIPS, CDS, yield curve\n"
+    "- seasonality: Calendar effects, OpEx flows, seasonal patterns, VIX settlement, holiday vol\n"
+    "- cross_asset: Fundamentals, commodities, crypto, geopolitical, alt-data, ESG signals"
 )
 
 GRADING_USER_TEMPLATE = """Grade the following student exchange on a trading scenario.
 
 ## Scenario
 {scenario_text}
+
+## Skill Being Assessed
+{skill_target}: {skill_description}
+Evaluate whether the student's response demonstrates competence in this specific skill area.
 
 ## Student's Initial Response
 {student_response}
@@ -78,6 +99,16 @@ Return ONLY a JSON object with these exact keys:
 }}"""
 
 
+def _strip_code_fences(text: str) -> str:
+    """Remove markdown code fences (```json ... ```) from LLM output."""
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned
+    if cleaned.endswith("```"):
+        cleaned = cleaned[: cleaned.rfind("```")]
+    return cleaned.strip()
+
+
 def _build_probe_section(exchanges: list[ProbeExchange]) -> str:
     """Format probe exchanges for the grading prompt."""
     if not exchanges:
@@ -100,16 +131,16 @@ def _compute_overall(
 
 
 def _fallback_grade() -> GradeResult:
-    """Return a neutral fallback grade when the LLM is unavailable."""
+    """Return a minimum fallback grade when the LLM is unavailable."""
     return GradeResult(
-        technical_accuracy=3.0,
-        risk_awareness=3.0,
-        strategy_fit=3.0,
-        reasoning_clarity=3.0,
-        overall_score=3.0,
+        technical_accuracy=1.0,
+        risk_awareness=1.0,
+        strategy_fit=1.0,
+        reasoning_clarity=1.0,
+        overall_score=1.0,
         feedback_text=(
-            "Grading is temporarily unavailable. A default score has been "
-            "assigned. Please try again later for a detailed evaluation."
+            "Grading is temporarily unavailable. A minimum score has been "
+            "assigned — please try again later for a detailed evaluation."
         ),
     )
 
@@ -175,7 +206,7 @@ class ProbingAgent:
         )
         try:
             content = await _call_openrouter(PROBE_SYSTEM_PROMPT, user_prompt)
-            questions: list[str] = json.loads(content)
+            questions: list[str] = json.loads(_strip_code_fences(content))
             # Ensure we return the requested number of probes
             return questions[:num_probes]
         except Exception:
@@ -216,6 +247,8 @@ class GradingAgent:
             scenario_text=scenario_text,
             student_response=student_response,
             probe_section=_build_probe_section(probe_exchanges),
+            skill_target="general",
+            skill_description="General trading knowledge",
             w_ta=ta_dim.weight,
             d_ta=ta_dim.description,
             w_ra=ra_dim.weight,
@@ -233,7 +266,7 @@ class GradingAgent:
                     + system_prompt
                 )
             content = await _call_openrouter(system_prompt, user_prompt)
-            raw = json.loads(content)
+            raw = json.loads(_strip_code_fences(content))
             ta = float(raw["technical_accuracy"])
             ra = float(raw["risk_awareness"])
             sf = float(raw["strategy_fit"])
@@ -254,11 +287,11 @@ class GradingAgent:
             if "API key" in str(e):
                 logger.error("Grading unavailable: %s", e)
                 return GradeResult(
-                    technical_accuracy=3.0,
-                    risk_awareness=3.0,
-                    strategy_fit=3.0,
-                    reasoning_clarity=3.0,
-                    overall_score=3.0,
+                    technical_accuracy=1.0,
+                    risk_awareness=1.0,
+                    strategy_fit=1.0,
+                    reasoning_clarity=1.0,
+                    overall_score=1.0,
                     feedback_text=(
                         "Grading is unavailable: OpenRouter API key is not set. "
                         "Add OPENROUTER_API_KEY (or OPEN_ROUTER_API_KEY) to backend/.env and restart the backend."

@@ -41,20 +41,20 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
   const skillKeys = Object.keys(students[0].skill_tiers);
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/[0.06]">
+    <div className="card-glow overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="bg-zinc-800/50">
+        <thead className="bg-gradient-to-r from-violet-500/10 via-purple-500/5 to-transparent">
           <tr>
-            <th className="sticky left-0 z-10 bg-zinc-800/50 px-3 sm:px-4 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 min-w-[100px]">
+            <th className="sticky left-0 z-10 bg-zinc-900/90 backdrop-blur-sm px-3 sm:px-4 py-3 text-xs font-medium uppercase tracking-wider text-zinc-400 min-w-[100px]">
               Student
             </th>
-            <th className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <th className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-400">
               Avg Score
             </th>
             {skillKeys.map((skill) => (
               <th
                 key={skill}
-                className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 whitespace-nowrap"
+                className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-400 whitespace-nowrap"
               >
                 {formatSkillName(skill)}
               </th>
@@ -82,7 +82,7 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
                     title={`${student.name || student.username} / ${formatSkillName(skill)}: ${tier.replace("_", " ")}`}
                   >
                     <span
-                      className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold ${cellColor(tier)}`}
+                      className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold transition-shadow hover:shadow-[0_0_8px_rgba(139,92,246,0.15)] ${cellColor(tier)}`}
                     >
                       {tier.replace("tier_", "T")}
                     </span>

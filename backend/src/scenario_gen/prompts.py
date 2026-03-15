@@ -26,11 +26,19 @@ daily closes), volume, avg_volume, sector, and relevant technical indicators \
 - If instrument_type is "option" or "both", also include in market_data: iv, \
 iv_rank, iv_percentile, and options_chain (a list of 3-5 representative \
 contracts with strike, type, bid, ask, delta, gamma, open_interest).
+- For volatility-focused skills, also include: hv_20, hv_60, parkinson_vol, iv_skew_25d, \
+term_structure_slope (front_month_iv minus back_month_iv), vvix.
+- For Greeks-focused skills, also include: net_gamma_exposure (aggregate dealer GEX in shares), \
+vanna, charm.
+- For flow-focused skills, also include: put_call_ratio, dark_pool_pct, sweep_volume_ratio.
+- For macro-focused skills, also include: yield_curve_2s10s, dxy_level, credit_spread_hy.
+- For sentiment-focused skills, also include: fear_greed_index, aaii_bull_pct, margin_debt_yoy_chg.
 - The question must directly test the skill_target and be specific enough that \
 a concrete, actionable answer is expected.
 - Complexity 1-2: straightforward setup, clear signals. \
 Complexity 3: mixed signals requiring judgment. \
 Complexity 4-5: ambiguous data, multiple factors, edge cases.
+{skill_addendum}
 
 Respond with ONLY a JSON object in this exact structure:
 {{"situation": "<detailed scenario text>", \
@@ -39,6 +47,25 @@ Respond with ONLY a JSON object in this exact structure:
 "sector": "...", "rsi_14": ..., "macd": ..., "macd_signal": ..., \
 ...additional fields as appropriate...}}, \
 "question": "<specific assessment question>"}}"""
+
+SKILL_ADDENDA: dict[str, str] = {
+    "price_action": "Focus on RSI divergences, MACD crossovers, Bollinger Band squeezes, ATR-based stops, volume profile, Fibonacci retracements, gap analysis, and pivot point levels.",
+    "options_chain": "Emphasize bid-ask spread analysis, open interest changes, volume-to-OI ratio, dark pool prints, put/call skew, unusual sweep activity, and market maker hedging implications.",
+    "strike_select": "Test delta-based strike selection, gamma scalping considerations, probability of profit calculations, and the relationship between strike distance and risk/reward.",
+    "risk_mgmt": "Include tail risk metrics: skew index interpretation, portfolio kurtosis, Value at Risk (VaR), Conditional VaR (CVaR), OTM put premium as insurance cost, stress test scenarios, and max drawdown analysis.",
+    "position_size": "Test Kelly Criterion application, Sharpe and Sortino ratio awareness, max drawdown constraints, portfolio concentration limits, margin utilization, and volatility-scaled sizing.",
+    "regime_id": "Include yield curve (2s10s) interpretation, CPI/PCE impact on vol, DXY correlation, credit spread widening signals, real rate shifts, and PMI regime classification.",
+    "vol_assess": "Test IV rank vs IV percentile distinction, 25-delta skew interpretation, term structure (contango vs backwardation), IV-HV gap trading, straddle pricing, VVIX as vol-of-vol, and smile dynamics.",
+    "trade_mgmt": "Include earnings IV crush quantification, economic calendar event sizing, ex-dividend risk for options, FDA binary events, index rebalancing flows, and corporate buyback blackout windows.",
+    "realized_vol": "Test close-to-close vs Parkinson vs Garman-Klass vs Yang-Zhang estimator selection, volatility clustering identification, intraday volatility profiles, and HV cone interpretation.",
+    "adv_greeks": "Focus on GEX flip level calculation, Vanna impact on skew, Charm (delta decay), Vomma convexity, Color (gamma decay), Speed (gamma-of-gamma), and Zomma (gamma sensitivity to vol).",
+    "sentiment": "Test AAII bull/bear ratio interpretation, CNN Fear & Greed decomposition, social media sentiment divergence, margin debt as contrarian signal, ETF fund flow analysis, and insider buying clusters.",
+    "correlation": "Include implied vs realized correlation, sector rotation signals, dispersion trade construction, vol surface arbitrage, pairs trading z-score, safe-haven correlation breakdown, and equity risk premium shifts.",
+    "structural": "Test gamma squeeze identification (short gamma + rising delta), 0DTE gamma amplification, max-pain pinning mechanics, variance swap fair value, dark pool ratio signals, flash crash liquidity, and auction imbalance reading.",
+    "rates_fi": "Include MOVE index interpretation, Fed funds futures implied rate path, TIPS breakeven inflation, CDS spread widening, MBS prepayment impact on vol, and reverse repo facility as liquidity gauge.",
+    "seasonality": "Test monthly return patterns (January effect, September weakness), OpEx/quad witching volatility, tax-loss harvesting flows, VIX futures expiration mechanics, holiday vol compression, and intraday mean reversion windows.",
+    "cross_asset": "Include P/E and FCF yield for equity vol context, gold/copper ratio as risk gauge, BTC correlation regime shifts, sanctions and geopolitical event vol, satellite/alt-data signals, and ESG-driven flow changes.",
+}
 
 PROBE_TEMPLATE = """Given the following trading scenario and student response,
 generate {num_probes} follow-up probing questions to assess depth of understanding.

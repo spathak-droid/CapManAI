@@ -72,7 +72,7 @@ def test_lessons_modules_student_access() -> None:
     resp = client.get("/api/lessons/modules", headers=_auth_header())
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 12
+    assert len(data) == 20
     assert data[0]["module_id"] == "f1"
     assert data[-1]["module_id"] == "c1"
     app.dependency_overrides.clear()

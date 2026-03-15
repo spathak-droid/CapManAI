@@ -187,14 +187,13 @@ export default function StudentMessagesPage() {
     if ((!messageText.trim() && !imageFile) || !selectedEducatorId || sending) return;
     setSending(true);
     try {
-      let imageUrl: string | undefined;
+      let imageData: { image_data_b64: string; content_type: string } | undefined;
       if (imageFile) {
         setUploading(true);
-        const result = await uploadMessageImage(imageFile);
-        imageUrl = result.image_url;
+        imageData = await uploadMessageImage(imageFile);
         setUploading(false);
       }
-      await sendStudentReply(selectedEducatorId, messageText.trim(), imageUrl);
+      await sendStudentReply(selectedEducatorId, messageText.trim(), imageData);
       setMessageText("");
       clearImage();
       await mutateMessages();
@@ -207,6 +206,12 @@ export default function StudentMessagesPage() {
     }
   };
 
+  useEffect(() => {
+    if (!authLoading && user?.role !== "student") {
+      router.replace("/");
+    }
+  }, [authLoading, user?.role, router]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -215,7 +220,6 @@ export default function StudentMessagesPage() {
   };
 
   if (!authLoading && user?.role !== "student") {
-    router.replace("/");
     return null;
   }
 

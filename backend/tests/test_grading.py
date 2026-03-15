@@ -76,13 +76,13 @@ class TestGradeResultModel:
 
 
 class TestFallbackGrade:
-    def test_fallback_returns_neutral_scores(self) -> None:
+    def test_fallback_returns_minimum_scores(self) -> None:
         fb = _fallback_grade()
-        assert fb.technical_accuracy == 3.0
-        assert fb.risk_awareness == 3.0
-        assert fb.strategy_fit == 3.0
-        assert fb.reasoning_clarity == 3.0
-        assert fb.overall_score == 3.0
+        assert fb.technical_accuracy == 1.0
+        assert fb.risk_awareness == 1.0
+        assert fb.strategy_fit == 1.0
+        assert fb.reasoning_clarity == 1.0
+        assert fb.overall_score == 1.0
         assert "temporarily unavailable" in fb.feedback_text.lower()
 
 
@@ -179,7 +179,7 @@ class TestGradingAgent:
                 student_response="Response",
                 probe_exchanges=[],
             )
-            assert result.overall_score == 3.0
+            assert result.overall_score == 1.0
             assert "temporarily unavailable" in result.feedback_text.lower()
 
 
@@ -287,5 +287,5 @@ class TestGradeEndpoint:
             )
             assert resp.status_code == 200
             data = resp.json()
-            assert data["overall_score"] == 3.0
+            assert data["overall_score"] == 1.0
             assert "temporarily unavailable" in data["feedback_text"].lower()

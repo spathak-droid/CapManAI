@@ -1,6 +1,10 @@
 """API routes for the AI assistant (chat + saved conversations)."""
 
+import json
+from collections.abc import AsyncIterator
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas import (
@@ -13,7 +17,7 @@ from src.api.schemas import (
     AssistantMessageSchema,
 )
 from src.assistant.context import fetch_student_analysis_context, format_student_context
-from src.assistant.llm import ASSISTANT_SYSTEM_PROMPT, EDUCATOR_SYSTEM_PROMPT, chat_completion
+from src.assistant.llm import ASSISTANT_SYSTEM_PROMPT, EDUCATOR_SYSTEM_PROMPT, chat_completion, chat_completion_stream
 from src.assistant.service import (
     append_messages,
     delete_conversation,
@@ -130,6 +134,76 @@ async def assistant_chat(
     return AssistantChatResponse(
         conversation_id=conv.id,
         message=AssistantMessageSchema(role="assistant", content=assistant_content),
+    )
+
+
+@router.post("/chat/stream")
+async def assistant_chat_stream(
+    body: AssistantChatRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Stream assistant reply as SSE. First event sends conversation_id, then content deltas, then [DONE]."""
+    if not body.messages:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="messages must not be empty",
+        )
+    last_user = next(
+        (m for m in reversed(body.messages) if m.role == "user"),
+        None,
+    )
+    if last_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Last message must be from user",
+        )
+
+    conv, _ = await get_or_create_conversation_for_chat(
+        body.conversation_id,
+        user.id,
+        last_user.content,
+        db,
+    )
+
+    # Choose system prompt and context based on role
+    if user.role == "educator":
+        system_prompt = EDUCATOR_SYSTEM_PROMPT
+        if body.student_context_id:
+            student_data = await fetch_student_analysis_context(db, body.student_context_id)
+            student_context = format_student_context(student_data)
+            system_prompt = f"{EDUCATOR_SYSTEM_PROMPT}\n\n---\n\n{student_context}"
+    else:
+        system_prompt = ASSISTANT_SYSTEM_PROMPT
+
+    openrouter_messages = [
+        {"role": "system", "content": system_prompt},
+        *[{"role": m.role, "content": m.content} for m in body.messages],
+    ]
+
+    async def event_generator() -> AsyncIterator[str]:
+        # First event: conversation metadata
+        yield f"data: {json.dumps({'conversation_id': conv.id})}\n\n"
+
+        full_content = ""
+        async for token in chat_completion_stream(openrouter_messages):
+            full_content += token
+            yield f"data: {json.dumps({'token': token})}\n\n"
+
+        # Save to DB after streaming is complete
+        await append_messages(conv.id, last_user.content, full_content, db)
+        await db.commit()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

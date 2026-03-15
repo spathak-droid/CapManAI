@@ -11,7 +11,7 @@ import {
   deleteAssistantConversation,
   getAssistantConversation,
   listAssistantConversations,
-  sendAssistantMessage,
+  streamAssistantMessage,
 } from "@/lib/api";
 import AssistantMessageContent from "@/components/AssistantMessageContent";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -240,53 +240,116 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar", s
       : [];
     const messagesToSend: AssistantMessagePayload[] = [...messagesSoFar, userMessage];
 
+    // Immediately add user message so it renders (fixes missing typing indicator on first message)
+    const now = new Date().toISOString();
+    const userMsgOut: AssistantMessageOut = {
+      id: 0,
+      role: "user",
+      content: text,
+      created_at: now,
+    };
+    setCurrentConversation((prev) => {
+      const base = prev ?? {
+        id: 0,
+        title: "New chat",
+        created_at: now,
+        updated_at: now,
+        messages: [],
+      };
+      return {
+        ...base,
+        title: base.title || text.slice(0, 50),
+        messages: [...base.messages, userMsgOut],
+      };
+    });
+
     setSending(true);
+
+    let streamedContent = "";
+    let resolvedConvId = currentId;
+    let placeholderAdded = false;
+
+    const assistantPlaceholder: AssistantMessageOut = {
+      id: -1,
+      role: "assistant",
+      content: "",
+      created_at: now,
+    };
+
     try {
-      const res = await sendAssistantMessage(currentId, messagesToSend, studentContextId);
-      if (currentId === null) {
-        setCurrentId(res.conversation_id);
-        setConversations((prev) => [
-          { id: res.conversation_id, title: text.slice(0, 50), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-          ...prev,
-        ]);
-      } else {
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === res.conversation_id
-              ? { ...c, updated_at: new Date().toISOString() }
-              : c,
-          ),
-        );
-      }
-      const now = new Date().toISOString();
-      const userMsgOut: AssistantMessageOut = {
-        id: 0,
-        role: "user",
-        content: text,
-        created_at: now,
-      };
-      const assistantMsgOut: AssistantMessageOut = {
-        id: 0,
-        role: "assistant",
-        content: res.message.content,
-        created_at: now,
-      };
-      setCurrentConversation((prev) => {
-        const base = prev ?? { id: res.conversation_id, title: "", created_at: "", updated_at: "", messages: [] };
-        return {
-          ...base,
-          id: res.conversation_id,
-          title: base.title || text.slice(0, 50),
-          messages: [...base.messages, userMsgOut, assistantMsgOut],
-        };
-      });
+      await streamAssistantMessage(
+        currentId,
+        messagesToSend,
+        (token: string) => {
+          // Handle conversation_id from first event
+          if (token.startsWith("\x00CONV_ID:")) {
+            const id = parseInt(token.slice(9), 10);
+            resolvedConvId = id;
+            if (currentId === null) {
+              setCurrentId(id);
+              setConversations((prev) => [
+                {
+                  id,
+                  title: text.slice(0, 50),
+                  created_at: now,
+                  updated_at: now,
+                },
+                ...prev,
+              ]);
+            }
+            return;
+          }
+
+          // First real token — add placeholder and stop showing typing indicator
+          if (!placeholderAdded) {
+            placeholderAdded = true;
+            setSending(false);
+            setCurrentConversation((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                messages: [...prev.messages, { ...assistantPlaceholder, content: token }],
+              };
+            });
+            streamedContent = token;
+            return;
+          }
+
+          // Subsequent tokens — update the last message content
+          streamedContent += token;
+          setCurrentConversation((prev) => {
+            if (!prev) return prev;
+            const msgs = [...prev.messages];
+            const lastIdx = msgs.length - 1;
+            msgs[lastIdx] = { ...msgs[lastIdx], content: streamedContent };
+            return { ...prev, messages: msgs };
+          });
+        },
+        () => {
+          // onDone
+          if (resolvedConvId !== null && resolvedConvId !== currentId) {
+            setConversations((prev) =>
+              prev.map((c) =>
+                c.id === resolvedConvId
+                  ? { ...c, updated_at: new Date().toISOString() }
+                  : c,
+              ),
+            );
+          }
+          setSending(false);
+        },
+        (err: Error) => {
+          setError(err.message || "Failed to send message");
+          setSending(false);
+        },
+        studentContextId,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send message");
       setInput(text);
-    } finally {
       setSending(false);
     }
-  }, [input, sending, currentId, currentConversation]);
+  }, [input, sending, currentId, currentConversation, studentContextId]);
 
   const handleDelete = useCallback(
     async (id: number) => {

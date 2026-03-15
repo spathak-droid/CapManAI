@@ -1,0 +1,215 @@
+REALIZED VOLATILITY: MEASURING WHAT ACTUALLY HAPPENED
+
+Why Realized Volatility Matters
+
+Implied volatility tells you what the market expects. Realized volatility tells you what actually happened. The gap between the two is where options traders make or lose money. If you sell options when IV is 30% and the stock only realizes 20% volatility, you pocket the difference. If the stock realizes 40%, you lose.
+
+But "realized volatility" is not one number. There are at least five major ways to measure it, each with different strengths and weaknesses. Using the wrong estimator — or only one estimator — can give you a distorted picture of how much the underlying is actually moving. Professional vol traders use multiple estimators simultaneously and compare them to get a complete view.
+
+Close-to-Close Volatility: The Standard Measure
+
+The most common realized volatility estimator uses closing prices only. This is what most platforms show you when they display "historical volatility" or "HV."
+
+The formula:
+
+sigma = sqrt((252 / n) * SUM(ln(Ci / Ci-1))^2)
+
+Where:
+- Ci is today's closing price
+- Ci-1 is yesterday's closing price
+- ln is the natural logarithm
+- n is the number of observations
+- 252 is the annualization factor (trading days per year)
+
+Step by step: Take the natural log of each day's return (today's close divided by yesterday's close). Square each log return. Sum them up. Divide by the number of observations. Multiply by 252 to annualize. Take the square root.
+
+Typical values for SPY (S&P 500 ETF): 15-25% in normal markets, 10-12% in very calm periods (2017 was historically low at around 7%), and 30-80% during crises (March 2020 hit 82%).
+
+For individual stocks, ranges are wider. AAPL might run 20-35% normally, while a biotech like MRNA might run 40-80%.
+
+The advantage of close-to-close volatility is simplicity and wide availability. The disadvantage is that it only uses one data point per day — the closing price. If a stock opens sharply higher, trades wildly all day, then closes near where it started, close-to-close volatility says "nothing happened." That is a problem.
+
+Parkinson Estimator: Using the High-Low Range
+
+Michael Parkinson developed an estimator in 1980 that uses the daily high and low prices instead of just the close. The intuition is straightforward: the range between the high and low captures intraday movement that closes miss.
+
+The formula:
+
+sigma_P = sqrt(252 / (4 * n * ln(2)) * SUM(ln(Hi / Li))^2)
+
+Where Hi is the day's high and Li is the day's low. The constant 1/(4*ln(2)) comes from the statistical properties of a Brownian motion's range.
+
+The Parkinson estimator is approximately 20% more efficient than close-to-close. In statistical terms, "efficiency" means it produces a more precise estimate from the same amount of data, or equivalently, it needs fewer observations to achieve the same precision.
+
+Example: If SPY has a 20-day close-to-close vol of 18% and a 20-day Parkinson vol of 15%, the difference suggests that much of the daily movement was noise — intraday swings that reversed by the close. The "true" underlying volatility is likely closer to 15%.
+
+However, Parkinson has a known downside: it underestimates volatility when there are overnight gaps. If SPY closes at 450, opens at 445 (a gap down), and then trades between 445 and 448 all day, the Parkinson estimator only sees the 445-448 range. The 5-point overnight gap is invisible. For stocks with frequent gap moves (earnings, biotech catalysts), Parkinson will understate realized vol.
+
+Garman-Klass Estimator: Adding Open and Close
+
+Mark Garman and Michael Klass improved on Parkinson in 1980 by incorporating all four OHLC data points: Open, High, Low, and Close. Their estimator is approximately 7-8 times more efficient than close-to-close.
+
+The formula for a single day's contribution:
+
+sigma_GK^2 = 0.5 * (ln(H/L))^2 - (2*ln(2) - 1) * (ln(C/O))^2
+
+You compute this for each day, average over n days, then multiply by 252 and take the square root.
+
+Concrete example: SPY on a single day — Open 451, High 455, Low 449, Close 453.
+
+ln(H/L) = ln(455/449) = ln(1.01336) = 0.01327
+ln(C/O) = ln(453/451) = ln(1.00443) = 0.00442
+
+Single day variance = 0.5 * (0.01327)^2 - (2*0.6931 - 1) * (0.00442)^2
+= 0.5 * 0.0001761 - 0.3863 * 0.0000195
+= 0.0000880 - 0.0000075
+= 0.0000805
+
+Annualized: sqrt(252 * 0.0000805) = sqrt(0.02029) = 0.1425 = 14.25%
+
+That is a single day's estimate. In practice, you average across 20-30 days for a stable reading.
+
+The limitation of Garman-Klass, like Parkinson, is that it assumes no overnight gaps (a continuous price process). It also assumes zero drift — the expected return is zero. For a stock trending strongly up or down, this assumption breaks.
+
+Rogers-Satchell Estimator: Handling Drift
+
+The Rogers-Satchell estimator was designed specifically for assets with non-zero drift — meaning it works well even when the stock is trending. This matters in practice. During a strong bull run where SPY grinds up 1-2% per week, estimators that assume zero drift will overstate volatility because they mistake the trend component for randomness.
+
+The Rogers-Satchell formula for a single day:
+
+sigma_RS^2 = ln(H/C) * ln(H/O) + ln(L/C) * ln(L/O)
+
+This is elegantly simple. You average over n days and annualize.
+
+Using the same SPY day (O=451, H=455, L=449, C=453):
+
+ln(H/C) = ln(455/453) = 0.00441
+ln(H/O) = ln(455/451) = 0.00885
+ln(L/C) = ln(449/453) = -0.00889
+ln(L/O) = ln(449/451) = -0.00445
+
+sigma_RS^2 = (0.00441)(0.00885) + (-0.00889)(-0.00445)
+= 0.0000390 + 0.0000396
+= 0.0000786
+
+Annualized: sqrt(252 * 0.0000786) = sqrt(0.01981) = 0.1407 = 14.07%
+
+Very close to the Garman-Klass estimate for this single day, but the advantage becomes apparent over trending periods. During Q4 2023, when SPY rallied from 420 to 475 (a 13% move in 3 months), close-to-close vol read about 12% while Rogers-Satchell read about 9.5%. The close-to-close estimator was capturing trend as volatility, overstating the actual randomness.
+
+Yang-Zhang Estimator: The Best Overall
+
+The Yang-Zhang estimator, published in 2000, is considered the best overall realized volatility estimator for most practical purposes. It combines three components: overnight volatility (close-to-open), the open-to-close Rogers-Satchell estimator, and close-to-close volatility. By doing so, it captures both gap moves and intraday moves.
+
+The formula has three parts:
+
+1. Overnight variance: sigma_o^2 = (1/n) * SUM(ln(Oi/Ci-1) - mean_o)^2
+2. Close-to-open variance: sigma_c^2 = (1/n) * SUM(ln(Ci/Oi) - mean_c)^2
+3. Rogers-Satchell variance: sigma_RS^2 (as above)
+
+Combined: sigma_YZ^2 = sigma_o^2 + k * sigma_c^2 + (1-k) * sigma_RS^2
+
+Where k = 0.34 / (1 + (n+1)/(n-1)) which typically works out to about 0.34 for reasonable sample sizes.
+
+The Yang-Zhang estimator is approximately 14 times more efficient than close-to-close and handles both drift and overnight jumps.
+
+Real-World Comparison: March 2020
+
+During the COVID crash of March 2020, the different estimators diverged dramatically. Looking at SPY for the month of March:
+
+- Close-to-close (20-day): 82%
+- Parkinson: 75%
+- Garman-Klass: 73%
+- Rogers-Satchell: 76%
+- Yang-Zhang: 78%
+
+Why did they differ? Parkinson and Garman-Klass read lower because the enormous overnight gaps (limit-down futures, circuit breakers at the open) were partially missed by range-based estimators. Close-to-close read highest because it captured every gap. Yang-Zhang split the difference by explicitly modeling overnight vs intraday components, giving arguably the most accurate picture.
+
+In calmer markets (say SPY in August 2023), the estimators converge. Close-to-close might read 12.5%, Parkinson 11.8%, and Yang-Zhang 12.1%. When all estimators agree, you have high confidence in the realized vol reading. When they diverge, it tells you something interesting about the nature of the moves — are they gap-driven or intraday-driven?
+
+Volatility Clustering: Large Moves Beget Large Moves
+
+Benoit Mandelbrot observed in the 1960s that "large changes tend to be followed by large changes, of either sign, and small changes tend to be followed by small changes." This is volatility clustering, and it is one of the most robust empirical facts in finance.
+
+If SPY drops 3% today, the probability of a 2%+ move tomorrow (in either direction) is significantly elevated. Not because the market "remembers" the decline, but because the conditions that caused the large move (uncertainty, forced selling, margin calls) persist.
+
+GARCH (Generalized Autoregressive Conditional Heteroscedasticity) models formalize this. The simplest GARCH(1,1) model says:
+
+sigma_t^2 = omega + alpha * r_(t-1)^2 + beta * sigma_(t-1)^2
+
+Where omega, alpha, and beta are parameters (alpha + beta typically around 0.95-0.99 for daily equity data). The key insight: tomorrow's variance depends on both today's return (the shock) and today's variance (persistence). A large shock raises future variance estimates, which only slowly decay back to the long-run average (omega / (1 - alpha - beta)).
+
+For SPY, typical GARCH(1,1) parameters are alpha = 0.08, beta = 0.90, implying a half-life of volatility shocks of about 14 trading days. A vol spike takes roughly 3 weeks to fade by half.
+
+Practical implication: After a vol spike, do not immediately sell options expecting a quick return to calm. The clustering effect means elevated vol persists. Wait for the half-life to pass, or use the GARCH forecast to set appropriate strike levels for short option positions.
+
+The Intraday Volatility Profile: The U-Shape
+
+Volatility is not evenly distributed throughout the trading day. It follows a well-documented U-shape pattern (sometimes called the "volatility smile of the trading day"):
+
+- 9:30-10:00 AM ET: Highest volatility. The market digests overnight news, earnings, and global developments. Spreads are wider. Moves are sharp. Approximately 15-20% of the day's range is established in the first 30 minutes.
+- 10:00 AM - 12:00 PM: Volatility declines. The opening auction is settled, and the market finds its footing.
+- 12:00 PM - 2:00 PM: Lowest volatility. The "lunch lull." Many institutional traders are less active. Moves are small and often mean-reverting.
+- 2:00 PM - 3:30 PM: Volatility picks up. Afternoon positioning begins. Any FOMC announcements (2:00 PM) or macro releases cause spikes.
+- 3:30 PM - 4:00 PM: High volatility again. The closing auction draws heavy institutional flow. Market-on-close (MOC) imbalances move prices. Approximately 10-15% of the day's range occurs in the last 30 minutes.
+
+For options traders, this has practical implications. If you are selling 0DTE options, the first and last 30 minutes carry the most risk. If you are buying gamma (expecting a move), the open and close offer the best opportunities. The lunch lull is where theta decay eats your position with minimal price movement.
+
+Historical Volatility Cones
+
+A volatility cone (or HV cone) shows the percentile distribution of realized volatility across different lookback periods. It answers: "Is current 10-day vol high or low relative to where 10-day vol usually sits? What about 30-day? 60-day?"
+
+How to build an HV cone:
+1. For each lookback period (10, 20, 30, 60, 90, 120 days), calculate rolling realized vol over the past several years.
+2. Plot the percentiles: 10th, 25th, 50th (median), 75th, 90th.
+3. Plot the current realized vol for each lookback.
+
+How to read it: If current 20-day realized vol is at the 90th percentile but current 60-day realized vol is at the 50th percentile, it means the stock had a recent vol spike that has not yet bled into the longer-term measurement. The recent spike is likely to mean-revert.
+
+Conversely, if the 20-day, 30-day, and 60-day are all at the 90th percentile, you are in a genuine high-vol regime, and selling options based on "vol will revert" is more dangerous.
+
+For SPY, the HV cone median values are roughly:
+- 10-day: 14%
+- 20-day: 15%
+- 30-day: 15.5%
+- 60-day: 16%
+- 90-day: 16.5%
+
+The cone widens at shorter lookbacks (more noise) and narrows at longer ones (more stable). The 10th-90th percentile range for 10-day vol might be 6% to 30%, while for 90-day vol it might be 10% to 25%.
+
+Realized Vol Regimes: Identifying the Current Environment
+
+Realized volatility does not oscillate randomly. It moves between distinct regimes — low vol, normal vol, and high vol — with transitions that are somewhat predictable.
+
+Low vol regime (SPY RV below 10%): Characterized by grinding, low-range days. Typically occurs during extended bull markets with strong economic data and accommodative Fed policy. 2017 was a textbook low-vol regime — SPY 20-day RV spent months below 7%. In this regime, selling options generates consistent income but the risk is a regime break (a sudden shock that launches vol from 7% to 25%+). Positions should be small and hedged with far OTM puts.
+
+Normal vol regime (SPY RV 12-20%): The most common state. Markets oscillate with moderate-sized moves, occasional pullbacks, and no sustained trend in vol. Most option strategies work as designed in this regime. Spreads are the workhorse — iron condors, verticals, and calendars all perform well.
+
+High vol regime (SPY RV above 25%): Characterized by large daily ranges, frequent gap opens, and news-driven moves. Typically accompanies corrections, bear markets, or crisis periods. In this regime, selling options is dangerous without careful position sizing (the "picking up pennies in front of a steamroller" scenario). Buying options or using debit spreads gives better risk/reward because the gap risk makes short options potentially catastrophic.
+
+Regime detection: A simple approach is to track where current 20-day RV sits relative to its 1-year distribution. Below the 20th percentile suggests low vol regime. Between 20th and 80th is normal. Above the 80th is high vol. The GARCH model provides a more rigorous framework — a GARCH-estimated conditional vol above 1.5x the long-run average strongly signals a high-vol regime.
+
+Transition signals: The most profitable (and dangerous) periods are regime transitions. A jump from low to high vol (like February 2018's "Volmageddon" or the COVID crash) destroys short-vol positions. A transition from high to normal (like April 2020 or November 2022) rewards buying strategies as vol deflates and premiums normalize. Watching the HV cone for divergences across timeframes helps identify transitions — when 10-day vol spikes to the 90th percentile but 60-day vol is still at the 30th percentile, you are in the early phase of a potential regime change.
+
+Putting It All Together: A Practitioner's Framework
+
+Step 1: Calculate multiple estimators. Use close-to-close for comparison with the options market (since IV is quoted in close-to-close terms). Use Yang-Zhang for the most accurate overall picture. Use Parkinson when you want to isolate intraday movement from overnight gaps.
+
+Step 2: Compare realized vol to implied vol. If Yang-Zhang 20-day RV is 18% and 20-day ATM IV is 25%, the vol risk premium is 7 percentage points. That is a rich premium — selling options has an edge. If RV is 22% and IV is 20%, options are cheap — buying has an edge.
+
+Step 3: Check the vol cone. If current 20-day RV is at the 80th percentile, vol is elevated and may mean-revert. Selling options into elevated RV can be profitable, but only if IV is even higher (as it usually is). If 20-day RV is at the 10th percentile, a vol expansion is likely — be cautious selling options.
+
+Step 4: Account for clustering. If the market just experienced a shock, GARCH predicts elevated vol will persist. Do not assume immediate mean-reversion. Size positions conservatively in the wake of vol spikes.
+
+Step 5: Consider the time of day. If you are trading short-dated options, the U-shape profile matters. Gamma is most dangerous at the open and close. Theta decay is most noticeable during the midday lull.
+
+Key Takeaways
+
+1. Close-to-close volatility is the standard but least efficient estimator. It misses intraday information and is distorted by overnight gaps.
+2. Parkinson (high-low range) is 20% more efficient but underestimates vol when overnight gaps are significant.
+3. Garman-Klass (OHLC) is 7-8 times more efficient than close-to-close but assumes zero drift and no gaps.
+4. Rogers-Satchell handles trending markets correctly, separating drift from volatility.
+5. Yang-Zhang is the best overall estimator, combining overnight and intraday components.
+6. Volatility clusters — large moves predict future large moves. The half-life for SPY is about 14 trading days.
+7. Intraday volatility follows a U-shape. The first and last 30 minutes are the most volatile.
+8. HV cones show whether current vol is high or low relative to history across multiple timeframes. When all timeframes agree, the signal is stronger.
+9. Always compare realized vol to implied vol. The difference is where your edge lives.
