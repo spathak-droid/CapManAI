@@ -143,10 +143,13 @@ export default function StudentMessagesPage() {
   useEffect(() => {
     if (!messages || !user) return;
     const unread = messages.filter((m) => !m.is_read && m.sender_id !== user.id);
-    unread.forEach((m) => {
-      markMessageRead(m.id).catch(() => {});
+    if (unread.length === 0) return;
+    Promise.all(unread.map((m) => markMessageRead(m.id).catch(() => {}))).then(() => {
+      mutateThreads();
+      mutateUnread();
+      mutateMessages();
     });
-  }, [messages, user]);
+  }, [messages, user, mutateThreads, mutateUnread, mutateMessages]);
 
   const handleSelectThread = useCallback((userId: number) => {
     setSelectedEducatorId(userId);
