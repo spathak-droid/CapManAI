@@ -68,17 +68,15 @@ from src.gamification.ranking import (
 from src.gamification.xp import calculate_level, calculate_xp, xp_to_next_level
 from src.grading.agent import GradingAgent, ProbingAgent
 from src.mtss.classifier import (
-    DEMO_STUDENTS,
     ClassOverview,
     MTSSTier,
-    classify_from_db,
     classify_tier,
     get_class_overview_from_db,
-    get_demo_students,
     get_student_tiers,
 )
 from src.mtss.objectives import OBJECTIVE_DESCRIPTIONS, LearningObjective
 from src.mtss.repository import (
+    get_all_student_scores,
     get_class_objective_distribution,
     get_student_skill_scores,
 )
@@ -503,41 +501,31 @@ async def get_mtss_tiers(
     _user: User = Depends(require_role("educator")),
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, object]]:
-    """Get MTSS tier classifications for all students (DB with demo fallback)."""
-    # Try real DB students first
+    """Get MTSS tier classifications for all students using bulk queries."""
+    # Two bulk queries instead of 2*N per-student queries
     real_students = await db.execute(
         select(User).where(User.role == "student")
     )
     student_rows = real_students.scalars().all()
+    if not student_rows:
+        return []
 
-    if student_rows:
-        results: list[dict[str, object]] = []
-        for student in student_rows:
-            classification = await classify_from_db(db, student.id)
-            results.append(classification)
-        return results
+    all_scores = await get_all_student_scores(db)
 
-    # Fallback to demo data when no real students exist
-    results = []
-    for student in DEMO_STUDENTS:
-        skill_tiers = get_student_tiers(student.skill_scores)
-        scores = list(student.skill_scores.values())
-        avg_score = (
-            sum(scores) / len(scores) if scores else 0.0
-        )
-        overall_tier = classify_tier(avg_score)
-        results.append(
-            {
-                "user_id": student.user_id,
-                "username": student.username,
-                "overall_tier": overall_tier.value,
-                "avg_score": round(avg_score, 1),
-                "skill_tiers": {
-                    k: v.value
-                    for k, v in skill_tiers.items()
-                },
-            }
-        )
+    results: list[dict[str, object]] = []
+    for student in student_rows:
+        score_rows = all_scores.get(student.id, [])
+        score_map = {row.skill_id: row.score for row in score_rows}
+        skill_tiers = get_student_tiers(score_map)
+        scores = list(score_map.values())
+        avg = sum(scores) / len(scores) if scores else 0.0
+        results.append({
+            "user_id": student.id,
+            "username": student.username,
+            "overall_tier": classify_tier(avg).value,
+            "avg_score": round(avg, 1),
+            "skill_tiers": {k: v.value for k, v in skill_tiers.items()},
+        })
     return results
 
 
@@ -572,23 +560,8 @@ async def get_student_skills(
             user_id=user_id, username=username, skills=skills
         )
 
-    # Fallback to demo data
-    for student in get_demo_students():
-        if student.user_id == user_id:
-            skills = {}
-            for skill_id, score in student.skill_scores.items():
-                skills[skill_id] = {
-                    "score": score,
-                    "tier": classify_tier(score).value,
-                    "attempts": 0,
-                }
-            return StudentSkillBreakdown(
-                user_id=student.user_id,
-                username=student.username,
-                skills=skills,
-            )
-
-    return StudentSkillBreakdown(user_id=user_id, username="unknown", skills={})
+    user_obj = await db.get(User, user_id)
+    return StudentSkillBreakdown(user_id=user_id, username=user_obj.username if user_obj else "unknown", skills={})
 
 
 @router.get("/api/mtss/objectives")
@@ -620,40 +593,7 @@ async def get_objective_distributions(
             )
         return results
 
-    # Fallback: compute from demo students
-    demo = get_demo_students()
-    skill_dist: dict[str, dict[str, int]] = {}
-    for student in demo:
-        for skill_id, score in student.skill_scores.items():
-            if skill_id not in skill_dist:
-                skill_dist[skill_id] = {
-                    "tier_1": 0,
-                    "tier_2": 0,
-                    "tier_3": 0,
-                    "total": 0,
-                }
-            tier = classify_tier(score)
-            skill_dist[skill_id][tier.value] += 1
-            skill_dist[skill_id]["total"] += 1
-
-    results = []
-    for skill_id, counts in skill_dist.items():
-        try:
-            obj_enum = LearningObjective(skill_id)
-            obj_name = OBJECTIVE_DESCRIPTIONS.get(obj_enum, skill_id)
-        except ValueError:
-            obj_name = skill_id
-        results.append(
-            ObjectiveDistribution(
-                objective_id=skill_id,
-                objective_name=obj_name,
-                tier_1_count=counts["tier_1"],
-                tier_2_count=counts["tier_2"],
-                tier_3_count=counts["tier_3"],
-                total_students=counts["total"],
-            )
-        )
-    return results
+    return []
 
 
 def _generate_interventions(
@@ -713,11 +653,6 @@ async def get_interventions(
     if skill_rows:
         score_map = {row.skill_id: row.score for row in skill_rows}
         return _generate_interventions(score_map)
-
-    # Fallback to demo
-    for student in get_demo_students():
-        if student.user_id == user_id:
-            return _generate_interventions(student.skill_scores)
 
     return []
 
@@ -794,14 +729,6 @@ async def get_lesson_module_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson module not found",
         )
-    met, reason = await check_prerequisites_met(_user.id, module_id, db)
-    if not met:
-        from fastapi import HTTPException, status
-
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=reason or "Prerequisites not met",
-        )
     chunks = await fetch_chunks_for_module(db, module_id)
     if not chunks:
         chunks = list_module_chunks(module_id)
@@ -835,14 +762,6 @@ async def get_lesson_chunk(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
-        )
-    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
-    if not met:
-        from fastapi import HTTPException, status
-
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=reason or "Prerequisites not met",
         )
     response = _to_chunk_response(chunk)
     rag_ctx = await get_context(db, query=chunk.learning_goal, top_k=3, for_display=True)

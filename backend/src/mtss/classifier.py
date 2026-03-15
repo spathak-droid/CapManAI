@@ -280,19 +280,6 @@ async def classify_from_db(
 
     user = await get_user_by_id(db, user_id)
     if user is None:
-        # Fallback to demo data
-        for student in DEMO_STUDENTS:
-            if student.user_id == user_id:
-                skill_tiers = get_student_tiers(student.skill_scores)
-                scores = list(student.skill_scores.values())
-                avg = sum(scores) / len(scores) if scores else 0.0
-                return {
-                    "user_id": student.user_id,
-                    "username": student.username,
-                    "overall_tier": classify_tier(avg).value,
-                    "avg_score": round(avg, 1),
-                    "skill_tiers": {k: v.value for k, v in skill_tiers.items()},
-                }
         return {
             "user_id": user_id,
             "username": "unknown",
@@ -302,22 +289,7 @@ async def classify_from_db(
         }
 
     skill_scores_rows = await get_student_skill_scores(db, user_id)
-    if not skill_scores_rows:
-        # Fallback to demo
-        for student in DEMO_STUDENTS:
-            if student.user_id == user_id:
-                skill_tiers = get_student_tiers(student.skill_scores)
-                scores = list(student.skill_scores.values())
-                avg = sum(scores) / len(scores) if scores else 0.0
-                return {
-                    "user_id": student.user_id,
-                    "username": student.username,
-                    "overall_tier": classify_tier(avg).value,
-                    "avg_score": round(avg, 1),
-                    "skill_tiers": {k: v.value for k, v in skill_tiers.items()},
-                }
-
-    score_map = {row.skill_id: row.score for row in skill_scores_rows}
+    score_map = {row.skill_id: row.score for row in skill_scores_rows} if skill_scores_rows else {}
     skill_tiers = get_student_tiers(score_map)
     scores = list(score_map.values())
     avg = sum(scores) / len(scores) if scores else 0.0
@@ -332,7 +304,7 @@ async def classify_from_db(
 
 
 async def get_class_overview_from_db(db: "AsyncSession") -> ClassOverview:
-    """Generate class overview from real DB data, falling back to demo.
+    """Generate class overview from real DB data using bulk queries.
 
     Args:
         db: Async database session.
@@ -340,16 +312,25 @@ async def get_class_overview_from_db(db: "AsyncSession") -> ClassOverview:
     Returns:
         ClassOverview with tier counts, students by tier, and skill breakdown.
     """
-    from src.mtss.repository import get_all_student_scores, get_user_by_id
+    from sqlalchemy import select as sa_select
+
+    from src.db.models import User
+    from src.mtss.repository import get_all_student_scores
 
     all_scores = await get_all_student_scores(db)
     if not all_scores:
-        return get_class_overview(DEMO_STUDENTS)
+        return get_class_overview([])
+
+    # Bulk fetch all users whose IDs appear in scores (1 query)
+    user_ids = list(all_scores.keys())
+    user_result = await db.execute(
+        sa_select(User).where(User.id.in_(user_ids))
+    )
+    user_map = {u.id: u.username for u in user_result.scalars().all()}
 
     students: list[StudentProfile] = []
     for uid, score_rows in all_scores.items():
-        user = await get_user_by_id(db, uid)
-        username = user.username if user else f"user_{uid}"
+        username = user_map.get(uid, f"user_{uid}")
         score_map = {row.skill_id: row.score for row in score_rows}
         students.append(
             StudentProfile(user_id=uid, username=username, skill_scores=score_map)

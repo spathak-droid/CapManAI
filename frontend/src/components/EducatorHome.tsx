@@ -12,7 +12,6 @@ function formatSkillName(skill: string): string {
 
 function findWeakestSkill(skillTiers: Record<string, string>): { name: string; tier: string } | null {
   const entries = Object.entries(skillTiers);
-  // Prefer tier_3 first, then tier_2
   const tier3 = entries.find(([, t]) => t === "tier_3");
   if (tier3) return { name: tier3[0], tier: tier3[1] };
   const tier2 = entries.find(([, t]) => t === "tier_2");
@@ -46,18 +45,36 @@ function tierLabel(tier: string): string {
   }
 }
 
+function SkeletonCard() {
+  return (
+    <div className="card-glow p-5 animate-pulse">
+      <div className="h-3 w-20 bg-zinc-700 rounded mb-3" />
+      <div className="h-8 w-16 bg-zinc-700 rounded" />
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-white/[0.04]">
+      <td className="px-5 py-3.5"><div className="h-4 w-24 bg-zinc-700 rounded animate-pulse" /></td>
+      <td className="px-5 py-3.5"><div className="h-5 w-12 bg-zinc-700 rounded-full animate-pulse" /></td>
+      <td className="px-5 py-3.5 text-right"><div className="h-4 w-10 bg-zinc-700 rounded animate-pulse ml-auto" /></td>
+      <td className="px-5 py-3.5"><div className="h-5 w-20 bg-zinc-700 rounded-full animate-pulse" /></td>
+    </tr>
+  );
+}
+
 export default function EducatorHome() {
   const { user } = useAuth();
   const { data: overview, isLoading: overviewLoading } = useDashboardOverview();
   const { data: students, isLoading: studentsLoading } = useMTSSTiers();
 
-  const isLoading = !user || overviewLoading || studentsLoading;
-
-  if (isLoading) {
+  if (!user) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-zinc-500 text-lg">Loading class data...</div>
+          <div className="text-zinc-500 text-lg">Loading...</div>
         </div>
       </div>
     );
@@ -89,7 +106,7 @@ export default function EducatorHome() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-      {/* 1. Welcome Header */}
+      {/* 1. Welcome Header — always visible immediately */}
       <div className="animate-slide-up" style={{ animationDelay: "0ms" }}>
         <h1 className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-4xl font-bold tracking-tight">
           Welcome back, {user?.username}
@@ -97,8 +114,21 @@ export default function EducatorHome() {
         <p className="text-zinc-500 mt-1 mb-8">Your class at a glance</p>
       </div>
 
-      {/* 2. Alert Banner */}
-      {tier3Count > 0 && (
+      {/* Empty state when no students */}
+      {!overviewLoading && totalStudents === 0 && (
+        <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/30 p-8 mb-8 text-center">
+          <div className="h-12 w-12 mx-auto mb-3 flex items-center justify-center rounded-full bg-blue-500/10">
+            <svg className="text-blue-400 h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+          </div>
+          <p className="text-zinc-300 font-medium mb-1">No students yet</p>
+          <p className="text-zinc-500 text-sm">Students will appear here once they register and start training.</p>
+        </div>
+      )}
+
+      {/* 2. Alert Banner — show when students loaded */}
+      {!studentsLoading && tier3Count > 0 && (
         <div
           className="animate-slide-up rounded-xl border border-red-500/30 bg-red-500/10 p-4 mb-8"
           style={{ animationDelay: "50ms" }}
@@ -106,7 +136,7 @@ export default function EducatorHome() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-red-300 font-medium">
-                ⚠️ {tier3Count} student(s) need intensive support
+                {tier3Count} student(s) need intensive support
               </p>
               <p className="text-red-400/70 text-sm mt-1">
                 {(studentsByTier["tier_3"] ?? []).join(", ")}
@@ -122,92 +152,105 @@ export default function EducatorHome() {
         </div>
       )}
 
-      {/* 3. Class Snapshot */}
-      <div
+      {/* 3. Class Snapshot — skeleton while loading, hidden when empty */}
+      {(overviewLoading || totalStudents > 0) && <div
         className="animate-slide-up grid md:grid-cols-3 gap-4 mb-8"
         style={{ animationDelay: "100ms" }}
       >
-        {/* Total Students */}
-        <div className="card-glow p-5">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Total Students</p>
-          <p className="text-3xl font-bold text-white mt-1">{totalStudents}</p>
-        </div>
-
-        {/* Tier Distribution */}
-        <div className="card-glow p-5">
-          <p className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Tier Distribution</p>
-          <div className="space-y-1 text-sm">
-            <div className="flex items-center gap-2 text-zinc-200">
-              <span className="h-2 w-2 rounded-full inline-block bg-emerald-500" />
-              On Track: {tier1Count}
+        {overviewLoading ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <div className="card-glow p-5">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">Total Students</p>
+              <p className="text-3xl font-bold text-white mt-1">{totalStudents}</p>
             </div>
-            <div className="flex items-center gap-2 text-zinc-200">
-              <span className="h-2 w-2 rounded-full inline-block bg-amber-500" />
-              Needs Support: {tier2Count}
+            <div className="card-glow p-5">
+              <p className="text-xs uppercase tracking-wider text-zinc-500 mb-2">Tier Distribution</p>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2 text-zinc-200">
+                  <span className="h-2 w-2 rounded-full inline-block bg-emerald-500" />
+                  On Track: {tier1Count}
+                </div>
+                <div className="flex items-center gap-2 text-zinc-200">
+                  <span className="h-2 w-2 rounded-full inline-block bg-amber-500" />
+                  Needs Support: {tier2Count}
+                </div>
+                <div className="flex items-center gap-2 text-zinc-200">
+                  <span className="h-2 w-2 rounded-full inline-block bg-red-500" />
+                  Intensive: {tier3Count}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-zinc-200">
-              <span className="h-2 w-2 rounded-full inline-block bg-red-500" />
-              Intensive: {tier3Count}
+            <div className="card-glow p-5">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">Class Average</p>
+              <p className="mt-1">
+                <span className={`text-3xl font-bold ${avgColorClass}`}>
+                  {classAvg.toFixed(1)}
+                </span>
+                <span className="text-zinc-500 text-lg ml-1">/ 100</span>
+              </p>
             </div>
-          </div>
-        </div>
+          </>
+        )}
+      </div>}
 
-        {/* Class Average */}
-        <div className="card-glow p-5">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Class Average</p>
-          <p className="mt-1">
-            <span className={`text-3xl font-bold ${avgColorClass}`}>
-              {classAvg.toFixed(1)}
-            </span>
-            <span className="text-zinc-500 text-lg ml-1">/ 100</span>
-          </p>
-        </div>
-      </div>
-
-      {/* 4. Tier Distribution Bar */}
+      {/* 4. Tier Distribution Bar — skeleton while loading, hidden when empty */}
+      {(overviewLoading || totalStudents > 0) &&
       <div
         className="animate-slide-up card-glow p-6 mb-8"
         style={{ animationDelay: "150ms" }}
       >
         <p className="text-sm font-semibold text-white mb-4">Class Distribution</p>
-        <div className="h-6 rounded-full overflow-hidden flex bg-zinc-800">
-          {totalStudents > 0 && (
-            <>
-              {tier1Count > 0 && (
-                <div
-                  className="bg-emerald-500 transition-all"
-                  style={{ width: `${(tier1Count / totalStudents) * 100}%` }}
-                />
+        {overviewLoading ? (
+          <div className="h-6 rounded-full bg-zinc-800 animate-pulse" />
+        ) : (
+          <>
+            <div className="h-6 rounded-full overflow-hidden flex bg-zinc-800">
+              {totalStudents > 0 && (
+                <>
+                  {tier1Count > 0 && (
+                    <div
+                      className="bg-emerald-500 transition-all"
+                      style={{ width: `${(tier1Count / totalStudents) * 100}%` }}
+                    />
+                  )}
+                  {tier2Count > 0 && (
+                    <div
+                      className="bg-amber-500 transition-all"
+                      style={{ width: `${(tier2Count / totalStudents) * 100}%` }}
+                    />
+                  )}
+                  {tier3Count > 0 && (
+                    <div
+                      className="bg-red-500 transition-all"
+                      style={{ width: `${(tier3Count / totalStudents) * 100}%` }}
+                    />
+                  )}
+                </>
               )}
-              {tier2Count > 0 && (
-                <div
-                  className="bg-amber-500 transition-all"
-                  style={{ width: `${(tier2Count / totalStudents) * 100}%` }}
-                />
-              )}
-              {tier3Count > 0 && (
-                <div
-                  className="bg-red-500 transition-all"
-                  style={{ width: `${(tier3Count / totalStudents) * 100}%` }}
-                />
-              )}
-            </>
-          )}
-        </div>
-        <div className="flex justify-between mt-3 text-sm">
-          <span className="text-emerald-400">
-            Tier 1 — {tier1Count} ({totalStudents > 0 ? Math.round((tier1Count / totalStudents) * 100) : 0}%)
-          </span>
-          <span className="text-amber-400">
-            Tier 2 — {tier2Count} ({totalStudents > 0 ? Math.round((tier2Count / totalStudents) * 100) : 0}%)
-          </span>
-          <span className="text-red-400">
-            Tier 3 — {tier3Count} ({totalStudents > 0 ? Math.round((tier3Count / totalStudents) * 100) : 0}%)
-          </span>
-        </div>
-      </div>
+            </div>
+            <div className="flex justify-between mt-3 text-sm">
+              <span className="text-emerald-400">
+                Tier 1 — {tier1Count} ({totalStudents > 0 ? Math.round((tier1Count / totalStudents) * 100) : 0}%)
+              </span>
+              <span className="text-amber-400">
+                Tier 2 — {tier2Count} ({totalStudents > 0 ? Math.round((tier2Count / totalStudents) * 100) : 0}%)
+              </span>
+              <span className="text-red-400">
+                Tier 3 — {tier3Count} ({totalStudents > 0 ? Math.round((tier3Count / totalStudents) * 100) : 0}%)
+              </span>
+            </div>
+          </>
+        )}
+      </div>}
 
-      {/* 5. Students Needing Attention */}
+      {/* 5. Students Needing Attention — skeleton while loading, hidden when empty */}
+      {(studentsLoading || allStudents.length > 0) &&
       <div
         className="animate-slide-up card-glow overflow-hidden mb-8"
         style={{ animationDelay: "200ms" }}
@@ -215,7 +258,23 @@ export default function EducatorHome() {
         <div className="p-5">
           <h2 className="text-sm font-semibold text-white">Students Needing Attention</h2>
         </div>
-        {needsAttention.length === 0 ? (
+        {studentsLoading ? (
+          <table className="w-full text-left text-sm">
+            <thead className="bg-zinc-800/50">
+              <tr>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Student</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Tier</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right">Avg Score</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Weakest Skill</th>
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </tbody>
+          </table>
+        ) : needsAttention.length === 0 ? (
           <div className="p-8 text-center text-emerald-400 font-medium">
             All students are on track!
           </div>
@@ -223,18 +282,10 @@ export default function EducatorHome() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-800/50">
               <tr>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Student
-                </th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Tier
-                </th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right">
-                  Avg Score
-                </th>
-                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
-                  Weakest Skill
-                </th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Student</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Tier</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 text-right">Avg Score</th>
+                <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">Weakest Skill</th>
               </tr>
             </thead>
             <tbody>
@@ -275,9 +326,9 @@ export default function EducatorHome() {
             </tbody>
           </table>
         )}
-      </div>
+      </div>}
 
-      {/* 6. Quick Actions */}
+      {/* 6. Quick Actions — always visible */}
       <div
         className="animate-slide-up grid gap-4 md:grid-cols-4 mb-8"
         style={{ animationDelay: "250ms" }}
@@ -287,18 +338,8 @@ export default function EducatorHome() {
           className="card-glow p-5 text-center transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]"
         >
           <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center rounded-xl bg-blue-500/10">
-            <svg
-              className="text-blue-400 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-              />
+            <svg className="text-blue-400 h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
             </svg>
           </div>
           <p className="text-sm font-medium text-white">Full Dashboard</p>
@@ -309,43 +350,23 @@ export default function EducatorHome() {
           className="card-glow p-5 text-center transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]"
         >
           <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center rounded-xl bg-violet-500/10">
-            <svg
-              className="text-violet-400 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.04 6.04 0 01-2.27.79 6.04 6.04 0 01-2.27-.79"
-              />
+            <svg className="text-violet-400 h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.04 6.04 0 01-2.27.79 6.04 6.04 0 01-2.27-.79" />
             </svg>
           </div>
           <p className="text-sm font-medium text-white">Leaderboard</p>
         </Link>
 
         <Link
-          href="/scenario"
+          href="/dashboard/students"
           className="card-glow p-5 text-center transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_rgba(59,130,246,0.12)]"
         >
           <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center rounded-xl bg-emerald-500/10">
-            <svg
-              className="text-emerald-400 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-              />
+            <svg className="text-emerald-400 h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
           </div>
-          <p className="text-sm font-medium text-white">Try a Scenario</p>
+          <p className="text-sm font-medium text-white">Student Roster</p>
         </Link>
 
         <Link
@@ -353,21 +374,11 @@ export default function EducatorHome() {
           className="card-glow p-5 text-center transition-all hover:scale-[1.02] hover:shadow-[0_0_28px_rgba(139,92,246,0.12)]"
         >
           <div className="h-10 w-10 mx-auto mb-2 flex items-center justify-center rounded-xl bg-violet-500/10">
-            <svg
-              className="text-violet-400 h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
-              />
+            <svg className="text-violet-400 h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
             </svg>
           </div>
-          <p className="text-sm font-medium text-white">View Detailed MTSS Analytics</p>
+          <p className="text-sm font-medium text-white">MTSS Analytics</p>
         </Link>
       </div>
     </div>

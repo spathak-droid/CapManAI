@@ -90,13 +90,13 @@ def test_modules_listing_includes_locked_fields() -> None:
     app.dependency_overrides.clear()
 
 
-def test_module_detail_403_when_prereqs_not_met() -> None:
-    """GET /api/lessons/modules/{id} returns 403 when prerequisites are not met."""
+def test_module_detail_viewable_even_when_prereqs_not_met() -> None:
+    """GET /api/lessons/modules/{id} returns 200 even when prereqs unmet (read-only access)."""
     client = _make_client("student")
-    # f2 requires f1 mastery
+    # f2 requires f1 mastery, but viewing is allowed
     resp = client.get("/api/lessons/modules/f2", headers=_auth_header())
-    assert resp.status_code == 403
-    assert "prerequisite" in resp.json()["detail"].lower()
+    assert resp.status_code == 200
+    assert resp.json()["module_id"] == "f2"
     app.dependency_overrides.clear()
 
 
@@ -109,12 +109,13 @@ def test_module_detail_ok_when_no_prereqs() -> None:
     app.dependency_overrides.clear()
 
 
-def test_chunk_access_403_when_prereqs_not_met() -> None:
-    """GET /api/lessons/chunks/{id} returns 403 when parent module prereqs unmet."""
+def test_chunk_viewable_even_when_prereqs_not_met() -> None:
+    """GET /api/lessons/chunks/{id} returns 200 even when parent module prereqs unmet (read-only)."""
     client = _make_client("student")
-    # f2-ch1 belongs to module f2 which requires f1
+    # f2-ch1 belongs to module f2 which requires f1, but viewing is allowed
     resp = client.get("/api/lessons/chunks/f2-ch1", headers=_auth_header())
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    assert resp.json()["chunk_id"] == "f2-ch1"
     app.dependency_overrides.clear()
 
 

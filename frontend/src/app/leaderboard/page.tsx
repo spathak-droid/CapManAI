@@ -5,6 +5,7 @@ import { useLeaderboard, useDynamicLeaderboard, useMyRank } from "@/lib/hooks";
 import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 import { LeaderboardSkeleton } from "@/components/skeletons/LeaderboardSkeleton";
 import { useTextReveal, usePopIn, useScrollReveal, gsap } from "@/lib/gsap";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SortTab = "composite" | "mastery" | "xp";
 
@@ -15,6 +16,8 @@ const TABS: { key: SortTab; label: string }[] = [
 ];
 
 export default function LeaderboardPage() {
+  const { user } = useAuth();
+  const isEducator = user?.role === "educator";
   const [activeTab, setActiveTab] = useState<SortTab>("composite");
 
   // Fetch data based on active tab
@@ -123,12 +126,13 @@ export default function LeaderboardPage() {
         Leaderboard
       </h1>
       <p className="mb-6 text-zinc-500">
-        Top traders ranked by performance. Climb the ranks through consistent
-        practice and mastery.
+        {isEducator
+          ? "Student rankings by performance. Monitor progress and identify top performers."
+          : "Top traders ranked by performance. Climb the ranks through consistent practice and mastery."}
       </p>
 
-      {/* User Rank Card */}
-      {myRank && (
+      {/* User Rank Card (students only) */}
+      {myRank && !isEducator && (
         <div
           ref={rankCardRef}
           className="mb-6 rounded-xl border border-purple-500/20 bg-purple-500/[0.07] p-4 backdrop-blur-sm"

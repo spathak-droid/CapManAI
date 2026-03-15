@@ -124,16 +124,12 @@ class TestInterventionLogic:
 class TestStudentSkillsEndpoint:
     """Test GET /api/mtss/student/{user_id}/skills returns correct shape."""
 
-    def test_demo_fallback(self, db_client: TestClient) -> None:
+    def test_no_skill_data_returns_empty(self, db_client: TestClient) -> None:
         resp = db_client.get("/api/mtss/student/1/skills")
         assert resp.status_code == 200
         data = resp.json()
         assert data["user_id"] == 1
-        assert data["username"] == "TraderJoe"
-        assert "price_action" in data["skills"]
-        skill = data["skills"]["price_action"]
-        assert "score" in skill
-        assert "tier" in skill
+        assert data["skills"] == {}
 
     def test_unknown_user_returns_empty(self, db_client: TestClient) -> None:
         resp = db_client.get("/api/mtss/student/9999/skills")
@@ -146,35 +142,23 @@ class TestStudentSkillsEndpoint:
 class TestObjectivesEndpoint:
     """Test GET /api/mtss/objectives returns correct shape."""
 
-    def test_returns_list(self, db_client: TestClient) -> None:
+    def test_returns_empty_list_when_no_data(self, db_client: TestClient) -> None:
         resp = db_client.get("/api/mtss/objectives")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
-        assert len(data) > 0
-        first = data[0]
-        assert "objective_id" in first
-        assert "tier_1_count" in first
-        assert "tier_2_count" in first
-        assert "tier_3_count" in first
-        assert "total_students" in first
+        assert len(data) == 0
 
 
 class TestInterventionsEndpoint:
     """Test GET /api/mtss/interventions/{user_id} returns correct shape."""
 
-    def test_returns_recommendations(self, db_client: TestClient) -> None:
+    def test_returns_empty_when_no_data(self, db_client: TestClient) -> None:
         resp = db_client.get("/api/mtss/interventions/1")
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, list)
-        assert len(data) > 0
-        first = data[0]
-        assert "skill" in first
-        assert "current_tier" in first
-        assert "score" in first
-        assert "recommendation" in first
-        assert "suggested_activities" in first
+        assert len(data) == 0
 
     def test_unknown_user_returns_empty(self, db_client: TestClient) -> None:
         resp = db_client.get("/api/mtss/interventions/9999")
