@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import type { Route } from "next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStudentResponses, useStudentSkills } from "@/lib/hooks";
 import { submitEducatorFeedback } from "@/lib/api";
@@ -295,7 +296,7 @@ export default function StudentDetailPage() {
             >
               {(skillData.username || "?")[0].toUpperCase()}
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-white">
                 {skillData.username}
               </h1>
@@ -310,6 +311,15 @@ export default function StudentDetailPage() {
                 </span>
               </div>
             </div>
+            <Link
+              href={`/dashboard/messages?student=${userId}` as Route}
+              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
+              Message Student
+            </Link>
           </div>
         </div>
       )}

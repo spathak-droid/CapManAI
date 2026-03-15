@@ -591,3 +591,71 @@ class BadgeCatalogResponse(BaseModel):
     badges: list[BadgeInfo]
     total_earned: int
     total_available: int
+
+
+# --- Announcement schemas ---
+
+
+class AnnouncementCreate(BaseModel):
+    """Request body for creating an announcement."""
+
+    title: str
+    content: str
+    priority: str = "normal"
+
+
+class AnnouncementOut(BaseModel):
+    """Announcement returned from the API."""
+
+    id: int
+    educator_id: int
+    educator_name: str
+    title: str
+    content: str
+    priority: str
+    created_at: str
+
+
+# --- Direct Message schemas ---
+
+
+class DirectMessageCreate(BaseModel):
+    """Request body for sending a direct message."""
+
+    recipient_id: int
+    content: str
+
+
+class DirectMessageOut(BaseModel):
+    """Direct message returned from the API."""
+
+    id: int
+    sender_id: int
+    sender_name: str
+    recipient_id: int
+    recipient_name: str
+    content: str
+    is_read: bool
+    created_at: str
+
+
+class MessageThreadSummary(BaseModel):
+    """Summary of a message thread with another user."""
+
+    user_id: int
+    username: str
+    name: str | None
+    last_message: str
+    last_message_at: str
+    unread_count: int
+
+
+class ActivityFeedItem(BaseModel):
+    """A single item in the educator activity feed."""
+
+    event_type: str
+    user_id: int
+    username: str
+    description: str
+    timestamp: str
+    metadata: dict[str, object] = {}

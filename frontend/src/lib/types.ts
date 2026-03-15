@@ -417,6 +417,51 @@ export interface DocumentIngestResponse {
   chunks_created: number;
 }
 
+// --- Announcement Types ---
+
+export interface AnnouncementOut {
+  id: number;
+  educator_id: number;
+  educator_name: string;
+  title: string;
+  content: string;
+  priority: "normal" | "important" | "urgent";
+  created_at: string;
+}
+
+// --- Activity Feed Types ---
+
+export interface ActivityFeedItem {
+  event_type: string;
+  user_id: number;
+  username: string;
+  description: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+}
+
+// --- Direct Messaging Types ---
+
+export interface DirectMessageOut {
+  id: number;
+  sender_id: number;
+  sender_name: string;
+  recipient_id: number;
+  recipient_name: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface MessageThreadSummary {
+  user_id: number;
+  username: string;
+  name: string | null;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+}
+
 // --- Badge Types ---
 
 export interface BadgeInfo {
