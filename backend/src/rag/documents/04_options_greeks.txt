@@ -1,0 +1,137 @@
+OPTIONS GREEKS: THE DASHBOARD FOR YOUR OPTIONS POSITION
+
+Why Greeks Matter
+
+Imagine driving a car with no dashboard — no speedometer, no fuel gauge, no temperature warning light. You could drive, but you would not know how fast you were going, when you would run out of gas, or if your engine was overheating.
+
+The Greeks are your options dashboard. They tell you exactly how your option will behave when different things change: stock price movement, time passing, volatility shifting. Without understanding Greeks, you are flying blind.
+
+There are four main Greeks: Delta, Gamma, Theta, and Vega. Each measures sensitivity to a different variable.
+
+DELTA: How Much Your Option Moves Per $1 Stock Move
+
+Delta measures how much the option's price changes when the underlying stock moves $1.
+
+A call option with a delta of 0.50 means: if the stock goes up $1, the option price goes up approximately $0.50. If the stock goes down $1, the option price goes down approximately $0.50.
+
+Delta ranges:
+- Calls: 0 to +1.00
+- Puts: 0 to -1.00
+
+Delta as a strike selector:
+- Deep ITM call: delta ~0.80-0.95 (moves almost like the stock)
+- ATM call: delta ~0.50 (moves about half as much as the stock)
+- OTM call: delta ~0.15-0.30 (barely moves unless the stock makes a big jump)
+
+Delta as a probability proxy: A 0.30 delta call roughly implies a 30% chance of expiring in-the-money. A 0.70 delta call implies about a 70% chance. This is not exact, but it is a useful mental model.
+
+Worked example: You own 1 AAPL $190 call with a delta of 0.50. AAPL is at $190.
+
+- AAPL goes to $192 (+$2): Your option gains approximately $2 x 0.50 = $1.00 per share, or $100 per contract.
+- AAPL drops to $187 (-$3): Your option loses approximately $3 x 0.50 = $1.50 per share, or $150 per contract.
+
+Important: Delta changes as the stock price moves. It is not constant. That is where Gamma comes in.
+
+GAMMA: The Rate of Change of Delta
+
+Gamma tells you how much delta will change when the stock moves $1. Think of delta as speed and gamma as acceleration.
+
+If your call has a delta of 0.50 and a gamma of 0.05:
+- Stock goes up $1: Delta increases from 0.50 to 0.55
+- Stock goes up another $1: Delta increases from 0.55 to 0.60
+- Your option is now moving faster with each dollar the stock gains
+
+Why gamma matters:
+
+1. ATM options have the highest gamma. This is because their delta is most sensitive to price changes — they are right at the tipping point between ITM and OTM.
+
+2. Gamma increases as expiration approaches. An ATM option expiring in 2 days has enormous gamma. Its delta can swing from 0.50 to 0.90 on a $2 move. This is why options near expiration can produce explosive gains — or devastating losses.
+
+3. Gamma is the friend of option buyers and the enemy of option sellers. If you bought a call and the stock rips higher, gamma accelerates your gains. If you sold a call and the stock rips, gamma accelerates your losses.
+
+The gamma risk near expiration: Imagine holding a $190 call on AAPL expiring tomorrow, with AAPL at $190. The gamma is enormous. If AAPL closes at $191, the call is worth $1 ($100 per contract). If AAPL closes at $189, it is worth $0. A $2 stock move is the difference between a $100 payout and nothing. This is why expiration day trading is so volatile.
+
+THETA: Time Decay — The Ice Cube Analogy
+
+Theta measures how much value your option loses each day, purely from the passage of time.
+
+Imagine your option is an ice cube. Every day, a little bit melts away. The closer you get to expiration, the faster it melts. A $5.00 option might lose $0.03 per day when it has 60 days left, but $0.15 per day with only 7 days left.
+
+Theta is expressed as a negative number for option buyers (you are losing value) and a positive number for option sellers (you are collecting that decay).
+
+Worked example: You buy an AAPL $190 call for $4.00 with 30 days to expiration. Theta is -$0.08.
+
+This means: all else being equal, your option loses $0.08 per share per day, or $8.00 per contract per day. In 10 days, you have lost $80 to time decay alone — even if AAPL has not moved.
+
+Theta acceleration: Time decay is not linear. It accelerates dramatically in the last 30 days before expiration, and goes into overdrive in the last week.
+
+Approximate daily theta decay for a $5.00 ATM option:
+- 60 days out: -$0.03/day
+- 30 days out: -$0.06/day
+- 14 days out: -$0.12/day
+- 7 days out: -$0.20/day
+- 1 day out: -$0.50/day
+
+This is why buying weekly options is so risky. You are fighting an accelerating clock.
+
+Practical rule: If you are buying options, give yourself enough time — at least 30-45 days to expiration. If you are selling options, time decay is your friend — sell with 30-45 days and let theta work for you.
+
+VEGA: Sensitivity to Implied Volatility
+
+Vega measures how much the option price changes when implied volatility (IV) changes by 1 percentage point.
+
+If your option has a vega of 0.15 and IV increases from 30% to 31%, the option gains $0.15 per share ($15 per contract). If IV drops from 30% to 29%, the option loses $0.15.
+
+Why vega matters — the earnings example:
+
+Before an earnings announcement, everyone knows the stock is about to make a big move, but nobody knows which direction. This uncertainty drives up implied volatility. AAPL options might have an IV of 45% the day before earnings, compared to 25% normally.
+
+After earnings are announced, the uncertainty disappears. IV collapses — often from 45% back to 25% overnight. This is called IV crush.
+
+Worked example of IV crush:
+- You buy an AAPL $190 call for $6.00 the day before earnings. IV is 45%. Vega is 0.20.
+- Apple reports decent earnings. Stock goes from $190 to $192 (+$2).
+- Delta effect: +$2 x 0.50 delta = +$1.00
+- But IV drops from 45% to 28% — a 17-point drop.
+- Vega effect: 17 x -$0.20 = -$3.40
+- Net change: +$1.00 - $3.40 = -$2.40
+- Your option goes from $6.00 to $3.60 — a 40% LOSS even though the stock went UP.
+
+This is why buying options before earnings is so treacherous. You have to be right about direction AND magnitude. The stock has to move enough to overcome the IV crush.
+
+How Greeks Interact: A Real Scenario
+
+Let us put it all together. You have an AAPL $190 call expiring in 5 days. AAPL is at $189.50.
+
+- Delta: 0.48 (moves about half a dollar for each dollar in AAPL)
+- Gamma: 0.12 (delta is very sensitive — it will change fast)
+- Theta: -0.35 (you are losing $35 per contract per day to time decay)
+- Vega: 0.05 (low sensitivity to IV changes since expiration is so close)
+
+This is a high-gamma, high-theta position. It is like sitting on a bomb. If AAPL moves $3 in your direction quickly, gamma rockets your delta from 0.48 to 0.84, and you make a killing. But if AAPL sits still for two days, theta eats $70 per contract, and your position bleeds out.
+
+Practical Greek Rules for Different Strategies
+
+If you are buying calls/puts (directional bets):
+- Watch delta (your exposure to the stock move)
+- Watch theta (your daily cost of holding)
+- Give yourself time (45+ DTE to reduce theta burn)
+- Be aware of vega (avoid buying when IV is very high)
+
+If you are selling options (collecting premium):
+- Theta is your friend — you want it as high as possible
+- Watch gamma — high gamma near expiration means your short option can move against you fast
+- Sell when IV is high — vega works in your favor as IV drops
+
+If you are hedging a stock position:
+- Use delta to size your hedge. Own 500 shares? A 0.50 delta put x 10 contracts = 500 delta hedge.
+
+The Greeks are not static numbers. They change every second as the stock price moves, time passes, and volatility shifts. Think of them as a living, breathing dashboard that you monitor continuously as long as you hold an options position.
+
+Key Takeaways
+
+1. Delta tells you directional exposure. 0.50 delta = the option moves $0.50 for each $1 stock move.
+2. Gamma tells you how fast delta changes. Highest for ATM options near expiration.
+3. Theta is time decay. It accelerates as expiration approaches. Buyers pay it, sellers collect it.
+4. Vega is volatility sensitivity. IV crush after earnings can destroy an option's value even if the stock moves in your favor.
+5. Always check your Greeks before entering an options trade. They tell you what you are really risking.

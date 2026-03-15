@@ -1,0 +1,167 @@
+STRIKE SELECTION: CHOOSING THE RIGHT OPTION FOR YOUR THESIS
+
+The Core Tradeoff
+
+Choosing a strike price is one of the most important decisions in options trading. It determines your cost, your probability of profit, and your potential return. Get it right, and you amplify your thesis beautifully. Get it wrong, and a correct market view still results in a losing trade.
+
+The fundamental tradeoff: cheaper options (OTM) offer higher percentage returns if you are right, but a lower probability of profit. More expensive options (ITM) offer higher probability of profit but lower percentage returns.
+
+ITM vs ATM vs OTM: A Comparison
+
+Let us set up a concrete comparison. Microsoft (MSFT) is trading at $400. You are bullish and want to buy a call expiring in 45 days. Here are your options:
+
+ITM Call — $380 Strike (Delta: 0.75)
+- Premium: $25.00 ($2,500 per contract)
+- Intrinsic value: $20.00 (MSFT is $20 above the strike)
+- Extrinsic value: $5.00
+- Breakeven at expiration: $405
+- Probability of profit: ~55%
+
+ATM Call — $400 Strike (Delta: 0.50)
+- Premium: $12.00 ($1,200 per contract)
+- Intrinsic value: $0.00
+- Extrinsic value: $12.00
+- Breakeven at expiration: $412
+- Probability of profit: ~40%
+
+OTM Call — $420 Strike (Delta: 0.25)
+- Premium: $4.00 ($400 per contract)
+- Intrinsic value: $0.00
+- Extrinsic value: $4.00
+- Breakeven at expiration: $424
+- Probability of profit: ~20%
+
+Now let us see what happens under three outcomes:
+
+Scenario 1: MSFT rises to $420 (+5%)
+- ITM $380 call: worth $40.00. Profit: $40 - $25 = $15.00. Return: 60%
+- ATM $400 call: worth $20.00. Profit: $20 - $12 = $8.00. Return: 67%
+- OTM $420 call: worth $0.00 (at-the-money at expiry, extrinsic is gone). Loss: -$4.00. Return: -100%
+
+Wait — MSFT went up 5% and the OTM call STILL lost 100%? Yes. The stock had to go above $424 (the breakeven) for the OTM call to profit at expiration. A 5% move was not enough.
+
+Scenario 2: MSFT rises to $440 (+10%)
+- ITM $380 call: worth $60.00. Profit: $35.00. Return: 140%
+- ATM $400 call: worth $40.00. Profit: $28.00. Return: 233%
+- OTM $420 call: worth $20.00. Profit: $16.00. Return: 400%
+
+Now the OTM call shines — a 400% return. But it required a 10% move. How often does MSFT move 10% in 45 days? Not often.
+
+Scenario 3: MSFT drops to $395 (-1.25%)
+- ITM $380 call: worth $15.00. Loss: -$10.00. Return: -40%
+- ATM $400 call: worth $0.00. Loss: -$12.00. Return: -100%
+- OTM $420 call: worth $0.00. Loss: -$4.00. Return: -100%
+
+A tiny 1.25% dip killed both the ATM and OTM calls. The ITM call survived (still has $15 of intrinsic value), though it lost $10.
+
+The table makes the tradeoffs clear:
+
+                 Small move (+5%)  Big move (+10%)  Small dip (-1.25%)
+ITM ($380):      +60%              +140%            -40%
+ATM ($400):      +67%              +233%            -100%
+OTM ($420):      -100%             +400%            -100%
+
+Delta as a Strike Selection Tool
+
+Delta is your best friend when choosing strikes. Here is a simple framework:
+
+0.70-0.80 delta (Deep ITM): Conservative. You want stock-like exposure with some leverage. Best when you have high conviction but want protection. The option moves almost dollar-for-dollar with the stock. Higher cost, lower percentage returns, but highest probability of profit.
+
+0.50 delta (ATM): Balanced. Equal chance of expiring ITM or OTM. Moderate cost, moderate returns. This is the "default" choice when you are moderately bullish or bearish.
+
+0.30-0.40 delta: Moderately aggressive. Lower cost, higher percentage returns if right, but needs a bigger move. Good when you expect a specific catalyst to move the stock significantly.
+
+0.10-0.20 delta (Far OTM): Lottery ticket. Very cheap, very low probability of profit. You need a massive move. Occasionally pays off huge, but loses money the vast majority of the time.
+
+Matching Strike to Thesis and Time Horizon
+
+Your strike choice should reflect two things: how strong your conviction is, and how much time you are giving the trade.
+
+Strong conviction + short timeframe: ATM or slightly ITM. You believe the move is coming soon, so you want maximum delta exposure. You pay more premium, but if you are right about timing, the percentage return is strong.
+
+Moderate conviction + longer timeframe: Slightly OTM (0.35-0.45 delta). You think the stock will move in your direction but are not sure exactly when. The lower cost gives you more time, and if the move happens, the return is solid.
+
+Speculative thesis + longer timeframe: OTM (0.20-0.30 delta). Maybe you think a stock could rally 15% over three months. An OTM call with 90 days to expiration gives you cheap exposure. If you are right, the returns are excellent. If you are wrong, the small premium is the cost of speculation.
+
+The "Cheap OTM Trap"
+
+This is the number one mistake beginners make with options: buying ultra-cheap OTM options because "it only costs $10" or "if it hits, I will make a fortune."
+
+Here is the reality: an option trading at $0.10 is cheap for a reason. The market is telling you there is roughly a 2-5% chance it will be worth anything at expiration. That $10 per contract is almost certainly going to zero.
+
+The math problem: Even if you are right 1 out of 20 times and the option pays $2.00, your return is $200 on a $10 investment, which sounds amazing. But you lost $10 on the other 19 trades, totaling $190 in losses. Net profit: $10 on $200 invested = 5% return. And that assumes the payoff is 20x, which is optimistic.
+
+Cheap OTM options are seductive because the dollar risk is low and the potential percentage return is eye-popping. But the probability-weighted expected return is almost always negative. Professional traders sell these options. Beginners buy them.
+
+If you want cheap exposure, a better approach is to buy a slightly OTM call spread (buy one strike, sell a higher strike), which reduces cost without relying on a miracle.
+
+Probability of Profit at Different Strikes
+
+Here is an approximate guide to probability of profit at expiration:
+
+Delta 0.80 (ITM): ~50-55% chance of profit (the premium you paid must be recovered)
+Delta 0.50 (ATM): ~35-40% chance of profit
+Delta 0.30 (OTM): ~18-22% chance of profit
+Delta 0.15 (Far OTM): ~8-12% chance of profit
+Delta 0.05 (Way OTM): ~2-4% chance of profit
+
+These numbers are approximate and vary with time to expiration and volatility. But they illustrate the pattern: cheaper options have lower probability of profit.
+
+This is why experienced traders do not evaluate options by asking "how much could I make?" but rather "what is the probability I make money, and is the payoff worth the risk?"
+
+Time to Expiration and Strike Interaction
+
+Time and strike are deeply connected:
+
+Short-dated options (less than 14 DTE):
+- Stick to ATM or slightly ITM strikes. There is not enough time for OTM options to become profitable.
+- Theta decay is brutal. You are fighting the clock hard.
+- Only trade these if you expect an imminent catalyst.
+
+Medium-dated options (30-60 DTE):
+- The sweet spot for most directional trades. You have time for the thesis to develop.
+- ATM and slightly OTM strikes work well. Time decay is present but manageable.
+- This is where most professional options traders operate for directional bets.
+
+Long-dated options (90+ DTE, LEAPS):
+- Can use OTM strikes because you have months for the stock to move.
+- LEAPS (options expiring a year or more out) can be used as stock replacements — buy a deep ITM LEAP with 0.80 delta and it tracks the stock for a fraction of the cost.
+- Theta decay is slow at this point. You are paying for time, and time is on your side.
+
+Real Example: Same Bullish Thesis on MSFT, Three Different Strikes
+
+Thesis: You believe Microsoft will rally over the next 6 weeks due to strong cloud growth and AI momentum. MSFT is at $400.
+
+Conservative approach — ITM $380 Call (Delta 0.75, 45 DTE):
+- Cost: $2,500 per contract
+- Behaves like owning 75 shares
+- Profitable if MSFT is above $405 at expiration
+- If MSFT goes to $420: profit = $1,500 (60% return)
+- If MSFT stays at $400: loss = -$500 (extrinsic value lost, -20%)
+- Best for: High conviction, want stock-like exposure with some leverage
+
+Balanced approach — ATM $400 Call (Delta 0.50, 45 DTE):
+- Cost: $1,200 per contract
+- Profitable if MSFT is above $412 at expiration
+- If MSFT goes to $420: profit = $800 (67% return)
+- If MSFT stays at $400: loss = -$1,200 (100% loss)
+- Best for: Moderate conviction, balanced risk-reward
+
+Aggressive approach — OTM $420 Call (Delta 0.25, 45 DTE):
+- Cost: $400 per contract
+- Profitable if MSFT is above $424 at expiration
+- If MSFT goes to $420: loss = -$400 (100% loss — needs to go ABOVE $424)
+- If MSFT goes to $440: profit = $1,600 (400% return)
+- Best for: Strong conviction in a big move, willing to lose entire premium
+
+Most experienced traders in this situation would pick the ATM or slightly ITM call. The conservative trader picks ITM for the higher delta and lower breakeven. The speculative trader picks OTM for the leverage, understanding the lower probability.
+
+Key Takeaways
+
+1. Strike selection is about tradeoffs: cost, probability, and potential return.
+2. Use delta as your guide: 0.70 = conservative, 0.50 = balanced, 0.30 = aggressive.
+3. Match your strike to your conviction level and time horizon.
+4. Avoid the cheap OTM trap — ultra-cheap options are cheap for a reason.
+5. Give your trades enough time. Short-dated OTM options are almost always a losing strategy.
+6. ITM options offer higher probability but lower percentage returns. OTM options are the opposite.
+7. Evaluate options by probability-weighted expected return, not just "how much could I make."

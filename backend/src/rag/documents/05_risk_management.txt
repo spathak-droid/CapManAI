@@ -1,0 +1,135 @@
+RISK MANAGEMENT: THE SKILL THAT SEPARATES SURVIVORS FROM BLOWUPS
+
+Why Risk Management Matters More Than Stock Picking
+
+Here is a truth that surprises most beginners: your ability to pick winning stocks matters far less than your ability to manage risk. A trader who is right 40% of the time but manages risk well will crush a trader who is right 60% of the time but sizes positions recklessly.
+
+Think of a casino. The house does not win every hand of blackjack. It wins about 51% of them. But that tiny 1% edge, applied consistently over thousands of hands with disciplined bet sizing, generates billions. The casino never bets its entire bankroll on one hand. It never doubles down after a loss out of frustration. It plays the same system, hand after hand.
+
+You need to be the casino, not the gambler.
+
+The 1-2% Rule
+
+The most important rule in trading: never risk more than 1-2% of your total account on a single trade.
+
+If your account is $10,000:
+- 1% risk = $100 maximum loss per trade
+- 2% risk = $200 maximum loss per trade
+
+This means if a trade goes against you and hits your stop-loss, you lose $100-$200. Not $1,000. Not $3,000. A small, manageable, predetermined amount.
+
+Why this works: even if you hit 10 losing trades in a row (which happens to every trader at some point), you have lost only 10-20% of your account. Painful, but recoverable. If you were risking 10% per trade, ten losers in a row means your account is gone.
+
+A 50% loss requires a 100% gain to break even. A 10% loss only requires an 11% gain. Keep losses small, and the math of recovery stays in your favor.
+
+Position Sizing Formula
+
+Here is the formula that implements the 1-2% rule:
+
+Number of shares = Risk per trade / (Entry price - Stop-loss price)
+
+Let us walk through a real example.
+
+Account size: $10,000
+Risk per trade: 1% = $100
+You want to buy AAPL at $190.00
+Your stop-loss is at $185.00 (below a support level)
+Distance to stop: $190 - $185 = $5.00
+
+Shares = $100 / $5.00 = 20 shares
+
+Your position: Buy 20 shares of AAPL at $190. Total invested: $3,800.
+If AAPL drops to $185 and your stop triggers, you lose: 20 x $5 = $100. Exactly 1% of your account.
+
+Notice that you are NOT investing your full $10,000 in AAPL. You are investing $3,800 — the amount that, combined with your stop-loss distance, limits your risk to $100.
+
+What if the stop is tighter? Same setup, but your stop is at $188 (distance = $2):
+Shares = $100 / $2.00 = 50 shares. Position: $9,500.
+
+What if the stop is wider? Stop at $180 (distance = $10):
+Shares = $100 / $10.00 = 10 shares. Position: $1,900.
+
+The position size adjusts automatically based on how much room you give the trade. Wider stop = fewer shares. Tighter stop = more shares. The risk stays constant at $100.
+
+Stop-Loss Types
+
+A stop-loss is a predetermined price at which you will exit a losing trade. There are several types:
+
+Hard stop: An actual order placed in your brokerage that will trigger automatically. "Sell if AAPL drops to $185." This is the most reliable because it removes emotion from the equation. You cannot talk yourself out of it at 2 AM.
+
+Mental stop: A price level where you plan to sell, but no order is placed. Dangerous, because when the moment comes, fear or hope can override your plan. "Maybe it will bounce back..." Mental stops work only if you have iron discipline.
+
+Trailing stop: A stop that follows the price upward but never moves down. If AAPL rises from $190 to $200, a $5 trailing stop moves from $185 to $195. It locks in gains as the stock moves in your favor. If AAPL then drops from $200, the stop triggers at $195, locking in a $5 gain.
+
+Time stop: Exit if the trade has not worked within a certain period. "If this trade is not profitable within 5 days, I am out." This prevents capital from being tied up in dead trades.
+
+Risk-Reward Ratio
+
+Before entering any trade, calculate the risk-reward ratio:
+
+Risk = distance from entry to stop-loss
+Reward = distance from entry to profit target
+Ratio = Reward / Risk
+
+Example:
+- Entry: $190
+- Stop: $185 (risk = $5)
+- Target: $200 (reward = $10)
+- Risk-reward ratio: $10 / $5 = 2:1
+
+The minimum acceptable ratio is 1:2 — you should be targeting at least twice as much profit as you are risking. At a 2:1 ratio, you only need to win 34% of your trades to break even. At 3:1, you only need 25%.
+
+This is the math that makes risk management so powerful. By combining a high reward-to-risk ratio with consistent position sizing, you can be wrong more often than right and still make money.
+
+A 1:1 ratio means you need to win more than 50% of the time to profit — and after commissions and slippage, that is very hard to sustain.
+
+Daily Loss Limits
+
+Set a maximum amount you will lose in a single day. A common rule is 3-5% of your account.
+
+If your account is $10,000, a 3% daily loss limit means you stop trading after losing $300 in a day. Close your charts, step away, review what went wrong.
+
+Why? Because losing streaks create emotional spiraling. After two bad trades, you are frustrated. After three, you are angry. Angry traders make impulsive decisions — bigger bets, chasing trades, abandoning strategies. A daily loss limit forces you to stop before emotions take over.
+
+Correlation Risk
+
+If you own positions in Apple, Microsoft, Google, Amazon, and NVIDIA, you might think you have five different trades. You do not. You have one giant tech bet.
+
+These stocks are highly correlated — when tech sells off, they all sell off together. If the NASDAQ drops 3%, all five of your positions might drop 3-5% simultaneously. Your five "separate" trades suddenly act like one massive position.
+
+True diversification means owning positions that move independently. A tech stock, an energy stock, a healthcare stock, and a consumer staples stock will have lower correlation. When tech drops, energy might rise. The losses and gains partially offset.
+
+Rule of thumb: Check the correlation between your positions. If they are all in the same sector or all react the same way to the same catalysts, reduce your total size.
+
+The Psychology of Loss
+
+Loss aversion is hardwired into human brains. Psychologists Daniel Kahneman and Amos Tversky showed that losing $100 causes about twice as much emotional pain as gaining $100 causes pleasure.
+
+This creates dangerous behaviors:
+- Holding losers too long: "It will come back." You refuse to take a small loss, and it becomes a big one.
+- Cutting winners too early: "Let me lock in this gain before it disappears." You miss the big move.
+- Revenge trading: After a loss, you take an impulsive trade to "make it back." These revenge trades usually make things worse.
+
+The solution is having rules and following them mechanically. Your stop-loss is at $185? Sell at $185. No negotiation. Your target is $200? Do not sell at $195 because you got nervous. Let the plan play out.
+
+Real Case Study: Two Traders, Same Stock
+
+Trader A has a $20,000 account. He finds a "sure thing" — a biotech stock about to announce trial results. He goes all in: $20,000. No stop-loss. "It is going to moon."
+
+The trial results are mixed. The stock drops 30%. Trader A's account goes from $20,000 to $14,000. He holds, hoping for a recovery. It drops more. $14,000 becomes $10,000. He finally sells. He has lost 50% of his account. To get back to $20,000, he now needs a 100% return.
+
+Trader B has the same $20,000 account and the same trade idea. She risks 2% ($400). She buys $4,000 worth of the biotech stock with a stop-loss $2 below her entry. If the stop hits, she loses $400.
+
+The trial results disappoint. Her stop triggers. She loses $400. Her account is at $19,600 — a 2% drawdown. She shrugs, reviews the trade, and moves on to the next opportunity.
+
+Same stock, same outcome, wildly different results. The difference was not stock-picking skill. It was risk management.
+
+Key Takeaways
+
+1. Never risk more than 1-2% of your account on a single trade.
+2. Position size is determined by the formula: Risk$ / (Entry - Stop) = Shares.
+3. Always know your stop-loss BEFORE entering a trade.
+4. Target a minimum 1:2 risk-reward ratio.
+5. Set a daily loss limit (3-5%) and honor it.
+6. Check correlation — five tech stocks is not diversification.
+7. Rules-based trading beats emotional decision-making every time.

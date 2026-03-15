@@ -1,0 +1,138 @@
+OPTIONS FUNDAMENTALS: CONTRACTS, RIGHTS, AND THE POWER OF LEVERAGE
+
+What Is an Option?
+
+An option is a contract that gives you the right — but not the obligation — to buy or sell a stock at a specific price by a specific date. You pay a fee (called the premium) for this right.
+
+There are two types: calls and puts.
+
+The critical difference between stocks and options: when you buy a stock, you own it forever (until you sell). When you buy an option, it has an expiration date. After that date, the contract is worthless. Options are wasting assets — they decay over time.
+
+Call Options: The House Deposit Analogy
+
+Imagine you find a house you love, listed at $400,000. You are not ready to buy yet — you need to sell your current house first. So you pay the seller $5,000 for the right to buy the house at $400,000 anytime in the next 90 days.
+
+If the house's market value rises to $450,000 during those 90 days, you exercise your right, buy it at $400,000, and you have instantly "made" $50,000 in equity (minus the $5,000 you paid for the right). Net gain: $45,000.
+
+If the housing market crashes and the house is now worth $350,000, you simply walk away. You lose the $5,000 deposit, but you are not forced to buy a house that is now worth less than the agreed price.
+
+That is exactly how a call option works.
+
+A call option gives you the right to BUY a stock at a specific price (the strike price) before a specific date (the expiration date). You pay a premium for this right.
+
+Put Options: The Insurance Analogy
+
+Think of car insurance. You pay a monthly premium to your insurer. If nothing bad happens, you "lose" those premiums. But if you get in an accident, the insurance pays out — far more than you paid in premiums.
+
+A put option works the same way. It gives you the right to SELL a stock at a specific price before a specific date. If the stock drops below that price, your put becomes valuable. If the stock stays flat or goes up, you lose the premium you paid.
+
+Traders buy puts to protect against downside (like insurance on a portfolio) or to profit from a stock they think will drop.
+
+The x100 Multiplier
+
+Here is where options get interesting and where beginners often get confused or burned.
+
+Each standard options contract controls 100 shares of the underlying stock. When you see an option quoted at $3.00, that is the price per share — but you are buying a contract for 100 shares, so the actual cost is:
+
+$3.00 x 100 = $300 per contract
+
+This multiplier is what gives options their leverage. Let us do the math.
+
+Say Apple (AAPL) is trading at $190. You buy 1 call option with a $190 strike price for $5.00 per share.
+
+Your cost: $5.00 x 100 = $500.
+
+If Apple rises to $200, your call is now worth at least $10.00 (because you have the right to buy at $190 something worth $200). That is $10.00 x 100 = $1,000.
+
+Your profit: $1,000 - $500 = $500. That is a 100% return.
+
+If you had bought 100 shares of Apple at $190 instead, your cost would have been $19,000, and your profit at $200 would have been $1,000 (a 5.3% return).
+
+The option gave you 100% return vs 5.3% — using $500 instead of $19,000. That is leverage.
+
+But leverage works both ways. If Apple stays at $190 or drops, your $500 is gone. The stock investor still has $19,000 worth of Apple. The option buyer has nothing.
+
+Strike Price, Expiration Date, and Premium
+
+Strike price: The price at which you can buy (call) or sell (put) the underlying stock. A $190 strike call on AAPL means you can buy AAPL at $190, regardless of where it is actually trading.
+
+Expiration date: The last day the contract is valid. After this date, the option ceases to exist. Options expire on Fridays (typically the third Friday of the month for monthly options, though weekly options expire every Friday).
+
+Premium: The price you pay for the option contract. This is determined by the market — by supply and demand, the stock's current price, time remaining, and volatility. The premium has two components: intrinsic value and extrinsic value.
+
+Reading an Options Quote
+
+When you see: "AAPL Jan 190 Call @ $5.20"
+
+This tells you:
+- Underlying stock: AAPL (Apple)
+- Expiration: January (usually the third Friday)
+- Strike price: $190
+- Type: Call (right to buy)
+- Premium: $5.20 per share ($520 per contract)
+
+In-the-Money, At-the-Money, Out-of-the-Money
+
+These terms describe the relationship between the strike price and the current stock price.
+
+For calls:
+- In-the-money (ITM): Strike is BELOW the stock price. A $180 call when AAPL is at $190 is ITM by $10. It has $10 of intrinsic value.
+- At-the-money (ATM): Strike is approximately EQUAL to the stock price. A $190 call when AAPL is at $190.
+- Out-of-the-money (OTM): Strike is ABOVE the stock price. A $200 call when AAPL is at $190 is OTM by $10. It has zero intrinsic value — it is all time value and hope.
+
+For puts, it is reversed:
+- ITM put: Strike is ABOVE the stock price. A $200 put when AAPL is at $190.
+- OTM put: Strike is BELOW the stock price. A $180 put when AAPL is at $190.
+
+Intrinsic Value vs Extrinsic (Time) Value
+
+Every option's premium can be broken down into two parts:
+
+Intrinsic value: The amount the option is in-the-money. If AAPL is at $195 and you have a $190 call, the intrinsic value is $5. This is real, tangible value — you could exercise right now and profit $5 per share.
+
+Extrinsic value (time value): Everything else. It represents the possibility that the option could become more valuable before expiration. A $190 call trading at $8.00 when AAPL is at $195 has $5 of intrinsic value and $3 of extrinsic value.
+
+Extrinsic value is influenced by:
+- Time remaining: More time = more extrinsic value. A call expiring in 90 days has more time value than one expiring in 7 days.
+- Implied volatility: Higher expected volatility = more extrinsic value. If the market expects AAPL to make big moves (maybe earnings are coming up), options will cost more.
+
+At expiration, extrinsic value is always zero. The option is worth only its intrinsic value — the amount it is in-the-money.
+
+Real Example: Buying a Call Option, Step by Step
+
+The setup: It is March 10th. Apple (AAPL) is trading at $185. You are bullish — you think Apple will rise after their product event in two weeks. You decide to buy a call option.
+
+The trade: Buy 1 AAPL April 190 Call @ $3.50
+
+Your cost: $3.50 x 100 = $350
+
+Your breakeven price at expiration: $190.00 (strike) + $3.50 (premium paid) = $193.50. Apple needs to be above $193.50 at expiration for you to profit.
+
+Now let us see three possible outcomes at expiration:
+
+Scenario 1: AAPL rises to $200
+- Your call is worth: $200 - $190 = $10 intrinsic value
+- Value of your contract: $10 x 100 = $1,000
+- Your profit: $1,000 - $350 = $650 (a 186% return)
+
+Scenario 2: AAPL rises to $192
+- Your call is worth: $192 - $190 = $2 intrinsic value
+- Value of your contract: $2 x 100 = $200
+- Your loss: $200 - $350 = -$150 (a 43% loss, even though the stock went UP)
+- Note: the stock moved in your direction, but not enough to cover the premium you paid.
+
+Scenario 3: AAPL drops to $180
+- Your call is worth: $0 (it expired out-of-the-money)
+- Your loss: $350 (100% of what you paid — the maximum you can lose when buying options)
+
+This example illustrates the asymmetry of buying options. Your maximum loss is the premium you paid ($350). Your maximum gain is theoretically unlimited (the stock could go to $300, $500, whatever). But the probability of a large gain is often lower than beginners expect, and the time decay works against you every day.
+
+Key Takeaways
+
+1. A call gives you the right to buy. A put gives you the right to sell.
+2. Each contract controls 100 shares. Always multiply the quoted price by 100.
+3. Options expire — they are not like stocks that you hold forever.
+4. Leverage amplifies gains AND losses. A 5% stock move can mean a 100% option gain or a total loss.
+5. Your breakeven on a call = strike price + premium paid.
+6. When buying options, the most you can lose is the premium you paid.
+7. Intrinsic value is real. Extrinsic value decays to zero by expiration.

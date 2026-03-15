@@ -1,0 +1,197 @@
+POSITION SIZING: THE MOST UNDERRATED SKILL IN TRADING
+
+Why Position Sizing Matters
+
+Ask a beginner trader what matters most and they will say "finding the right stock." Ask a professional and they will say "sizing the position correctly."
+
+Here is why: even the best trading strategy in the world will blow up your account if you size positions too large. And a mediocre strategy with excellent position sizing can grind out consistent profits over time.
+
+Position sizing answers the question: "How much of my money should I put into this trade?" The answer is never "all of it" and rarely "as much as I can." The answer is a calculated amount based on your risk tolerance, your stop-loss, and the specifics of the trade.
+
+Method 1: Fixed Dollar Risk
+
+This is the simplest and most widely used method. You decide in advance how many dollars you are willing to lose on a trade, then calculate how many shares that translates to.
+
+Formula: Shares = Risk Dollars / Distance to Stop
+
+Example 1: A stock trade
+- Account size: $25,000
+- Risk per trade: 1% = $250
+- Stock: NVDA at $800
+- Stop-loss: $785 (below recent support)
+- Distance to stop: $800 - $785 = $15
+
+Shares = $250 / $15 = 16.67, round down to 16 shares
+Position size: 16 x $800 = $12,800 (about 51% of account)
+Maximum loss if stopped: 16 x $15 = $240
+
+Example 2: Same account, tighter stop
+- Stock: META at $500
+- Stop-loss: $495
+- Distance to stop: $5
+
+Shares = $250 / $5 = 50 shares
+Position size: 50 x $500 = $25,000 (100% of account — too large!)
+
+Wait. This shows an important issue: if the stop is very tight and the stock is expensive, the formula might suggest a position that is too large relative to your account. In this case, you should cap the position at a reasonable percentage of your account (say 25-30%) and reduce shares accordingly.
+
+Adjusted: 25% of $25,000 = $6,250. Shares = $6,250 / $500 = 12 shares. Risk = 12 x $5 = $60 (only 0.24% risk, well within tolerance).
+
+Example 3: An options trade
+- Account size: $25,000
+- Risk per trade: 1% = $250
+- Buying AAPL $190 calls at $5.00 ($500 per contract)
+- With options, the most you can lose is the premium paid
+- Maximum contracts: $250 / $500 = 0.5 — which means you should buy 0 or 1 contract
+
+If 1 contract risks $500 (2% of account), and your rule is 1%, either skip the trade or accept the 2% risk if you have conviction. Many options traders use a 2% per-trade risk limit because of the all-or-nothing nature of long options.
+
+Method 2: Percentage of Portfolio
+
+The simplest approach: allocate a fixed percentage of your portfolio to each position.
+
+Rules of thumb:
+- Conservative: 2-5% per position (20-50 positions possible)
+- Moderate: 5-10% per position (10-20 positions)
+- Concentrated: 10-20% per position (5-10 positions)
+- Reckless: 20%+ per position (you are gambling, not trading)
+
+Example: $25,000 account, 5% per position = $1,250 per trade. With AAPL at $190, you buy 6 shares. Simple and safe, but it does not account for the volatility of the stock or your specific risk point.
+
+This method works best for long-term investing (not active trading) where you are building a diversified portfolio and not using stop-losses.
+
+Method 3: Volatility-Adjusted Sizing
+
+Some stocks move $2 a day. Others move $20 a day. Your position size should reflect this.
+
+The Average True Range (ATR) measures a stock's average daily price movement over a period (usually 14 days). A stock with a 14-day ATR of $5 moves about $5 per day on average.
+
+Volatility-adjusted sizing uses ATR to set stops and then sizes accordingly:
+
+Step 1: Find the stock's ATR.
+Step 2: Set your stop as a multiple of ATR (common: 1.5x to 2.5x ATR).
+Step 3: Use the fixed dollar risk formula.
+
+Example:
+- Account: $25,000, risk 1% = $250
+- Stock: AMZN at $180, 14-day ATR = $6
+- Stop distance: 2x ATR = $12 (stop at $168)
+- Shares = $250 / $12 = 20 shares
+- Position: 20 x $180 = $3,600
+
+Compare this to a low-volatility stock:
+- Stock: PG (Procter & Gamble) at $160, 14-day ATR = $2
+- Stop distance: 2x ATR = $4 (stop at $156)
+- Shares = $250 / $4 = 62 shares
+- Position: 62 x $160 = $9,920
+
+The volatile stock (AMZN) gets a smaller position. The stable stock (PG) gets a larger one. This normalizes your risk across different stocks. You are taking the same dollar risk ($250) regardless of the stock's personality.
+
+Method 4: Kelly Criterion (Simplified)
+
+The Kelly Criterion is a mathematical formula that tells you the optimal bet size based on your edge. Full Kelly is too aggressive for most traders, so professionals use "half-Kelly" or "quarter-Kelly."
+
+Simplified Kelly formula:
+Kelly % = Win Rate - (Loss Rate / Win-to-Loss Ratio)
+
+Example:
+- Your win rate: 55% (you win 55 out of 100 trades)
+- Your average win: $400
+- Your average loss: $200
+- Win-to-loss ratio: $400 / $200 = 2.0
+- Loss rate: 45%
+
+Kelly % = 0.55 - (0.45 / 2.0) = 0.55 - 0.225 = 0.325
+
+Full Kelly says risk 32.5% of your account per trade. That is wildly aggressive. Half-Kelly would be 16.25%. Quarter-Kelly would be 8.1%.
+
+Most traders use quarter to half Kelly, which suggests risking 8-16% per trade in this example. Even that is aggressive by most standards. The Kelly Criterion's value is directional — it tells you to bet bigger when your edge is larger and smaller when your edge is thinner. In practice, most traders cap risk at 1-2% per trade regardless of what Kelly suggests.
+
+Scaling In and Out
+
+You do not have to enter or exit a position all at once.
+
+Scaling in: Enter in portions. For example, if your target is 300 shares:
+- Buy 100 shares at $190 (initial entry)
+- If the stock pulls back to $187 and holds support, buy 100 more (add on confirmation)
+- If the stock breaks above $195, buy the final 100 (add on strength)
+
+Benefits: Lower average cost if you are right about the pullback. Less risk if the trade immediately goes against you (you only had 100 shares, not 300).
+
+Scaling out: Exit in portions.
+- Sell 100 shares at your first target ($200) to lock in profits
+- Move your stop to breakeven on the remaining 200 shares
+- Sell 100 more at $210
+- Trail a stop on the last 100 shares
+
+Benefits: You lock in some profit while keeping exposure to further upside. You cannot get the absolute best exit on every share, but you protect against the trade reversing after you were profitable.
+
+A common scaling plan: 1/3 in, 1/3 add, 1/3 add. And 1/3 out, 1/3 out, trail the last 1/3.
+
+Portfolio Heat: Total Risk Across All Positions
+
+Portfolio heat is the total amount of money at risk across all your open positions. If you have 5 trades, each risking 1% of your account, your portfolio heat is 5%.
+
+Rules:
+- Conservative: maximum portfolio heat of 3-4%
+- Moderate: maximum 5-6%
+- Aggressive: maximum 8-10%
+- Beyond 10%: you are one bad day from a catastrophic drawdown
+
+Example: $25,000 account with 6% maximum heat.
+Maximum total risk: $1,500.
+
+If you have 3 open positions each risking $250 (total heat: $750 or 3%), you can add 3 more trades at $250 each before hitting your limit.
+
+If the market suddenly turns and all three existing trades are near their stops, do NOT add new positions. Your heat is already at risk of being realized.
+
+Correlation Adjustment
+
+Here is where most traders fail at portfolio management: they treat each position as independent when many are correlated.
+
+If you own calls on AAPL, MSFT, and GOOGL, and the tech sector sells off, all three lose simultaneously. Your "3% portfolio heat" is really more like 7-8% effective risk because the positions move together.
+
+Adjustment rules:
+- If two positions are in the same sector, treat them as 1.5x their individual risk for heat calculation purposes.
+- If positions are in the same stock (say a stock position and an options position on the same ticker), they are 100% correlated — add their risks together.
+- Diversify across sectors, asset classes, and strategies to reduce correlation.
+
+Real Example: Building a 3-Position Portfolio
+
+Account: $50,000
+Risk per trade: 1% = $500
+Maximum portfolio heat: 5% = $2,500
+
+Position 1: Long AAPL stock
+- Entry: $190, Stop: $183, Distance: $7
+- Shares: $500 / $7 = 71 shares
+- Position value: $13,490 (27% of account)
+- Sector: Technology
+
+Position 2: Long XLE calls (energy ETF, bullish on oil)
+- Buy XLE $90 call at $3.50, 45 DTE
+- Max risk = premium = $350 per contract (0.7% of account — within our 1% limit)
+- Buy 1 contract
+- Sector: Energy (uncorrelated to Position 1)
+
+Position 3: Long JPM stock (bank earnings play)
+- Entry: $200, Stop: $194, Distance: $6
+- Shares: $500 / $6 = 83 shares
+- Position value: $16,600 (33% of account)
+- Sector: Financials (low correlation to tech and energy)
+
+Total portfolio heat: $500 + $350 + $500 = $1,350 (2.7% of account)
+Well within our 5% heat limit. Room for 2-3 more uncorrelated trades.
+
+Total capital deployed: $13,490 + $350 + $16,600 = $30,440 (61% of account)
+39% in cash as a reserve. This cash cushion provides optionality — you can add to winners, take new trades, or weather drawdowns.
+
+Key Takeaways
+
+1. Position size is calculated from risk tolerance and stop distance, not from "how much I can afford."
+2. Fixed dollar risk (Shares = Risk$ / Stop Distance) is the foundation of position sizing.
+3. Adjust for volatility — volatile stocks get smaller positions, stable stocks get larger ones.
+4. Portfolio heat (total risk across all positions) should not exceed 5-6% for most traders.
+5. Scale into positions to reduce timing risk. Scale out to lock in profits.
+6. Account for correlation — five tech stocks is one big tech bet, not diversification.
+7. Always maintain a cash reserve. Being fully invested means you have no flexibility.

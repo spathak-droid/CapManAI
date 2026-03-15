@@ -1,0 +1,105 @@
+MARKET FUNDAMENTALS: HOW FINANCIAL MARKETS ACTUALLY WORK
+
+What Is a Financial Market and Why Does It Exist?
+
+A financial market is, at its core, a place where buyers and sellers come together to trade things of value. Think of it like a farmer's market, but instead of tomatoes and honey, people are buying and selling ownership stakes in companies, contracts, commodities, and currencies.
+
+Why does it exist? Two reasons. First, companies need money to grow. When Apple was a tiny startup in a garage, it eventually needed more cash than Steve Jobs had in his pocket. By selling shares of the company to the public, Apple raised billions of dollars to build iPhones, hire engineers, and expand globally. Second, investors want a place to put their money where it can grow. If you have $10,000 sitting in a savings account earning 0.5% per year, that money is slowly losing value to inflation. Markets give you a shot at better returns — in exchange for taking on risk.
+
+How Exchanges Work
+
+The two most famous stock exchanges in the world are the New York Stock Exchange (NYSE) and the NASDAQ.
+
+The NYSE is the old-school exchange. Founded in 1792 under a buttonwood tree on Wall Street, it still has a physical trading floor where specialists help match buy and sell orders. Companies like Coca-Cola (KO), JPMorgan (JPM), and Walmart (WMT) trade here.
+
+NASDAQ is fully electronic — no trading floor, just servers matching orders at incredible speed. It tends to list more technology companies: Apple (AAPL), Microsoft (MSFT), Amazon (AMZN), and Google (GOOGL) all trade on NASDAQ.
+
+Both exchanges do the same fundamental job: they provide a trusted, regulated venue where buyers and sellers can transact fairly.
+
+Market Hours
+
+The U.S. stock market has specific operating hours (all times Eastern):
+
+- Pre-market: 4:00 AM to 9:30 AM. Lighter volume, wider spreads. Mostly used by institutions reacting to overnight news.
+- Regular session: 9:30 AM to 4:00 PM. This is when the vast majority of trading happens. Liquidity is highest, spreads are tightest.
+- After-hours: 4:00 PM to 8:00 PM. Similar to pre-market — thinner volume, can be riskier for retail traders.
+
+The market is closed on weekends and major holidays (New Year's Day, Martin Luther King Jr. Day, Presidents' Day, Good Friday, Memorial Day, Independence Day, Labor Day, Thanksgiving, and Christmas).
+
+Why does this matter? If a company reports earnings at 4:05 PM, you cannot trade it during regular hours. The stock might gap up or down by the time the market opens the next morning.
+
+Market Participants
+
+Not everyone trading is the same. Understanding who else is in the pool helps you swim smarter.
+
+- Retail traders: That is you and me. Individual investors using brokerages like Schwab, Fidelity, or Robinhood. We typically trade small sizes — a few hundred to a few thousand shares at a time.
+- Institutional investors: Mutual funds, pension funds, hedge funds, and insurance companies. These are the big fish. When Vanguard buys shares of Microsoft for its index fund, it might buy millions of shares over several days. Their activity moves prices.
+- Market makers: These are firms (like Citadel Securities or Virtu Financial) whose job is to always be willing to buy and sell. They provide liquidity — making sure that when you want to buy AAPL, there is always someone willing to sell it to you, and vice versa. They profit from the tiny spread between their buy and sell prices.
+- High-frequency traders (HFTs): Firms using algorithms to trade in microseconds. They account for roughly 50% of all U.S. equity volume.
+
+How Prices Are Discovered Through Order Flow
+
+Here is the key insight most beginners miss: stock prices are not set by some authority. They emerge from the interaction of buyers and sellers. Every trade is a negotiation.
+
+Imagine Apple is trading at $190. That price represents the last price at which a buyer and seller agreed to transact. If more buyers show up wanting shares and sellers are not willing to sell at $190 anymore, the price moves up to $190.50, then $191, and so on. If sellers become desperate and buyers step back, the price drops.
+
+This process is called price discovery, and it happens continuously through the order book.
+
+The Auction Process: Bids, Asks, and the Order Book
+
+The order book is the heart of every exchange. It is a real-time list of all pending buy and sell orders.
+
+- Bid: The highest price a buyer is currently willing to pay. Example: $189.95.
+- Ask (or Offer): The lowest price a seller is currently willing to accept. Example: $190.05.
+- Spread: The difference between the bid and ask. In this case, $0.10.
+
+A tight spread (like $0.01 on AAPL) means the stock is very liquid — lots of buyers and sellers competing. A wide spread (like $0.50 on a small biotech stock) means less liquidity and higher cost to trade.
+
+The order book might look like this for a stock at $190:
+
+  BIDS (Buyers)          ASKS (Sellers)
+  $189.95 — 500 shares   $190.05 — 300 shares
+  $189.90 — 1,200 shares $190.10 — 800 shares
+  $189.85 — 2,000 shares $190.15 — 450 shares
+
+If a buyer places a market order for 300 shares, they will get filled at $190.05 (the best available ask). The new best ask becomes $190.10.
+
+Types of Orders
+
+Market Order: "Buy me 100 shares of AAPL right now, at whatever the current price is." Fast execution, but you might pay slightly more than expected if the price is moving fast. Best for: liquid stocks when you need to get in or out immediately.
+
+Limit Order: "Buy me 100 shares of AAPL, but only if the price is $189.00 or lower." You control the price, but the trade might never execute if the stock does not drop to your level. Best for: setting a precise entry or exit price.
+
+Stop Order (Stop-Loss): "If AAPL drops to $185, sell my shares at market price." This is a protective order. It sits dormant until the trigger price is hit, then converts to a market order. Best for: limiting losses on an existing position.
+
+Stop-Limit Order: "If AAPL drops to $185, sell my shares — but only if you can get at least $184.50." Combines a trigger with a price floor. The risk: in a fast-moving market, the stock might blow right past your limit price, and you do not get filled at all. Best for: controlling both the trigger and the execution price, when you are willing to risk not getting filled.
+
+Real Example: Placing a Limit Buy Order for AAPL
+
+Let us walk through a real trade, step by step.
+
+You have been watching Apple (AAPL), currently trading at $192.50. You have done your analysis and believe $188.00 is a good entry point — the stock pulled back to that level twice in the past month and bounced each time (a support level).
+
+Step 1: Open your brokerage app or platform.
+Step 2: Search for AAPL.
+Step 3: Select "Buy" and choose "Limit Order."
+Step 4: Set the limit price to $188.00.
+Step 5: Enter the quantity: 50 shares.
+Step 6: Choose a time-in-force: "GTC" (Good Till Canceled) means the order stays active until it fills or you cancel it. "Day" means it expires at 4:00 PM if not filled.
+Step 7: Review: Buy 50 shares AAPL @ $188.00 Limit, GTC.
+Step 8: Submit.
+
+Your total cost if filled: 50 shares x $188.00 = $9,400 (plus any commission, though most brokers charge $0 for stock trades now).
+
+What happens next? Your order sits in the order book on the bid side. If AAPL drops to $188.00 and there are sellers at that price, your order fills. If AAPL never drops that low, your order sits unfilled — and you do not spend a penny.
+
+This is the beauty of limit orders: you define the terms. The market either meets them or it does not. No chasing, no FOMO, no overpaying.
+
+Key Takeaways
+
+1. Markets exist to connect companies that need capital with investors who want returns.
+2. Prices are not fixed — they emerge from the continuous interaction of buyers and sellers.
+3. The bid-ask spread tells you about liquidity. Tighter is better.
+4. Use limit orders to control your entry price. Market orders for speed.
+5. Understand who else is trading — institutions and market makers move prices.
+6. Regular market hours (9:30 AM - 4:00 PM ET) offer the best liquidity.

@@ -1,8 +1,9 @@
-"""Tests for the RAG pipeline: chunking, embeddings, similarity, and endpoints."""
+"""Tests for the RAG pipeline: chunking, embeddings, and endpoints."""
 
-from src.rag.embeddings import VOCAB_SIZE, compute_embedding
+import math
+
+from src.rag.embeddings import EMBEDDING_DIM, compute_embedding, compute_embeddings_batch
 from src.rag.ingest import _generate_doc_id, chunk_text
-from src.rag.retriever import cosine_similarity
 
 
 # ---------------------------------------------------------------------------
@@ -17,29 +18,94 @@ class TestChunkText:
 
     def test_short_text_returns_single_chunk(self) -> None:
         text = "This is a short text."
-        chunks = chunk_text(text, chunk_size=500)
+        chunks = chunk_text(text, chunk_size=1500)
         assert len(chunks) == 1
         assert chunks[0] == text
 
     def test_long_text_splits_into_multiple_chunks(self) -> None:
-        # Create text longer than chunk_size
-        text = "word " * 200  # ~1000 chars
-        chunks = chunk_text(text, chunk_size=100, overlap=10)
+        # Create text with paragraphs longer than chunk_size
+        text = "First paragraph. " * 50 + "\n\n" + "Second paragraph. " * 50
+        chunks = chunk_text(text, chunk_size=200, overlap=10)
         assert len(chunks) > 1
         # Every chunk should be non-empty
         assert all(len(c.strip()) > 0 for c in chunks)
 
     def test_overlap_creates_shared_content(self) -> None:
-        # With overlap, adjacent chunks should share some text
-        text = "A " * 500  # 1000 chars
-        chunks = chunk_text(text, chunk_size=100, overlap=20)
+        # With overlap, adjacent chunks within a section should share some text
+        para1 = "Alpha bravo charlie. " * 20  # ~420 chars
+        para2 = "Delta echo foxtrot. " * 20  # ~400 chars
+        text = f"Section Header\n\n{para1}\n\n{para2}"
+        chunks = chunk_text(text, chunk_size=300, overlap=50)
         assert len(chunks) >= 2
 
     def test_chunk_size_respected(self) -> None:
-        text = "Hello world. " * 100
-        chunks = chunk_text(text, chunk_size=200, overlap=20)
-        # First chunk should be roughly chunk_size or less
-        assert len(chunks[0]) <= 250  # allow some boundary flexibility
+        para = "Hello world. " * 30  # ~390 chars per paragraph
+        text = f"Header One\n\n{para}\n\n{para}\n\n{para}"
+        chunks = chunk_text(text, chunk_size=500, overlap=20)
+        # All chunks should be roughly chunk_size or less (with some flexibility)
+        for chunk in chunks:
+            assert len(chunk) <= 600  # allow some boundary flexibility
+
+    def test_section_aware_splitting(self) -> None:
+        """Sections with clear headers stay grouped together."""
+        body1 = "This is the first section content. " * 5
+        body2 = "This is the second section content. " * 5
+        section1 = f"Section One\n\n{body1.strip()}"
+        section2 = f"Section Two\n\n{body2.strip()}"
+        text = f"{section1}\n\n{section2}"
+        # Use a chunk_size that fits each section individually but not both
+        chunks = chunk_text(text, chunk_size=250, overlap=10)
+        assert len(chunks) == 2
+        assert "Section One" in chunks[0]
+        assert "first section" in chunks[0]
+        assert "Section Two" in chunks[1]
+        assert "second section" in chunks[1]
+
+    def test_section_header_preserved_in_split_chunks(self) -> None:
+        """When a section is split across chunks, each chunk gets the header."""
+        header = "Important Topic"
+        para1 = "First paragraph about the topic. " * 20  # ~660 chars
+        para2 = "Second paragraph with more details. " * 20  # ~720 chars
+        text = f"{header}\n\n{para1}\n\n{para2}"
+        chunks = chunk_text(text, chunk_size=500, overlap=50)
+        assert len(chunks) >= 2
+        # Each chunk from this section should include the header
+        for chunk in chunks:
+            assert "Important Topic" in chunk
+
+    def test_paragraph_boundary_respected(self) -> None:
+        """Never splits mid-paragraph unless the paragraph exceeds chunk_size."""
+        para1 = "This is paragraph one with some content."
+        para2 = "This is paragraph two with other content."
+        para3 = "This is paragraph three with final content."
+        text = f"My Header\n\n{para1}\n\n{para2}\n\n{para3}"
+        chunks = chunk_text(text, chunk_size=100, overlap=10)
+        # No chunk should contain a partial paragraph (unless it exceeds chunk_size)
+        # Each paragraph is ~40 chars, well under 100, so paragraphs should be intact
+        full_text = " ".join(chunks)
+        assert para1 in full_text
+        assert para2 in full_text
+        assert para3 in full_text
+
+    def test_large_paragraph_falls_back_to_sentence_split(self) -> None:
+        """A single paragraph exceeding chunk_size is split by sentences."""
+        sentences = ["This is sentence number one.", "Here is the second sentence.",
+                     "And a third sentence.", "The fourth sentence follows.",
+                     "Finally the fifth sentence."]
+        big_para = " ".join(sentences)
+        text = f"Header\n\n{big_para}"
+        chunks = chunk_text(text, chunk_size=80, overlap=10)
+        assert len(chunks) > 1
+        # Sentences should remain intact across chunks
+        all_text = " ".join(chunks)
+        for sent in sentences:
+            assert sent in all_text
+
+    def test_default_chunk_size_is_1500(self) -> None:
+        """Verify the default chunk_size is 1500."""
+        short = "Hello world."
+        chunks = chunk_text(short)
+        assert len(chunks) == 1  # fits in 1500 default
 
 
 # ---------------------------------------------------------------------------
@@ -50,15 +116,13 @@ class TestChunkText:
 class TestComputeEmbedding:
     def test_returns_correct_dimension(self) -> None:
         emb = compute_embedding("hello world")
-        assert len(emb) == VOCAB_SIZE
+        assert len(emb) == EMBEDDING_DIM
 
     def test_empty_text_returns_zero_vector(self) -> None:
         emb = compute_embedding("")
         assert all(v == 0.0 for v in emb)
 
     def test_normalized_vector(self) -> None:
-        import math
-
         emb = compute_embedding("capital management trading strategy")
         magnitude = math.sqrt(sum(v * v for v in emb))
         assert abs(magnitude - 1.0) < 1e-6
@@ -70,34 +134,29 @@ class TestComputeEmbedding:
 
 
 # ---------------------------------------------------------------------------
-# cosine_similarity tests
+# compute_embeddings_batch tests
 # ---------------------------------------------------------------------------
 
 
-class TestCosineSimilarity:
-    def test_identical_vectors(self) -> None:
-        vec = [1.0, 2.0, 3.0]
-        assert abs(cosine_similarity(vec, vec) - 1.0) < 1e-6
+class TestComputeEmbeddingsBatch:
+    def test_empty_list_returns_empty(self) -> None:
+        assert compute_embeddings_batch([]) == []
 
-    def test_orthogonal_vectors(self) -> None:
-        a = [1.0, 0.0]
-        b = [0.0, 1.0]
-        assert abs(cosine_similarity(a, b)) < 1e-6
+    def test_batch_matches_individual(self) -> None:
+        texts = ["hello world", "risk management"]
+        batch_results = compute_embeddings_batch(texts)
+        individual_results = [compute_embedding(t) for t in texts]
+        assert len(batch_results) == len(individual_results)
+        for batch_vec, ind_vec in zip(batch_results, individual_results):
+            assert len(batch_vec) == EMBEDDING_DIM
+            for a, b in zip(batch_vec, ind_vec):
+                assert abs(a - b) < 1e-6
 
-    def test_opposite_vectors(self) -> None:
-        a = [1.0, 0.0]
-        b = [-1.0, 0.0]
-        assert abs(cosine_similarity(a, b) - (-1.0)) < 1e-6
-
-    def test_zero_vector_returns_zero(self) -> None:
-        a = [0.0, 0.0]
-        b = [1.0, 2.0]
-        assert cosine_similarity(a, b) == 0.0
-
-    def test_different_lengths_returns_zero(self) -> None:
-        a = [1.0, 2.0]
-        b = [1.0, 2.0, 3.0]
-        assert cosine_similarity(a, b) == 0.0
+    def test_batch_correct_dimensions(self) -> None:
+        texts = ["one", "two", "three"]
+        results = compute_embeddings_batch(texts)
+        assert len(results) == 3
+        assert all(len(v) == EMBEDDING_DIM for v in results)
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +185,16 @@ class TestGenerateDocId:
 # ---------------------------------------------------------------------------
 
 
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Helper: compute cosine similarity between two vectors."""
+    dot = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x * x for x in a))
+    mag_b = math.sqrt(sum(x * x for x in b))
+    if mag_a == 0.0 or mag_b == 0.0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+
 class TestSemanticSimilarity:
     def test_similar_texts_have_higher_score(self) -> None:
         """Texts about similar topics should score higher than unrelated texts."""
@@ -133,8 +202,8 @@ class TestSemanticSimilarity:
         investing = compute_embedding("equity investment portfolio market")
         cooking = compute_embedding("baking bread flour oven recipe")
 
-        sim_related = cosine_similarity(trading, investing)
-        sim_unrelated = cosine_similarity(trading, cooking)
+        sim_related = _cosine_similarity(trading, investing)
+        sim_unrelated = _cosine_similarity(trading, cooking)
 
         # Related texts should have higher similarity
         assert sim_related > sim_unrelated
