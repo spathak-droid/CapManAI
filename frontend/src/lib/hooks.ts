@@ -29,6 +29,7 @@ import {
   fetchEducatorThread,
   fetchStudentInbox,
   fetchStudentThread,
+  fetchUnreadCount,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -259,6 +260,16 @@ export function useStudentThread(educatorId: number | null) {
     educatorId ? `student-thread-${educatorId}` : null,
     () => fetchStudentThread(educatorId!),
     { ...CACHE_OPTIONS, dedupingInterval: 30_000 },
+  );
+}
+
+// --- Unread Message Count hook ---
+
+export function useUnreadCount() {
+  return useSWR<{ unread_count: number }>(
+    useAuthKey("unread-message-count"),
+    fetchUnreadCount,
+    { ...CACHE_OPTIONS, dedupingInterval: 30_000, refreshInterval: 30_000 },
   );
 }
 

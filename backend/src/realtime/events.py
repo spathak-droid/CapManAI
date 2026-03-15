@@ -16,6 +16,8 @@ class EventType(str, Enum):
     PEER_REVIEW_ASSIGNED = "peer_review_assigned"
     XP_EARNED = "xp_earned"
     LEVEL_UP = "level_up"
+    NEW_MESSAGE = "new_message"
+    NEW_ANNOUNCEMENT = "new_announcement"
 
 
 def create_event(event_type: EventType, data: dict[str, object]) -> dict[str, object]:

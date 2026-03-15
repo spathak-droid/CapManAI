@@ -566,4 +566,10 @@ export async function markMessageRead(messageId: number): Promise<void> {
   });
 }
 
+// --- Unread Message Count API ---
+
+export async function fetchUnreadCount(): Promise<{ unread_count: number }> {
+  return request<{ unread_count: number }>("/api/messages/unread-count");
+}
+
 export { ApiError };

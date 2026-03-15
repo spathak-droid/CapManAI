@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStudentInbox, useStudentThread } from "@/lib/hooks";
+import { useStudentInbox, useStudentThread, useUnreadCount } from "@/lib/hooks";
 import { sendStudentReply, markMessageRead } from "@/lib/api";
+import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 
 function getInitials(name: string): string {
   return name
@@ -39,6 +40,14 @@ export default function StudentMessagesPage() {
 
   const { data: threads, mutate: mutateThreads } = useStudentInbox();
   const { data: messages, mutate: mutateMessages } = useStudentThread(selectedEducatorId);
+  const { mutate: mutateUnread } = useUnreadCount();
+
+  // Real-time: auto-refresh when new messages arrive
+  useRealtimeEvent("new_message", () => {
+    mutateThreads();
+    mutateMessages();
+    mutateUnread();
+  });
 
   // Scroll to bottom when messages change
   useEffect(() => {

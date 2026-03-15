@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEducatorThreads, useEducatorThread, useStudentRoster } from "@/lib/hooks";
+import { useEducatorThreads, useEducatorThread, useStudentRoster, useUnreadCount } from "@/lib/hooks";
 import { sendEducatorMessage, markMessageRead } from "@/lib/api";
+import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 import type { MessageThreadSummary, StudentRosterEntry } from "@/lib/types";
 
 function getInitials(name: string): string {
@@ -160,6 +161,14 @@ export default function EducatorMessagesPage() {
   const { data: threads, mutate: mutateThreads } = useEducatorThreads();
   const { data: messages, mutate: mutateMessages } = useEducatorThread(selectedUserId);
   const { data: roster } = useStudentRoster();
+  const { mutate: mutateUnread } = useUnreadCount();
+
+  // Real-time: auto-refresh when new messages arrive
+  useRealtimeEvent("new_message", () => {
+    mutateThreads();
+    mutateMessages();
+    mutateUnread();
+  });
 
   // Handle ?student= query param for deep linking from student detail page
   const studentParam = searchParams.get("student");

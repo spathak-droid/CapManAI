@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 import { gsap, useMagneticHover } from "@/lib/gsap";
+import { useUnreadCount } from "@/lib/hooks";
+import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 
 const publicLinks = [
   { href: "/", label: "Home", icon: "M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" },
@@ -51,6 +53,15 @@ export default function NavBar() {
   const desktopNavRef = useRef<HTMLDivElement>(null);
   const navBarRef = useRef<HTMLElement>(null);
   const signUpMagneticRef = useMagneticHover<HTMLAnchorElement>(0.2);
+
+  // Unread message count for badge
+  const { data: unreadData, mutate: mutateUnread } = useUnreadCount();
+  const unreadCount = unreadData?.unread_count ?? 0;
+
+  // Real-time: refresh unread count when a new message arrives
+  useRealtimeEvent("new_message", () => {
+    mutateUnread();
+  });
 
   // Logo entrance animation — runs once on mount
   const logoAnimated = useRef(false);
@@ -165,6 +176,12 @@ export default function NavBar() {
                   <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
                 </svg>
                 {link.label}
+                {/* Unread badge for Messages link */}
+                {link.label === "Messages" && unreadCount > 0 && (
+                  <span className="flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 h-[18px] text-[10px] font-bold text-white leading-none shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
                 {/* Active indicator dot */}
                 {active && (
                   <span className="absolute -bottom-[11px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
@@ -354,6 +371,11 @@ export default function NavBar() {
                     <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
                   </svg>
                   {link.label}
+                  {link.label === "Messages" && unreadCount > 0 && (
+                    <span className="flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 h-[18px] text-[10px] font-bold text-white leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                   {active && (
                     <span className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
                   )}

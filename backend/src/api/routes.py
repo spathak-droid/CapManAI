@@ -1478,6 +1478,21 @@ async def send_educator_message(
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
+
+    # Push real-time notification to recipient
+    from src.realtime.events import EventType, create_event
+    from src.realtime.manager import manager
+
+    await manager.send_to_user(
+        req.recipient_id,
+        create_event(EventType.NEW_MESSAGE, {
+            "message_id": msg.id,
+            "sender_id": _user.id,
+            "sender_name": _user.name or _user.username,
+            "preview": msg.content[:100],
+        }),
+    )
+
     return DirectMessageOut(
         id=msg.id,
         sender_id=msg.sender_id,
@@ -1622,6 +1637,21 @@ async def student_reply(
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
+
+    # Push real-time notification to recipient
+    from src.realtime.events import EventType, create_event
+    from src.realtime.manager import manager
+
+    await manager.send_to_user(
+        req.recipient_id,
+        create_event(EventType.NEW_MESSAGE, {
+            "message_id": msg.id,
+            "sender_id": _user.id,
+            "sender_name": _user.name or _user.username,
+            "preview": msg.content[:100],
+        }),
+    )
+
     return DirectMessageOut(
         id=msg.id,
         sender_id=msg.sender_id,
@@ -1852,6 +1882,22 @@ async def get_activity_feed(
     # Sort all items by timestamp descending, take top 50
     items.sort(key=lambda x: x.timestamp, reverse=True)
     return items[:50]
+
+
+@router.get("/api/messages/unread-count")
+async def get_unread_message_count(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, int]:
+    """Get total unread message count for the current user (used for nav badge)."""
+    result = await db.execute(
+        select(func.count(DirectMessage.id)).where(
+            DirectMessage.recipient_id == _user.id,
+            DirectMessage.is_read == False,  # noqa: E712
+        )
+    )
+    count = result.scalar() or 0
+    return {"unread_count": count}
 
 
 # ---------------------------------------------------------------------------
