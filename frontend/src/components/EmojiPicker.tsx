@@ -43,7 +43,7 @@ export default function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
   return (
     <div
       ref={ref}
-      className="absolute bottom-full left-0 mb-2 w-80 rounded-xl border border-white/[0.08] bg-zinc-900 shadow-2xl shadow-black/50 z-30"
+      className="absolute bottom-full left-0 mb-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-white/[0.08] bg-zinc-900 shadow-2xl shadow-black/50 z-30"
     >
       {/* Category tabs */}
       <div className="flex gap-1 border-b border-white/[0.06] px-2 pt-2 pb-1">
@@ -62,7 +62,7 @@ export default function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
         ))}
       </div>
       {/* Emoji grid */}
-      <div className="grid grid-cols-8 gap-0.5 p-2 max-h-48 overflow-y-auto">
+      <div className="grid grid-cols-6 sm:grid-cols-8 gap-0.5 p-2 max-h-48 overflow-y-auto">
         {EMOJI_CATEGORIES[activeCategory].emojis.map((emoji) => (
           <button
             key={emoji}

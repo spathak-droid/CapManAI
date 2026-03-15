@@ -85,7 +85,7 @@ export default function ChallengeToast() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="pointer-events-auto animate-slide-in-right w-80 rounded-xl border border-fuchsia-500/30 bg-zinc-900/95 backdrop-blur-md shadow-2xl shadow-fuchsia-500/10 overflow-hidden"
+          className="pointer-events-auto animate-slide-in-right w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-fuchsia-500/30 bg-zinc-900/95 backdrop-blur-md shadow-2xl shadow-fuchsia-500/10 overflow-hidden"
         >
           {/* Accent bar */}
           <div className="h-0.5 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-fuchsia-500" />

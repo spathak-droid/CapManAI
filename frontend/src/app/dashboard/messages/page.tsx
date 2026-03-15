@@ -67,7 +67,7 @@ function StudentPicker({
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full z-20 mt-2 w-72 rounded-xl border border-white/[0.08] bg-zinc-900 shadow-2xl shadow-black/50"
+      className="absolute left-0 top-full z-20 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-white/[0.08] bg-zinc-900 shadow-2xl shadow-black/50"
     >
       <div className="p-2">
         <input
@@ -284,7 +284,7 @@ export default function EducatorMessagesPage() {
   return (
     <div className="mx-auto flex h-[calc(100vh-60px)] max-w-7xl animate-slide-up">
       {/* Left sidebar - Thread list */}
-      <div className="flex w-full flex-col border-r border-white/[0.06] md:w-80 lg:w-96">
+      <div className={`flex w-full flex-col border-r border-white/[0.06] md:w-80 lg:w-96 ${selectedUserId ? "hidden md:flex" : "flex"}`}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
           <h1 className="text-lg font-semibold text-white">Messages</h1>
@@ -337,11 +337,19 @@ export default function EducatorMessagesPage() {
       </div>
 
       {/* Right panel - Chat */}
-      <div className="hidden flex-1 flex-col md:flex">
+      <div className={`flex-1 flex-col ${selectedUserId ? "flex" : "hidden md:flex"}`}>
         {selectedUserId ? (
           <>
             {/* Chat header */}
             <div className="flex items-center gap-3 border-b border-white/[0.06] px-6 py-4">
+              <button
+                onClick={() => setSelectedUserId(null)}
+                className="mr-2 flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] md:hidden"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+              </button>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-sm font-bold text-white">
                 {selectedName ? getInitials(selectedName) : "?"}
               </div>
