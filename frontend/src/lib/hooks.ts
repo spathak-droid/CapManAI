@@ -65,10 +65,11 @@ import type {
 } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 
-// SWR config: dedupe requests within 5 minutes, don't refetch on window focus
+// SWR config: stale-while-revalidate — show cached data instantly, refetch in background
 const CACHE_OPTIONS = {
-  revalidateOnFocus: false,
-  dedupingInterval: 300_000, // 5 minutes
+  revalidateOnFocus: true,
+  revalidateOnMount: true,
+  dedupingInterval: 5_000, // dedupe rapid identical requests within 5s
 };
 
 /** Return the SWR key only when auth is ready, otherwise null (skip fetch). */

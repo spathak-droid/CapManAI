@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,7 +147,6 @@ export default function PeerReviewPage() {
     data: assignments,
     error: assignError,
     isLoading: assignLoading,
-    mutate: mutateAssignments,
   } = usePeerReviewAssignments();
   const {
     data: reviews,
@@ -155,26 +154,6 @@ export default function PeerReviewPage() {
     isLoading: reviewLoading,
     mutate: mutateReviews,
   } = useReceivedReviews();
-
-  // Refresh data when page gains focus (e.g. after submitting a review or peer submits)
-  const refreshAll = useCallback(() => {
-    mutateAssignments();
-    mutateReviews();
-  }, [mutateAssignments, mutateReviews]);
-
-  useEffect(() => {
-    function handleVisibility() {
-      if (document.visibilityState === "visible") {
-        refreshAll();
-      }
-    }
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("focus", handleVisibility);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("focus", handleVisibility);
-    };
-  }, [refreshAll]);
 
   const isLoading = activeTab === "to-review" ? assignLoading : reviewLoading;
   const error = activeTab === "to-review" ? assignError : reviewError;

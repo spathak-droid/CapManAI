@@ -59,7 +59,7 @@ async def recalculate_rankings(db: AsyncSession) -> None:
         ).group_by(SkillScore.user_id)
     )
     mastery_map: dict[int, float] = {
-        row.user_id: float(row.avg_mastery) for row in mastery_q
+        row.user_id: float(row.avg_mastery) / 100.0 for row in mastery_q  # SkillScore is 0-100; normalize to 0-1
     }
 
     # Gather per-user repetition (count of grades via responses)

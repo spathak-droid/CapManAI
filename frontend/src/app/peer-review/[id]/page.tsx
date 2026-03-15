@@ -43,7 +43,7 @@ export default function PeerReviewFormPage() {
   const { data: detail, error, isLoading } = useSWR<PeerReviewAssignmentDetail>(
     assignmentId ? `peer-review-assignment-${assignmentId}` : null,
     () => getAssignmentDetail(assignmentId),
-    { revalidateOnFocus: false },
+    { revalidateOnFocus: true },
   );
 
   const [scores, setScores] = useState<Record<ScoreKeys, number>>({
