@@ -218,7 +218,14 @@ async def accept_open_challenge(
     await db.delete(challenge)
     await db.commit()
 
-    # Notify both users
+    # Tell ALL users to remove the open challenge from their list
+    cancel_event = create_event(
+        EventType.CHALLENGE_CANCELLED,
+        {"challenge_id": challenge_id},
+    )
+    await manager.broadcast_all(cancel_event)
+
+    # Notify both participants that they're matched
     event = create_event(
         EventType.CHALLENGE_MATCHED,
         {
@@ -231,6 +238,14 @@ async def accept_open_challenge(
     await manager.send_to_user(user.id, event)
 
     return _challenge_to_detail_simple(active_challenge)
+
+
+@router.get("/online-count")
+async def get_online_count(
+    _user: User = Depends(get_current_user),
+) -> dict[str, int]:
+    """Return the number of currently connected WebSocket users."""
+    return {"online_count": len(manager.active_connections)}
 
 
 @router.get("/me")

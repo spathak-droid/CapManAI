@@ -11,6 +11,7 @@ from src.db.models import (
     ChallengeResponse,
     Grade,
     Scenario,
+    SkillScore,
     User,
     XPLog,
 )
@@ -250,6 +251,45 @@ async def check_and_grade(db: AsyncSession, challenge_id: int) -> Challenge:
             )
 
     await db.flush()
+
+    # Update SkillScore and LearningObjectiveProgress for both users
+    if challenge.skill_target:
+        from src.mtss.repository import update_objective_progress
+
+        for uid, grade in grades.items():
+            if grade is None:
+                continue
+            new_score = grade.overall_score * 20
+            existing = await db.execute(
+                select(SkillScore).where(
+                    SkillScore.user_id == uid,
+                    SkillScore.skill_id == challenge.skill_target,
+                )
+            )
+            skill_row = existing.scalar_one_or_none()
+            if skill_row:
+                skill_row.score = (
+                    (skill_row.score * skill_row.attempts) + new_score
+                ) / (skill_row.attempts + 1)
+                skill_row.attempts += 1
+            else:
+                db.add(
+                    SkillScore(
+                        user_id=uid,
+                        skill_id=challenge.skill_target,
+                        score=new_score,
+                        attempts=1,
+                    )
+                )
+            try:
+                await update_objective_progress(
+                    db, user_id=uid,
+                    objective_id=challenge.skill_target,
+                    score=new_score,
+                )
+            except Exception:
+                pass
+        await db.flush()
 
     # Notify both users
     event = create_event(

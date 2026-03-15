@@ -28,6 +28,7 @@ class _MockUser:
     firebase_uid: str = "firebase_uid_123"
     username: str = "test"
     email: str = "test@example.com"
+    name: str | None = None
     role: str = "student"
     xp_total: int = 0
     level: int = 1

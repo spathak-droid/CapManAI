@@ -41,7 +41,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.dependencies import get_current_user, require_role
 from src.db.database import get_db
 from src.db.models import (
+    Announcement,
     Challenge,
+    DirectMessage,
     DocumentChunk,
     EducatorFeedback,
     Grade,
@@ -99,9 +101,15 @@ from src.lessons.service import (
     list_modules,
 )
 from src.api.schemas import (
+    ActivityFeedItem,
+    AnnouncementCreate,
+    AnnouncementOut,
+    DirectMessageCreate,
+    DirectMessageOut,
     DocumentIngestRequest,
     DocumentIngestResponse,
     LessonScenarioRequest,
+    MessageThreadSummary,
     RAGDocumentSummary,
     RAGSearchResponse,
     RAGSearchResult,
@@ -301,8 +309,10 @@ async def grade_response(
     )
 
     # Save Grade record linked to the response
+    # response_id=0 is a frontend placeholder — treat as null
+    linked_response_id = req.response_id if req.response_id else None
     grade_record = Grade(
-        response_id=req.response_id,
+        response_id=linked_response_id,
         technical_accuracy=result.technical_accuracy,
         risk_awareness=result.risk_awareness,
         strategy_fit=result.strategy_fit,
@@ -312,14 +322,15 @@ async def grade_response(
     )
     db.add(grade_record)
 
-    # Save ProbeQuestion records for each probe exchange
-    for exchange in req.probe_exchanges:
-        probe = ProbeQuestion(
-            response_id=req.response_id,
-            question_text=exchange.question,
-            answer_text=exchange.answer,
-        )
-        db.add(probe)
+    # Save ProbeQuestion records for each probe exchange (only if linked to a real response)
+    if linked_response_id:
+        for exchange in req.probe_exchanges:
+            probe = ProbeQuestion(
+                response_id=linked_response_id,
+                question_text=exchange.question,
+                answer_text=exchange.answer,
+            )
+            db.add(probe)
 
     await db.commit()
 
@@ -368,12 +379,12 @@ async def grade_response(
 
     # Auto-assign peer reviews (best-effort, don't block grading)
     try:
-        if isinstance(_user, User):
+        if isinstance(_user, User) and linked_response_id:
             from src.peer_review.service import auto_assign_peer_reviews
 
             await auto_assign_peer_reviews(
                 db,
-                response_id=req.response_id,
+                response_id=linked_response_id,
                 user_id=_user.id,
                 skill_target=req.skill_target,
             )
@@ -1334,6 +1345,513 @@ async def export_educator_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=student_export.csv"},
     )
+
+
+# ---------------------------------------------------------------------------
+# Announcements endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/api/educator/announcements")
+async def create_announcement(
+    req: AnnouncementCreate,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> AnnouncementOut:
+    """Create a new announcement (educator only)."""
+    if req.priority not in ("normal", "important", "urgent"):
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Priority must be normal, important, or urgent",
+        )
+    announcement = Announcement(
+        educator_id=_user.id,
+        title=req.title,
+        content=req.content,
+        priority=req.priority,
+    )
+    db.add(announcement)
+    await db.commit()
+    await db.refresh(announcement)
+    return AnnouncementOut(
+        id=announcement.id,
+        educator_id=announcement.educator_id,
+        educator_name=_user.name or _user.username,
+        title=announcement.title,
+        content=announcement.content,
+        priority=announcement.priority,
+        created_at=announcement.created_at.isoformat(),
+    )
+
+
+@router.get("/api/educator/announcements")
+async def list_announcements(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[AnnouncementOut]:
+    """List all announcements, most recent first (max 50)."""
+    result = await db.execute(
+        select(Announcement)
+        .order_by(Announcement.created_at.desc())
+        .limit(50)
+    )
+    announcements = result.scalars().all()
+
+    # Build educator name lookup
+    educator_ids = {a.educator_id for a in announcements}
+    educators: dict[int, User] = {}
+    for eid in educator_ids:
+        user = await db.get(User, eid)
+        if user:
+            educators[eid] = user
+
+    return [
+        AnnouncementOut(
+            id=a.id,
+            educator_id=a.educator_id,
+            educator_name=(
+                educators[a.educator_id].name or educators[a.educator_id].username
+            )
+            if a.educator_id in educators
+            else "Unknown",
+            title=a.title,
+            content=a.content,
+            priority=a.priority,
+            created_at=a.created_at.isoformat(),
+        )
+        for a in announcements
+    ]
+
+
+@router.delete("/api/educator/announcements/{announcement_id}")
+async def delete_announcement(
+    announcement_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Delete an announcement (educator only, must own it)."""
+    from fastapi import HTTPException, status
+
+    announcement = await db.get(Announcement, announcement_id)
+    if announcement is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Announcement not found",
+        )
+    if announcement.educator_id != _user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own announcements",
+        )
+    await db.delete(announcement)
+    await db.commit()
+    return {"status": "ok", "message": "Announcement deleted"}
+
+
+# ---------------------------------------------------------------------------
+# Direct Messages endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/api/educator/messages")
+async def send_educator_message(
+    req: DirectMessageCreate,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> DirectMessageOut:
+    """Send a direct message from educator to student."""
+    from fastapi import HTTPException, status
+
+    recipient = await db.get(User, req.recipient_id)
+    if recipient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipient not found",
+        )
+    msg = DirectMessage(
+        sender_id=_user.id,
+        recipient_id=req.recipient_id,
+        content=req.content,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return DirectMessageOut(
+        id=msg.id,
+        sender_id=msg.sender_id,
+        sender_name=_user.name or _user.username,
+        recipient_id=msg.recipient_id,
+        recipient_name=recipient.name or recipient.username,
+        content=msg.content,
+        is_read=msg.is_read,
+        created_at=msg.created_at.isoformat(),
+    )
+
+
+@router.get("/api/educator/messages/threads")
+async def get_educator_message_threads(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[MessageThreadSummary]:
+    """List all message threads for an educator (with last message and unread count)."""
+    from sqlalchemy import or_
+
+    # Get all users the educator has exchanged messages with
+    result = await db.execute(
+        select(DirectMessage)
+        .where(
+            or_(
+                DirectMessage.sender_id == _user.id,
+                DirectMessage.recipient_id == _user.id,
+            )
+        )
+        .order_by(DirectMessage.created_at.desc())
+    )
+    messages = result.scalars().all()
+
+    # Group by the other user
+    threads: dict[int, dict[str, object]] = {}
+    for msg in messages:
+        other_id = (
+            msg.recipient_id if msg.sender_id == _user.id else msg.sender_id
+        )
+        if other_id not in threads:
+            threads[other_id] = {
+                "last_message": msg.content,
+                "last_message_at": msg.created_at.isoformat(),
+                "unread_count": 0,
+            }
+        # Count unread messages sent TO the educator
+        if msg.recipient_id == _user.id and not msg.is_read:
+            threads[other_id]["unread_count"] = int(threads[other_id]["unread_count"]) + 1  # type: ignore[arg-type]
+
+    # Fetch user info for each thread
+    summaries: list[MessageThreadSummary] = []
+    for other_id, thread_data in threads.items():
+        other_user = await db.get(User, other_id)
+        if other_user:
+            summaries.append(
+                MessageThreadSummary(
+                    user_id=other_id,
+                    username=other_user.username,
+                    name=other_user.name,
+                    last_message=str(thread_data["last_message"]),
+                    last_message_at=str(thread_data["last_message_at"]),
+                    unread_count=int(thread_data["unread_count"]),  # type: ignore[arg-type]
+                )
+            )
+    return summaries
+
+
+@router.get("/api/educator/messages/{user_id}")
+async def get_educator_thread(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[DirectMessageOut]:
+    """Get full message thread between educator and a specific student."""
+    from sqlalchemy import or_
+
+    result = await db.execute(
+        select(DirectMessage)
+        .where(
+            or_(
+                (DirectMessage.sender_id == _user.id)
+                & (DirectMessage.recipient_id == user_id),
+                (DirectMessage.sender_id == user_id)
+                & (DirectMessage.recipient_id == _user.id),
+            )
+        )
+        .order_by(DirectMessage.created_at.asc())
+    )
+    messages = result.scalars().all()
+
+    # Fetch user names
+    users_cache: dict[int, User] = {}
+
+    async def _get_user(uid: int) -> User | None:
+        if uid not in users_cache:
+            u = await db.get(User, uid)
+            if u:
+                users_cache[uid] = u
+        return users_cache.get(uid)
+
+    out: list[DirectMessageOut] = []
+    for msg in messages:
+        sender = await _get_user(msg.sender_id)
+        recipient = await _get_user(msg.recipient_id)
+        out.append(
+            DirectMessageOut(
+                id=msg.id,
+                sender_id=msg.sender_id,
+                sender_name=(sender.name or sender.username) if sender else "Unknown",
+                recipient_id=msg.recipient_id,
+                recipient_name=(
+                    (recipient.name or recipient.username) if recipient else "Unknown"
+                ),
+                content=msg.content,
+                is_read=msg.is_read,
+                created_at=msg.created_at.isoformat(),
+            )
+        )
+    return out
+
+
+@router.post("/api/messages/reply")
+async def student_reply(
+    req: DirectMessageCreate,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> DirectMessageOut:
+    """Student replies to an educator message."""
+    from fastapi import HTTPException, status
+
+    recipient = await db.get(User, req.recipient_id)
+    if recipient is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipient not found",
+        )
+    msg = DirectMessage(
+        sender_id=_user.id,
+        recipient_id=req.recipient_id,
+        content=req.content,
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return DirectMessageOut(
+        id=msg.id,
+        sender_id=msg.sender_id,
+        sender_name=_user.name or _user.username,
+        recipient_id=msg.recipient_id,
+        recipient_name=recipient.name or recipient.username,
+        content=msg.content,
+        is_read=msg.is_read,
+        created_at=msg.created_at.isoformat(),
+    )
+
+
+@router.get("/api/messages/inbox")
+async def student_inbox(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[MessageThreadSummary]:
+    """Student gets their message threads."""
+    from sqlalchemy import or_
+
+    result = await db.execute(
+        select(DirectMessage)
+        .where(
+            or_(
+                DirectMessage.sender_id == _user.id,
+                DirectMessage.recipient_id == _user.id,
+            )
+        )
+        .order_by(DirectMessage.created_at.desc())
+    )
+    messages = result.scalars().all()
+
+    threads: dict[int, dict[str, object]] = {}
+    for msg in messages:
+        other_id = (
+            msg.recipient_id if msg.sender_id == _user.id else msg.sender_id
+        )
+        if other_id not in threads:
+            threads[other_id] = {
+                "last_message": msg.content,
+                "last_message_at": msg.created_at.isoformat(),
+                "unread_count": 0,
+            }
+        if msg.recipient_id == _user.id and not msg.is_read:
+            threads[other_id]["unread_count"] = int(threads[other_id]["unread_count"]) + 1  # type: ignore[arg-type]
+
+    summaries: list[MessageThreadSummary] = []
+    for other_id, thread_data in threads.items():
+        other_user = await db.get(User, other_id)
+        if other_user:
+            summaries.append(
+                MessageThreadSummary(
+                    user_id=other_id,
+                    username=other_user.username,
+                    name=other_user.name,
+                    last_message=str(thread_data["last_message"]),
+                    last_message_at=str(thread_data["last_message_at"]),
+                    unread_count=int(thread_data["unread_count"]),  # type: ignore[arg-type]
+                )
+            )
+    return summaries
+
+
+@router.get("/api/messages/thread/{educator_id}")
+async def student_thread(
+    educator_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[DirectMessageOut]:
+    """Student gets thread with a specific educator."""
+    from sqlalchemy import or_
+
+    result = await db.execute(
+        select(DirectMessage)
+        .where(
+            or_(
+                (DirectMessage.sender_id == _user.id)
+                & (DirectMessage.recipient_id == educator_id),
+                (DirectMessage.sender_id == educator_id)
+                & (DirectMessage.recipient_id == _user.id),
+            )
+        )
+        .order_by(DirectMessage.created_at.asc())
+    )
+    messages = result.scalars().all()
+
+    users_cache: dict[int, User] = {}
+
+    async def _get_user(uid: int) -> User | None:
+        if uid not in users_cache:
+            u = await db.get(User, uid)
+            if u:
+                users_cache[uid] = u
+        return users_cache.get(uid)
+
+    out: list[DirectMessageOut] = []
+    for msg in messages:
+        sender = await _get_user(msg.sender_id)
+        recipient = await _get_user(msg.recipient_id)
+        out.append(
+            DirectMessageOut(
+                id=msg.id,
+                sender_id=msg.sender_id,
+                sender_name=(sender.name or sender.username) if sender else "Unknown",
+                recipient_id=msg.recipient_id,
+                recipient_name=(
+                    (recipient.name or recipient.username) if recipient else "Unknown"
+                ),
+                content=msg.content,
+                is_read=msg.is_read,
+                created_at=msg.created_at.isoformat(),
+            )
+        )
+    return out
+
+
+@router.put("/api/messages/{message_id}/read")
+async def mark_message_read(
+    message_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Mark a message as read (must be the recipient)."""
+    from fastapi import HTTPException, status
+
+    msg = await db.get(DirectMessage, message_id)
+    if msg is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found",
+        )
+    if msg.recipient_id != _user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only mark messages sent to you as read",
+        )
+    msg.is_read = True
+    await db.commit()
+    return {"status": "ok", "message": "Message marked as read"}
+
+
+# ---------------------------------------------------------------------------
+# Activity Feed endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/api/educator/activity-feed")
+async def get_activity_feed(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[ActivityFeedItem]:
+    """Recent class activity feed (last 50 items).
+
+    Aggregates recent scenario responses, level-ups (XP logs), and new registrations.
+    """
+    items: list[ActivityFeedItem] = []
+
+    # 1. Recent scenario responses
+    resp_result = await db.execute(
+        select(Response)
+        .order_by(Response.created_at.desc())
+        .limit(20)
+    )
+    responses = resp_result.scalars().all()
+    for resp in responses:
+        user = await db.get(User, resp.user_id)
+        scenario = await db.get(Scenario, resp.scenario_id)
+        if user:
+            items.append(
+                ActivityFeedItem(
+                    event_type="scenario_response",
+                    user_id=user.id,
+                    username=user.username,
+                    description=f"{user.username} completed a scenario"
+                    + (f" on {scenario.skill_target}" if scenario else ""),
+                    timestamp=resp.created_at.isoformat(),
+                    metadata={
+                        "response_id": resp.id,
+                        "scenario_id": resp.scenario_id,
+                    },
+                )
+            )
+
+    # 2. Recent XP logs (level-ups / achievements)
+    xp_result = await db.execute(
+        select(XPLog)
+        .order_by(XPLog.created_at.desc())
+        .limit(20)
+    )
+    xp_logs = xp_result.scalars().all()
+    for xp_log in xp_logs:
+        user = await db.get(User, xp_log.user_id)
+        if user:
+            items.append(
+                ActivityFeedItem(
+                    event_type="xp_earned",
+                    user_id=user.id,
+                    username=user.username,
+                    description=f"{user.username} earned {xp_log.amount} XP from {xp_log.source}",
+                    timestamp=xp_log.created_at.isoformat(),
+                    metadata={
+                        "amount": xp_log.amount,
+                        "source": xp_log.source,
+                    },
+                )
+            )
+
+    # 3. Recent registrations
+    new_users_result = await db.execute(
+        select(User)
+        .where(User.role == "student")
+        .order_by(User.created_at.desc())
+        .limit(10)
+    )
+    new_users = new_users_result.scalars().all()
+    for u in new_users:
+        items.append(
+            ActivityFeedItem(
+                event_type="new_registration",
+                user_id=u.id,
+                username=u.username,
+                description=f"{u.username} joined the class",
+                timestamp=u.created_at.isoformat(),
+                metadata={},
+            )
+        )
+
+    # Sort all items by timestamp descending, take top 50
+    items.sort(key=lambda x: x.timestamp, reverse=True)
+    return items[:50]
 
 
 # ---------------------------------------------------------------------------
