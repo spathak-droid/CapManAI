@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.auth.schemas import UpdateRoleRequest, UserResponse
+from src.auth.schemas import UpdateProfileRequest, UpdateRoleRequest, UserResponse
 from src.db.database import get_db
 from src.db.models import User
 
@@ -32,6 +32,27 @@ async def update_role(
             detail="Role must be 'student' or 'educator'",
         )
     user.role = req.role
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@auth_router.patch("/me/profile", response_model=UserResponse)
+async def update_profile(
+    req: UpdateProfileRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Update current user's profile (name and/or role)."""
+    if req.name is not None:
+        user.name = req.name
+    if req.role is not None:
+        if req.role not in ("student", "educator"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role must be 'student' or 'educator'",
+            )
+        user.role = req.role
     await db.commit()
     await db.refresh(user)
     return user

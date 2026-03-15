@@ -8,6 +8,8 @@ class EventType(str, Enum):
 
     LEADERBOARD_UPDATE = "leaderboard_update"
     CHALLENGE_MATCHED = "challenge_matched"
+    CHALLENGE_OPEN = "challenge_open"
+    CHALLENGE_CANCELLED = "challenge_cancelled"
     CHALLENGE_STARTED = "challenge_started"
     OPPONENT_SUBMITTED = "opponent_submitted"
     CHALLENGE_GRADED = "challenge_graded"

@@ -62,6 +62,7 @@ class GradeRequest(BaseModel):
     scenario_text: str
     student_response: str
     probe_exchanges: list[ProbeExchange]
+    skill_target: str = "price_action"
 
 
 class GradeResult(BaseModel):
@@ -115,6 +116,7 @@ class LessonChunkDetail(BaseModel):
     common_mistakes: list[str]
     quick_check_prompts: list[str]
     quiz_items: list[LessonQuizItem]
+    supplementary_context: str = ""
 
 
 class LessonModuleSummary(BaseModel):
@@ -390,6 +392,16 @@ class QueueStatusResponse(BaseModel):
     skill_target: str | None = None
 
 
+class OpenChallengeEntry(BaseModel):
+    """An open challenge waiting for an opponent."""
+
+    challenge_id: int
+    user_id: int
+    username: str
+    skill_target: str | None = None
+    created_at: str
+
+
 class ChallengeSubmitRequest(BaseModel):
     """Request to submit a challenge response."""
 
@@ -407,6 +419,9 @@ class ChallengeDetail(BaseModel):
     complexity: int
     winner_id: int | None
     created_at: str
+    challenger_submitted: bool = False
+    opponent_submitted: bool = False
+    scenario_text: str | None = None
 
 
 class ChallengeResultDetail(BaseModel):
@@ -463,3 +478,24 @@ class HelpfulnessRatingRequest(BaseModel):
     """Request body for rating review helpfulness."""
 
     rating: int = Field(ge=1, le=5)
+
+
+# --- Badge schemas ---
+
+
+class BadgeInfo(BaseModel):
+    """A single badge definition with earned status."""
+
+    key: str
+    name: str
+    description: str
+    category: Literal["level", "streak", "mastery", "milestone"]
+    earned: bool
+
+
+class BadgeCatalogResponse(BaseModel):
+    """Full badge catalog with earned/locked state."""
+
+    badges: list[BadgeInfo]
+    total_earned: int
+    total_available: int

@@ -184,23 +184,34 @@ async def check_and_grade(db: AsyncSession, challenge_id: int) -> Challenge:
                 student_response=resp.answer_text,
                 probe_exchanges=[],
             )
-            grade = Grade(
-                response_id=0,  # Not linked to Response table
-                technical_accuracy=grade_result.technical_accuracy,
-                risk_awareness=grade_result.risk_awareness,
-                strategy_fit=grade_result.strategy_fit,
-                reasoning_clarity=grade_result.reasoning_clarity,
-                overall_score=grade_result.overall_score,
-                feedback_text=grade_result.feedback_text,
-            )
-            db.add(grade)
-            await db.flush()
-            resp.grade_id = grade.id
-            grades[resp.user_id] = grade
         except Exception:
             logger.exception(
-                "Failed to grade challenge response for user %d", resp.user_id
+                "Failed to grade challenge response for user %d, using fallback",
+                resp.user_id,
             )
+            from src.api.schemas import GradeResult as GradeResultSchema
+
+            grade_result = GradeResultSchema(
+                technical_accuracy=3.0,
+                risk_awareness=3.0,
+                strategy_fit=3.0,
+                reasoning_clarity=3.0,
+                overall_score=3.0,
+                feedback_text="Grading temporarily unavailable. Default scores assigned.",
+            )
+        grade = Grade(
+            response_id=None,  # Challenge grades aren't linked to Response table
+            technical_accuracy=grade_result.technical_accuracy,
+            risk_awareness=grade_result.risk_awareness,
+            strategy_fit=grade_result.strategy_fit,
+            reasoning_clarity=grade_result.reasoning_clarity,
+            overall_score=grade_result.overall_score,
+            feedback_text=grade_result.feedback_text,
+        )
+        db.add(grade)
+        await db.flush()
+        resp.grade_id = grade.id
+        grades[resp.user_id] = grade
 
     # Determine winner
     if len(grades) == 2:

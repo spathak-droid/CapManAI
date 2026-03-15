@@ -9,6 +9,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    name: str | None
     role: str
     xp_total: int
     level: int
@@ -20,3 +21,10 @@ class UpdateRoleRequest(BaseModel):
     """Request to update a user's role."""
 
     role: str  # "student" or "educator"
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request to update a user's profile."""
+
+    name: str | None = None
+    role: str | None = None

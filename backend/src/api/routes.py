@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 
 from src.api.schemas import (
+    BadgeCatalogResponse,
+    BadgeInfo,
     ChunkCompleteResponse,
     DynamicLeaderboardEntry,
     GradeRequest,
@@ -30,7 +32,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user, require_role
 from src.db.database import get_db
-from src.db.models import LessonChunk, LessonModule, LessonQuizItem, User, XPLog
+from src.db.models import (
+    Challenge,
+    LessonChunk,
+    LessonModule,
+    LessonQuizItem,
+    PeerReviewAssignment,
+    Response,
+    SkillScore,
+    User,
+    XPLog,
+)
 from src.gamification.leaderboard import (
     LeaderboardEntry,
     get_leaderboard,
@@ -64,6 +76,7 @@ from src.lessons.repository import (
 )
 from src.lessons.service import (
     attempt_chunk,
+    calculate_new_badges,
     complete_chunk,
     get_chunk,
     get_module,
@@ -80,7 +93,8 @@ from src.api.schemas import (
     RAGSearchResult,
 )
 from src.rag.ingest import _generate_doc_id, ingest_document
-from src.rag.retriever import search as rag_search
+from src.rag.retriever import get_context, invalidate_chunk_cache, search as rag_search
+from src.rag.seed import seed_rag_documents
 from src.scenario_gen.generator import (
     LessonContext,
     ScenarioGenerator,
@@ -94,6 +108,7 @@ NOT_IMPLEMENTED = {"status": "not implemented"}
 
 _probing_agent = ProbingAgent()
 _grading_agent = GradingAgent()
+_scenario_generator = ScenarioGenerator()
 
 # In-memory user XP store for demo
 _user_xp_store: dict[int, dict[str, object]] = {
@@ -114,21 +129,23 @@ _user_xp_store: dict[int, dict[str, object]] = {
 async def generate_scenario(
     params: ScenarioParams,
     _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ScenarioResult:
     """Generate a new trading scenario using LLM."""
-    generator = ScenarioGenerator()
-    return await generator.generate(params)
+    rag_ctx = await get_context(db, query=params.skill_target, top_k=3)
+    return await _scenario_generator.generate(params, rag_context=rag_ctx)
 
 
 @router.post("/api/scenarios/generate-lesson")
 async def generate_lesson_scenario(
     req: LessonScenarioRequest,
     _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> ScenarioResult:
     """Generate a scenario aligned with the lesson chunk (tickers, charts, lesson concepts)."""
-    generator = ScenarioGenerator()
     lesson = LessonContext(**req.lesson_context.model_dump())
-    return await generator.generate_lesson(lesson)
+    rag_ctx = await get_context(db, query=req.lesson_context.learning_goal, top_k=3)
+    return await _scenario_generator.generate_lesson(lesson, rag_context=rag_ctx)
 
 
 @router.post("/api/scenarios/respond")
@@ -164,10 +181,12 @@ async def grade_response(
     db: AsyncSession = Depends(get_db),
 ) -> GradeResponse:
     """Grade a scenario response with probing answers and persist XP."""
+    rag_ctx = await get_context(db, query=req.scenario_text[:200], top_k=3)
     result = await _grading_agent.grade(
         scenario_text=req.scenario_text,
         student_response=req.student_response,
         probe_exchanges=req.probe_exchanges,
+        rag_context=rag_ctx if rag_ctx else None,
     )
     xp_earned = int(result.overall_score * 10)
 
@@ -184,6 +203,36 @@ async def grade_response(
     except Exception:
         pass  # Don't fail the grade response if persistence fails (e.g. test env)
 
+    # Upsert SkillScore for the targeted skill
+    try:
+        if isinstance(_user, User):
+            skill_target = req.skill_target
+            existing = await db.execute(
+                select(SkillScore).where(
+                    SkillScore.user_id == _user.id,
+                    SkillScore.skill_id == skill_target,
+                )
+            )
+            skill_row = existing.scalar_one_or_none()
+            new_score = result.overall_score * 20  # Convert 1-5 scale to 0-100
+            if skill_row:
+                skill_row.score = (
+                    (skill_row.score * skill_row.attempts) + new_score
+                ) / (skill_row.attempts + 1)
+                skill_row.attempts += 1
+            else:
+                db.add(
+                    SkillScore(
+                        user_id=_user.id,
+                        skill_id=skill_target,
+                        score=new_score,
+                        attempts=1,
+                    )
+                )
+            await db.commit()
+    except Exception:
+        pass  # Don't fail the grade response if skill persistence fails
+
     return GradeResponse(
         technical_accuracy=result.technical_accuracy,
         risk_awareness=result.risk_awareness,
@@ -193,6 +242,41 @@ async def grade_response(
         feedback_text=result.feedback_text,
         xp_earned=xp_earned,
     )
+
+
+ALL_SKILL_IDS = [
+    "price_action",
+    "options_chain",
+    "strike_select",
+    "risk_mgmt",
+    "position_size",
+    "regime_id",
+    "vol_assess",
+    "trade_mgmt",
+]
+
+
+@router.get("/api/skills/me")
+async def get_my_skills(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    """Return the current user's skill scores."""
+    result = await db.execute(
+        select(SkillScore).where(SkillScore.user_id == _user.id)
+    )
+    rows = result.scalars().all()
+    skills: dict[str, dict[str, object]] = {}
+    for row in rows:
+        skills[row.skill_id] = {
+            "score": round(row.score, 1),
+            "attempts": row.attempts,
+        }
+    # Fill in missing skills with 0
+    for skill_id in ALL_SKILL_IDS:
+        if skill_id not in skills:
+            skills[skill_id] = {"score": 0.0, "attempts": 0}
+    return {"skills": skills}
 
 
 @router.get("/api/gamification/xp/{user_id}")
@@ -565,7 +649,10 @@ async def get_lesson_chunk(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
         )
-    return _to_chunk_response(chunk)
+    response = _to_chunk_response(chunk)
+    rag_ctx = await get_context(db, query=chunk.learning_goal, top_k=3, for_display=True)
+    response.supplementary_context = rag_ctx
+    return response
 
 
 @router.post("/api/lessons/chunks/{chunk_id}/attempt")
@@ -658,6 +745,137 @@ async def get_my_lesson_streak(
 ) -> StreakInfo:
     """Get current lesson streak for the current user."""
     return StreakInfo.model_validate(await get_streak(_user.id, db))
+
+
+# ---------------------------------------------------------------------------
+# Badge catalog
+# ---------------------------------------------------------------------------
+
+# Full badge catalog definition
+_BADGE_CATALOG: list[dict[str, str]] = [
+    # Level badges
+    {"key": "level_2", "name": "Rookie Trader", "description": "Reached Level 2", "category": "level"},
+    {"key": "level_3", "name": "Market Watcher", "description": "Reached Level 3", "category": "level"},
+    {"key": "level_4", "name": "Chart Reader", "description": "Reached Level 4", "category": "level"},
+    {"key": "level_5", "name": "Risk Manager", "description": "Reached Level 5", "category": "level"},
+    {"key": "level_6", "name": "Options Strategist", "description": "Reached Level 6", "category": "level"},
+    {"key": "level_7", "name": "Senior Analyst", "description": "Reached Level 7", "category": "level"},
+    {"key": "level_8", "name": "Portfolio Manager", "description": "Reached Level 8", "category": "level"},
+    {"key": "level_9", "name": "Managing Director", "description": "Reached Level 9", "category": "level"},
+    {"key": "level_10", "name": "Trading Legend", "description": "Reached Level 10", "category": "level"},
+    # Streak badges
+    {"key": "streak_3", "name": "3-Day Streak", "description": "Trained 3 days in a row", "category": "streak"},
+    {"key": "streak_7", "name": "7-Day Streak", "description": "Trained 7 days in a row", "category": "streak"},
+    {"key": "streak_30", "name": "30-Day Streak", "description": "Trained 30 days in a row", "category": "streak"},
+    # Milestone badges
+    {"key": "foundation_finisher", "name": "Foundation Finisher", "description": "Completed all foundation modules", "category": "milestone"},
+    {"key": "capstone_complete", "name": "Capstone Complete", "description": "Completed the capstone challenge", "category": "milestone"},
+    {"key": "first_scenario", "name": "First Trade", "description": "Completed your first scenario", "category": "milestone"},
+    {"key": "first_challenge_win", "name": "Champion", "description": "Won your first head-to-head challenge", "category": "milestone"},
+    {"key": "first_review", "name": "Peer Mentor", "description": "Submitted your first peer review", "category": "milestone"},
+]
+
+# Map badge name -> key for lookup
+_BADGE_NAME_TO_KEY: dict[str, str] = {b["name"]: b["key"] for b in _BADGE_CATALOG}
+
+# Mastery skill names (8 skills)
+_MASTERY_SKILLS = [
+    "Options Pricing",
+    "Greeks",
+    "Volatility",
+    "Risk Management",
+    "Hedging Strategies",
+    "Spread Strategies",
+    "Market Analysis",
+    "Portfolio Construction",
+]
+
+# Add mastery badges to catalog
+for _skill in _MASTERY_SKILLS:
+    _badge_key = _skill.lower().replace(" ", "_") + "_master"
+    _BADGE_CATALOG.append({
+        "key": _badge_key,
+        "name": f"{_skill} Master",
+        "description": f"Mastered {_skill} (score >= 80%)",
+        "category": "mastery",
+    })
+    _BADGE_NAME_TO_KEY[f"{_skill} Master"] = _badge_key
+
+
+@router.get("/api/badges/me")
+async def get_my_badges(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> BadgeCatalogResponse:
+    """Return the full badge catalog with earned/locked state for the current user."""
+    user_id = _user.id
+
+    # Gather earned badge names using calculate_new_badges
+    modules = await fetch_modules(db)
+    if not modules:
+        modules = list_modules()
+    ordered_module_ids = [m.module_id for m in modules]
+    module_chunk_ids = {m.module_id: m.chunk_ids for m in modules}
+    module_tracks = {m.module_id: m.track for m in modules}
+    module_titles = {m.module_id: m.title for m in modules}
+
+    earned_names: list[str] = await calculate_new_badges(
+        user_id, db, ordered_module_ids, module_chunk_ids, module_tracks, module_titles
+    )
+
+    # Check milestone badges not covered by calculate_new_badges
+    # first_scenario: user has any Response records
+    resp_result = await db.execute(
+        select(Response.id).where(Response.user_id == user_id).limit(1)
+    )
+    if resp_result.scalar_one_or_none() is not None:
+        earned_names.append("First Trade")
+
+    # first_challenge_win: user has won any Challenge
+    win_result = await db.execute(
+        select(Challenge.id).where(Challenge.winner_id == user_id).limit(1)
+    )
+    if win_result.scalar_one_or_none() is not None:
+        earned_names.append("Champion")
+
+    # first_review: user has any PeerReviewAssignment where reviewer_id = user_id
+    # and associated review exists (status = submitted)
+    review_result = await db.execute(
+        select(PeerReviewAssignment.id).where(
+            PeerReviewAssignment.reviewer_id == user_id,
+            PeerReviewAssignment.status == "submitted",
+        ).limit(1)
+    )
+    if review_result.scalar_one_or_none() is not None:
+        earned_names.append("Peer Mentor")
+
+    # Build earned keys set
+    earned_keys: set[str] = set()
+    for name in earned_names:
+        key = _BADGE_NAME_TO_KEY.get(name)
+        if key:
+            earned_keys.add(key)
+        else:
+            # Mastery badges from module titles (e.g. "Module Title Mastery")
+            mastery_key = name.lower().replace(" ", "_")
+            earned_keys.add(mastery_key)
+
+    badges = [
+        BadgeInfo(
+            key=b["key"],
+            name=b["name"],
+            description=b["description"],
+            category=b["category"],  # type: ignore[arg-type]
+            earned=b["key"] in earned_keys,
+        )
+        for b in _BADGE_CATALOG
+    ]
+    total_earned = sum(1 for b in badges if b.earned)
+    return BadgeCatalogResponse(
+        badges=badges,
+        total_earned=total_earned,
+        total_available=len(badges),
+    )
 
 
 @router.get("/api/lessons/catalog/status")
@@ -758,6 +976,17 @@ async def rag_ingest(
     await db.commit()
     doc_id = _generate_doc_id(req.source_file)
     return DocumentIngestResponse(doc_id=doc_id, chunks_created=len(chunks))
+
+
+@router.post("/api/rag/reseed")
+async def rag_reseed(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Force re-ingest all RAG documents with the latest chunking algorithm."""
+    await seed_rag_documents(db, force=True)
+    invalidate_chunk_cache()
+    return {"status": "ok", "message": "RAG documents re-seeded with new chunking"}
 
 
 @router.get("/api/rag/search")

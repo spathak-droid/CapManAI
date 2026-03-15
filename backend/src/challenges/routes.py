@@ -8,11 +8,10 @@ from src.api.schemas import (
     ChallengeDetail,
     ChallengeResultDetail,
     ChallengeSubmitRequest,
+    OpenChallengeEntry,
     QueueJoinRequest,
-    QueueStatusResponse,
 )
 from src.auth.dependencies import get_current_user
-from src.challenges.matchmaker import find_match, join_queue, leave_queue
 from src.challenges.service import (
     check_and_grade,
     create_challenge,
@@ -22,9 +21,10 @@ from src.challenges.service import (
 )
 from src.db.database import get_db
 from src.db.models import (
+    Challenge,
     ChallengeResponse,
     Grade,
-    MatchmakingQueue,
+    Scenario,
     User,
 )
 from src.realtime.events import EventType, create_event
@@ -33,96 +33,204 @@ from src.realtime.manager import manager
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
 
-@router.post("/queue")
-async def join_matchmaking_queue(
+async def _challenge_to_detail(c: Challenge, db: AsyncSession) -> ChallengeDetail:
+    # Check who has submitted
+    result = await db.execute(
+        select(ChallengeResponse.user_id).where(
+            ChallengeResponse.challenge_id == c.id
+        )
+    )
+    submitted_user_ids = {row[0] for row in result.all()}
+
+    # Get scenario text
+    scenario_text: str | None = None
+    if c.scenario_id:
+        scenario = await db.get(Scenario, c.scenario_id)
+        if scenario:
+            scenario_text = f"{scenario.situation}\n\n{scenario.question}"
+
+    return ChallengeDetail(
+        id=c.id,
+        challenger_id=c.challenger_id,
+        opponent_id=c.opponent_id,
+        status=c.status,
+        skill_target=c.skill_target,
+        complexity=c.complexity,
+        winner_id=c.winner_id,
+        created_at=c.created_at.isoformat() if c.created_at else "",
+        challenger_submitted=c.challenger_id in submitted_user_ids,
+        opponent_submitted=(c.opponent_id in submitted_user_ids) if c.opponent_id else False,
+        scenario_text=scenario_text,
+    )
+
+
+def _challenge_to_detail_simple(c: Challenge) -> ChallengeDetail:
+    """Quick version without DB lookups (for lists)."""
+    return ChallengeDetail(
+        id=c.id,
+        challenger_id=c.challenger_id,
+        opponent_id=c.opponent_id,
+        status=c.status,
+        skill_target=c.skill_target,
+        complexity=c.complexity,
+        winner_id=c.winner_id,
+        created_at=c.created_at.isoformat() if c.created_at else "",
+    )
+
+
+@router.post("/create")
+async def create_open_challenge(
     req: QueueJoinRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> QueueStatusResponse:
-    """Join the matchmaking queue."""
-    try:
-        entry = await join_queue(
-            db, user_id=user.id, skill_target=req.skill_target
+) -> ChallengeDetail:
+    """Create an open challenge that others can see and accept."""
+    # Check if user already has a pending challenge
+    result = await db.execute(
+        select(Challenge).where(
+            Challenge.challenger_id == user.id,
+            Challenge.status == "pending",
         )
-        await db.commit()
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(e)
-        ) from e
-
-    # Attempt immediate match
-    opponent_id = await find_match(db, user.id)
-    if opponent_id is not None:
-        challenge = await create_challenge(
-            db,
-            challenger_id=user.id,
-            opponent_id=opponent_id,
-            skill_target=req.skill_target,
-        )
-        # Mark both queue entries
-        for uid in (user.id, opponent_id):
-            result = await db.execute(
-                select(MatchmakingQueue).where(
-                    MatchmakingQueue.user_id == uid,
-                    MatchmakingQueue.matched_at.is_not(None),
-                )
-            )
-            q_entry = result.scalar_one_or_none()
-            if q_entry:
-                q_entry.challenge_id = challenge.id
-
-        await db.commit()
-
-        # Notify via websocket
-        event = create_event(
-            EventType.CHALLENGE_MATCHED,
-            {
-                "challenge_id": challenge.id,
-                "challenger_id": user.id,
-                "opponent_id": opponent_id,
-            },
-        )
-        await manager.send_to_user(user.id, event)
-        await manager.send_to_user(opponent_id, event)
-
-    return QueueStatusResponse(
-        in_queue=True,
-        queued_at=entry.queued_at.isoformat() if entry.queued_at else None,
-        skill_target=req.skill_target,
     )
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have an open challenge",
+        )
+
+    challenge = Challenge(
+        challenger_id=user.id,
+        opponent_id=None,
+        status="pending",
+        skill_target=req.skill_target,
+        complexity=3,
+    )
+    db.add(challenge)
+    await db.flush()
+    await db.commit()
+    await db.refresh(challenge)
+
+    # Broadcast to all users
+    open_event = create_event(
+        EventType.CHALLENGE_OPEN,
+        {
+            "challenge_id": challenge.id,
+            "user_id": user.id,
+            "username": user.username,
+            "skill_target": req.skill_target,
+            "created_at": challenge.created_at.isoformat() if challenge.created_at else "",
+        },
+    )
+    await manager.broadcast_all(open_event)
+
+    return _challenge_to_detail_simple(challenge)
 
 
-@router.delete("/queue")
-async def leave_matchmaking_queue(
+@router.delete("/cancel/{challenge_id}")
+async def cancel_open_challenge(
+    challenge_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, bool]:
-    """Leave the matchmaking queue."""
-    removed = await leave_queue(db, user.id)
+    """Cancel your own pending challenge."""
+    challenge = await db.get(Challenge, challenge_id)
+    if challenge is None or challenge.challenger_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Challenge not found",
+        )
+    if challenge.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only cancel pending challenges",
+        )
+
+    await db.delete(challenge)
     await db.commit()
-    return {"removed": removed}
+
+    cancel_event = create_event(
+        EventType.CHALLENGE_CANCELLED,
+        {"challenge_id": challenge_id},
+    )
+    await manager.broadcast_all(cancel_event)
+
+    return {"cancelled": True}
 
 
-@router.get("/queue/status")
-async def get_queue_status(
+@router.get("/open")
+async def list_open_challenges(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> QueueStatusResponse:
-    """Check the current user's matchmaking queue status."""
+) -> list[OpenChallengeEntry]:
+    """List all pending challenges waiting for an opponent."""
     result = await db.execute(
-        select(MatchmakingQueue).where(
-            MatchmakingQueue.user_id == user.id,
-            MatchmakingQueue.matched_at.is_(None),
+        select(Challenge, User)
+        .join(User, Challenge.challenger_id == User.id)
+        .where(
+            Challenge.status == "pending",
+            Challenge.challenger_id != user.id,
         )
+        .order_by(Challenge.created_at.desc())
     )
-    entry = result.scalar_one_or_none()
-    if entry is None:
-        return QueueStatusResponse(in_queue=False)
-    return QueueStatusResponse(
-        in_queue=True,
-        queued_at=entry.queued_at.isoformat() if entry.queued_at else None,
-        skill_target=entry.skill_target,
+    rows = result.all()
+    return [
+        OpenChallengeEntry(
+            challenge_id=c.id,
+            user_id=c.challenger_id,
+            username=u.username,
+            skill_target=c.skill_target,
+            created_at=c.created_at.isoformat() if c.created_at else "",
+        )
+        for c, u in rows
+    ]
+
+
+@router.post("/accept/{challenge_id}")
+async def accept_open_challenge(
+    challenge_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChallengeDetail:
+    """Accept a pending challenge — generates scenario and starts the match."""
+    challenge = await db.get(Challenge, challenge_id)
+    if challenge is None or challenge.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Open challenge not found or already accepted",
+        )
+    if challenge.challenger_id == user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot accept your own challenge",
+        )
+
+    # Set opponent and activate via create_challenge (generates scenario)
+    active_challenge = await create_challenge(
+        db,
+        challenger_id=challenge.challenger_id,
+        opponent_id=user.id,
+        skill_target=challenge.skill_target,
+        complexity=challenge.complexity,
     )
+
+    # Delete the pending placeholder — the real one is active_challenge
+    await db.delete(challenge)
+    await db.commit()
+
+    # Notify both users
+    event = create_event(
+        EventType.CHALLENGE_MATCHED,
+        {
+            "challenge_id": active_challenge.id,
+            "challenger_id": active_challenge.challenger_id,
+            "opponent_id": user.id,
+        },
+    )
+    await manager.send_to_user(active_challenge.challenger_id, event)
+    await manager.send_to_user(user.id, event)
+
+    return _challenge_to_detail_simple(active_challenge)
 
 
 @router.get("/me")
@@ -132,19 +240,7 @@ async def get_my_challenges(
 ) -> list[ChallengeDetail]:
     """List the current user's challenges."""
     challenges = await get_user_challenges(db, user.id)
-    return [
-        ChallengeDetail(
-            id=c.id,
-            challenger_id=c.challenger_id,
-            opponent_id=c.opponent_id,
-            status=c.status,
-            skill_target=c.skill_target,
-            complexity=c.complexity,
-            winner_id=c.winner_id,
-            created_at=c.created_at.isoformat() if c.created_at else "",
-        )
-        for c in challenges
-    ]
+    return [_challenge_to_detail_simple(c) for c in challenges]
 
 
 @router.post("/{challenge_id}/submit")
@@ -187,16 +283,7 @@ async def get_challenge_detail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found"
         )
-    return ChallengeDetail(
-        id=challenge.id,
-        challenger_id=challenge.challenger_id,
-        opponent_id=challenge.opponent_id,
-        status=challenge.status,
-        skill_target=challenge.skill_target,
-        complexity=challenge.complexity,
-        winner_id=challenge.winner_id,
-        created_at=challenge.created_at.isoformat() if challenge.created_at else "",
-    )
+    return await _challenge_to_detail(challenge, db)
 
 
 @router.get("/{challenge_id}/result")

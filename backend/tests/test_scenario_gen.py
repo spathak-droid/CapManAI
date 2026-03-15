@@ -133,13 +133,10 @@ class TestScenarioGenerator:
         mock_response.json.return_value = _make_llm_response(fake_scenario)
         mock_response.raise_for_status = MagicMock()
 
-        with patch("src.scenario_gen.generator.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post.return_value = mock_response
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_response
 
+        with patch("src.scenario_gen.generator._get_http_client", return_value=mock_client):
             gen = ScenarioGenerator()
             result = await gen.generate(ScenarioParams())
 
@@ -149,13 +146,10 @@ class TestScenarioGenerator:
 
     @pytest.mark.asyncio
     async def test_generate_falls_back_on_error(self) -> None:
-        with patch("src.scenario_gen.generator.httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post.side_effect = Exception("API down")
-            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client.__aexit__ = AsyncMock(return_value=False)
-            mock_client_cls.return_value = mock_client
+        mock_client = AsyncMock()
+        mock_client.post.side_effect = Exception("API down")
 
+        with patch("src.scenario_gen.generator._get_http_client", return_value=mock_client):
             gen = ScenarioGenerator()
             result = await gen.generate(ScenarioParams(complexity=1))
 

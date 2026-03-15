@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.firebase import verify_firebase_token
@@ -38,11 +39,23 @@ async def get_current_user(
     firebase_uid: str = payload["sub"]
     email: str = payload.get("email", "")
 
-    # Find or create user
+    # Find by firebase_uid first
     result = await db.execute(
         select(User).where(User.firebase_uid == firebase_uid)
     )
     user = result.scalar_one_or_none()
+
+    if user is None and email:
+        # Check if a user with this email exists (e.g. re-registered in Firebase)
+        result = await db.execute(
+            select(User).where(User.email == email)
+        )
+        user = result.scalar_one_or_none()
+        if user is not None:
+            # Update the firebase_uid to the new one
+            user.firebase_uid = firebase_uid
+            await db.commit()
+            await db.refresh(user)
 
     if user is None:
         # Auto-create user on first login
@@ -61,7 +74,21 @@ async def get_current_user(
             role="student",
         )
         db.add(user)
-        await db.commit()
+        try:
+            await db.commit()
+        except IntegrityError:
+            # Race condition: another request already created this user
+            await db.rollback()
+            result = await db.execute(
+                select(User).where(User.firebase_uid == firebase_uid)
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create or find user",
+                )
+            return user
         await db.refresh(user)
 
     return user

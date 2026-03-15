@@ -24,6 +24,17 @@ from src.scenario_gen.prompts import (
 
 logger = logging.getLogger(__name__)
 
+_http_client: httpx.AsyncClient | None = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    """Return a shared httpx.AsyncClient, creating it on first use."""
+    global _http_client  # noqa: PLW0603
+    if _http_client is None:
+        _http_client = httpx.AsyncClient(timeout=30.0)
+    return _http_client
+
+
 MarketRegime = Literal["bull", "bear", "sideways", "volatile"]
 InstrumentType = Literal["equity", "option", "both"]
 
@@ -218,13 +229,19 @@ class ScenarioGenerator:
             logger.exception("LLM call failed, returning fallback scenario")
             return self._get_fallback(params)
 
-    async def generate_lesson(self, lesson: LessonContext) -> ScenarioResult:
+    async def generate_lesson(
+        self, lesson: LessonContext, rag_context: str | None = None
+    ) -> ScenarioResult:
         """Generate a scenario aligned with the lesson the student just completed.
 
         Ensures ticker, price_history, and market_data so the UI can show charts.
+
+        Args:
+            lesson: Context from the lesson chunk.
+            rag_context: Optional RAG context for grounding in CapMan concepts.
         """
         try:
-            return await self._call_llm_lesson(lesson)
+            return await self._call_llm_lesson(lesson, rag_context=rag_context)
         except Exception:
             logger.exception("Lesson scenario LLM failed, returning fallback")
             return FALLBACK_SCENARIOS[0]  # AAPL with chart-ready data
@@ -265,13 +282,13 @@ class ScenarioGenerator:
             "Content-Type": "application/json",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{settings.OPENROUTER_BASE_URL}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
+        client = _get_http_client()
+        response = await client.post(
+            f"{settings.OPENROUTER_BASE_URL}/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+        response.raise_for_status()
 
         data = response.json()
         content: str = data["choices"][0]["message"]["content"]
@@ -283,17 +300,25 @@ class ScenarioGenerator:
             question=parsed["question"],
         )
 
-    async def _call_llm_lesson(self, lesson: LessonContext) -> ScenarioResult:
+    async def _call_llm_lesson(
+        self, lesson: LessonContext, rag_context: str | None = None
+    ) -> ScenarioResult:
         """Call OpenRouter with lesson-aligned prompt; response must have ticker and chart data."""
         user_prompt = LESSON_SCENARIO_TEMPLATE.format(
             chunk_title=lesson.chunk_title,
             learning_goal=lesson.learning_goal,
             key_takeaway=lesson.key_takeaway,
         )
+        system_content = LESSON_SCENARIO_SYSTEM_PROMPT
+        if rag_context:
+            system_content = (
+                f"Use the following reference material:\n{rag_context}\n\n"
+                + system_content
+            )
         payload: dict[str, Any] = {
             "model": settings.openrouter_model,
             "messages": [
-                {"role": "system", "content": LESSON_SCENARIO_SYSTEM_PROMPT},
+                {"role": "system", "content": system_content},
                 {"role": "user", "content": user_prompt},
             ],
             "response_format": {"type": "json_object"},
@@ -302,13 +327,13 @@ class ScenarioGenerator:
             "Authorization": f"Bearer {settings.openrouter_api_key}",
             "Content-Type": "application/json",
         }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{settings.OPENROUTER_BASE_URL}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
+        client = _get_http_client()
+        response = await client.post(
+            f"{settings.OPENROUTER_BASE_URL}/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+        response.raise_for_status()
         data = response.json()
         content: str = data["choices"][0]["message"]["content"]
         parsed: dict[str, Any] = json.loads(content)

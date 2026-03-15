@@ -4,8 +4,11 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from sqlalchemy import select
 
 from src.auth.firebase import verify_firebase_token
+from src.db.database import async_session_factory
+from src.db.models import User
 from src.realtime.manager import manager
 
 logger = logging.getLogger(__name__)
@@ -13,23 +16,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _get_user_id_from_token(token: str) -> int | None:
-    """Verify a Firebase token and extract the user's numeric ID.
+async def _get_user_id_from_token(token: str) -> int | None:
+    """Verify a Firebase token and look up the actual DB user ID.
 
-    Returns None if the token is invalid.
+    Returns None if the token is invalid or the user doesn't exist.
     """
     try:
         payload: dict[str, Any] = verify_firebase_token(token)
-        # The 'sub' claim is the Firebase UID (string).
-        # We need a numeric user_id; use the 'user_id' custom claim if present,
-        # otherwise hash the uid to get a stable int.
-        user_id = payload.get("user_id")
-        if isinstance(user_id, int):
-            return user_id
-        # Fall back: hash the Firebase UID for a stable integer
         firebase_uid: str = payload.get("sub", "")
-        if firebase_uid:
-            return hash(firebase_uid) % (10**9)
+        if not firebase_uid:
+            return None
+
+        # Look up real DB user ID
+        async with async_session_factory() as db:
+            result = await db.execute(
+                select(User.id).where(User.firebase_uid == firebase_uid)
+            )
+            row = result.scalar_one_or_none()
+            return row
     except Exception:
         logger.warning("WebSocket token verification failed")
     return None
@@ -38,12 +42,13 @@ def _get_user_id_from_token(token: str) -> int | None:
 @router.websocket("/ws/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str) -> None:
     """Authenticate via token in path, then maintain a persistent connection."""
-    user_id = _get_user_id_from_token(token)
+    user_id = await _get_user_id_from_token(token)
     if user_id is None:
         await websocket.close(code=4001, reason="Invalid token")
         return
 
     await manager.connect(websocket, user_id)
+    logger.info("User %d connected via WebSocket", user_id)
     try:
         while True:
             data: dict[str, Any] = await websocket.receive_json()

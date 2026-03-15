@@ -22,12 +22,25 @@ async def seed_lessons_to_db(db: AsyncSession) -> None:
     if len(modules) != len(ORDERED_MODULE_IDS):
         should_reseed = True
     else:
+        # Check f1-ch1 for placeholder content
         first_chunk = await db.execute(
             select(LessonChunk).where(LessonChunk.chunk_id == "f1-ch1")
         )
         chunk = first_chunk.scalar_one_or_none()
         if chunk is None or _is_placeholder_content(chunk.learning_goal):
             should_reseed = True
+
+    # Also check if any chunk content has changed (compare a sample chunk's text)
+    if not should_reseed:
+        for sample_id in ["f3-ch1", "m1-ch1"]:
+            if sample_id in CHUNKS:
+                result = await db.execute(
+                    select(LessonChunk).where(LessonChunk.chunk_id == sample_id)
+                )
+                db_chunk = result.scalar_one_or_none()
+                if db_chunk is not None and db_chunk.explain_text != CHUNKS[sample_id].explain_text:
+                    should_reseed = True
+                    break
 
     if not should_reseed:
         return
