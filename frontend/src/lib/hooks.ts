@@ -23,6 +23,12 @@ import {
   getStudentRoster,
   getStudentResponses,
   getStudentFeedback,
+  fetchAnnouncements,
+  fetchActivityFeed,
+  fetchEducatorThreads,
+  fetchEducatorThread,
+  fetchStudentInbox,
+  fetchStudentThread,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -46,7 +52,12 @@ import type {
   StudentRosterEntry,
   StudentResponseEntry,
   EducatorFeedbackOut,
+  AnnouncementOut,
+  ActivityFeedItem,
+  DirectMessageOut,
+  MessageThreadSummary,
 } from "./types";
+import { useAuth } from "@/contexts/AuthContext";
 
 // SWR config: dedupe requests within 5 minutes, don't refetch on window focus
 const CACHE_OPTIONS = {
@@ -54,8 +65,15 @@ const CACHE_OPTIONS = {
   dedupingInterval: 300_000, // 5 minutes
 };
 
+/** Return the SWR key only when auth is ready, otherwise null (skip fetch). */
+function useAuthKey(key: string): string | null {
+  const { user, loading } = useAuth();
+  if (loading || !user) return null;
+  return key;
+}
+
 export function useLeaderboard() {
-  return useSWR<LeaderboardEntry[]>("leaderboard", fetchLeaderboard, CACHE_OPTIONS);
+  return useSWR<LeaderboardEntry[]>(useAuthKey("leaderboard"), fetchLeaderboard, CACHE_OPTIONS);
 }
 
 export function useLessonModules(enabled = true) {
@@ -83,11 +101,11 @@ export function useStreak(enabled = true) {
 }
 
 export function useDashboardOverview() {
-  return useSWR<ClassOverview>("dashboard-overview", fetchDashboardOverview, CACHE_OPTIONS);
+  return useSWR<ClassOverview>(useAuthKey("dashboard-overview"), fetchDashboardOverview, CACHE_OPTIONS);
 }
 
 export function useMTSSTiers() {
-  return useSWR<StudentTierInfo[]>("mtss-tiers", fetchMTSSTiers, CACHE_OPTIONS);
+  return useSWR<StudentTierInfo[]>(useAuthKey("mtss-tiers"), fetchMTSSTiers, CACHE_OPTIONS);
 }
 
 export function useLessonModule(moduleId: string | null) {
@@ -118,7 +136,7 @@ export function useStudentSkills(userId: number | null) {
 
 export function useObjectiveDistributions() {
   return useSWR<ObjectiveDistribution[]>(
-    "mtss-objectives",
+    useAuthKey("mtss-objectives"),
     getObjectiveDistributions,
     CACHE_OPTIONS,
   );
@@ -136,21 +154,21 @@ export function useStudentInterventions(userId: number | null) {
 
 export function useDynamicLeaderboard(sortBy: string) {
   return useSWR<DynamicLeaderboardEntry[]>(
-    `dynamic-leaderboard-${sortBy}`,
+    useAuthKey(`dynamic-leaderboard-${sortBy}`),
     () => getDynamicLeaderboard(sortBy),
     CACHE_OPTIONS,
   );
 }
 
 export function useMyRank() {
-  return useSWR<UserRank>("my-rank", getMyRank, CACHE_OPTIONS);
+  return useSWR<UserRank>(useAuthKey("my-rank"), getMyRank, CACHE_OPTIONS);
 }
 
 // --- Peer Review hooks ---
 
 export function usePeerReviewAssignments() {
   return useSWR<PeerReviewAssignment[]>(
-    "peer-review-assignments",
+    useAuthKey("peer-review-assignments"),
     getMyAssignments,
     CACHE_OPTIONS,
   );
@@ -158,7 +176,7 @@ export function usePeerReviewAssignments() {
 
 export function useReceivedReviews() {
   return useSWR<PeerReviewDetail[]>(
-    "peer-review-received",
+    useAuthKey("peer-review-received"),
     getReceivedReviews,
     CACHE_OPTIONS,
   );
@@ -167,19 +185,19 @@ export function useReceivedReviews() {
 // --- Badge hooks ---
 
 export function useMyBadges() {
-  return useSWR<BadgesResponse>("my-badges", fetchMyBadges, CACHE_OPTIONS);
+  return useSWR<BadgesResponse>(useAuthKey("my-badges"), fetchMyBadges, CACHE_OPTIONS);
 }
 
 // --- Skills hooks ---
 
 export function useMySkills() {
-  return useSWR<MySkillsResponse>("my-skills", fetchMySkills, CACHE_OPTIONS);
+  return useSWR<MySkillsResponse>(useAuthKey("my-skills"), fetchMySkills, CACHE_OPTIONS);
 }
 
 // --- Educator Student Roster hooks ---
 
 export function useStudentRoster() {
-  return useSWR<StudentRosterEntry[]>("educator-students", getStudentRoster, CACHE_OPTIONS);
+  return useSWR<StudentRosterEntry[]>(useAuthKey("educator-students"), getStudentRoster, CACHE_OPTIONS);
 }
 
 export function useStudentResponses(userId: number | null) {
@@ -198,8 +216,54 @@ export function useStudentFeedbackList(userId: number | null) {
   );
 }
 
+// --- Announcements hooks ---
+
+export function useAnnouncements() {
+  return useSWR<AnnouncementOut[]>(useAuthKey("announcements"), fetchAnnouncements, CACHE_OPTIONS);
+}
+
+// --- Activity Feed hooks ---
+
+export function useActivityFeed() {
+  return useSWR<ActivityFeedItem[]>(useAuthKey("activity-feed"), fetchActivityFeed, CACHE_OPTIONS);
+}
+
+// --- Direct Messaging hooks ---
+
+export function useEducatorThreads() {
+  return useSWR<MessageThreadSummary[]>(
+    useAuthKey("educator-message-threads"),
+    fetchEducatorThreads,
+    CACHE_OPTIONS,
+  );
+}
+
+export function useEducatorThread(userId: number | null) {
+  return useSWR<DirectMessageOut[]>(
+    userId ? `educator-thread-${userId}` : null,
+    () => fetchEducatorThread(userId!),
+    { ...CACHE_OPTIONS, dedupingInterval: 30_000 },
+  );
+}
+
+export function useStudentInbox() {
+  return useSWR<MessageThreadSummary[]>(
+    useAuthKey("student-inbox"),
+    fetchStudentInbox,
+    CACHE_OPTIONS,
+  );
+}
+
+export function useStudentThread(educatorId: number | null) {
+  return useSWR<DirectMessageOut[]>(
+    educatorId ? `student-thread-${educatorId}` : null,
+    () => fetchStudentThread(educatorId!),
+    { ...CACHE_OPTIONS, dedupingInterval: 30_000 },
+  );
+}
+
 // --- RAG Document hooks ---
 
 export function useRAGDocuments() {
-  return useSWR<RAGDocumentSummary[]>("rag-documents", getRAGDocuments, CACHE_OPTIONS);
+  return useSWR<RAGDocumentSummary[]>(useAuthKey("rag-documents"), getRAGDocuments, CACHE_OPTIONS);
 }

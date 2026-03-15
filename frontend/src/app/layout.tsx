@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RealtimeProvider } from "@/contexts/RealtimeContext";
 import NavBar from "@/components/NavBar";
 import FloatingAssistantWidget from "@/components/FloatingAssistantWidget";
+import ChallengeToast from "@/components/ChallengeToast";
 import PrefetchData from "@/components/PrefetchData";
 
 const geistSans = Geist({
@@ -42,6 +43,7 @@ export default function RootLayout({
             <NavBar />
             <main>{children}</main>
             <FloatingAssistantWidget />
+            <ChallengeToast />
           </RealtimeProvider>
         </AuthProvider>
       </body>

@@ -18,6 +18,7 @@ import {
   getChallengeResult,
   getOpenChallenges,
   acceptChallenge,
+  getOnlineCount,
 } from "@/lib/api";
 import type {
   ChallengeDetail,
@@ -105,6 +106,7 @@ export default function ChallengesPage() {
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
 
   // GSAP animation refs
   const heroTitleRef = useTextReveal<HTMLHeadingElement>();
@@ -207,10 +209,12 @@ export default function ChallengesPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [myChallenges, open] = await Promise.all([
+        const [myChallenges, open, onlineData] = await Promise.all([
           getMyChallenges(),
           getOpenChallenges(),
+          getOnlineCount().catch(() => ({ online_count: 0 })),
         ]);
+        setOnlineCount(onlineData.online_count);
         setChallenges(myChallenges);
         setOpenChallenges(open);
 
@@ -469,6 +473,20 @@ export default function ChallengesPage() {
               </span>
               <span className="text-[10px] font-medium uppercase tracking-wider text-blue-300/70">
                 Active
+              </span>
+            </div>
+
+            {/* Online */}
+            <div className="hero-stat-pill flex flex-col items-center rounded-2xl border border-green-500/20 bg-black/20 backdrop-blur-sm px-4 py-3 min-w-[80px]">
+              <span className="text-2xl font-bold tabular-nums text-white flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </span>
+                {onlineCount}
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-green-300/70">
+                Online
               </span>
             </div>
           </div>
@@ -766,22 +784,33 @@ export default function ChallengesPage() {
       )}
 
       {/* Open Challenges from other users */}
-      {openChallenges.length > 0 && (
-        <section className="mb-10">
-          <div className="flex items-center gap-3 mb-5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+      <section className="mb-10">
+        <div className="flex items-center gap-3 mb-5">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+          </span>
+          <h2 className="text-lg font-semibold text-white">
+            Open Challenges
+          </h2>
+          <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-green-400 tabular-nums">
+            {openChallenges.length}
+          </span>
+          {onlineCount > 1 && (
+            <span className="ml-auto text-xs text-zinc-500">
+              {onlineCount} traders online
             </span>
-            <h2 className="text-lg font-semibold text-white">
-              Open Challenges
-            </h2>
-            <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-green-400 tabular-nums">
-              {openChallenges.length}
-            </span>
-          </div>
-          <div ref={openListRef} className="space-y-3">
-            {openChallenges.map((entry) => (
+          )}
+        </div>
+        <div ref={openListRef} className="space-y-3">
+          {openChallenges.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-white/[0.08] bg-zinc-900/40 p-8 text-center">
+              <p className="text-sm text-zinc-500">
+                No open challenges right now. Create one above and other online traders will be notified!
+              </p>
+            </div>
+          )}
+          {openChallenges.map((entry) => (
               <div
                 key={entry.challenge_id}
                 className="group relative flex items-center justify-between rounded-2xl border border-white/[0.08] bg-zinc-900/60 p-4 sm:p-5 transition-all hover:border-green-500/25 hover:bg-zinc-800/60 hover:shadow-[0_0_24px_rgba(34,197,94,0.06)] border-l-[3px] border-l-green-500/40"
@@ -877,9 +906,8 @@ export default function ChallengesPage() {
                 </button>
               </div>
             ))}
-          </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* Active Challenges */}
       {activeChallenges.length > 0 && (

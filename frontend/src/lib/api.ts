@@ -38,6 +38,10 @@ import type {
   StudentRosterEntry,
   StudentResponseEntry,
   EducatorFeedbackOut,
+  AnnouncementOut,
+  ActivityFeedItem,
+  DirectMessageOut,
+  MessageThreadSummary,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -489,6 +493,77 @@ export async function exportEducatorCSV(): Promise<void> {
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+}
+
+export async function getOnlineCount(): Promise<{ online_count: number }> {
+  return request("/api/challenges/online-count");
+}
+
+// --- Announcements API ---
+
+export async function fetchAnnouncements(): Promise<AnnouncementOut[]> {
+  return request<AnnouncementOut[]>("/api/educator/announcements");
+}
+
+export async function createAnnouncement(
+  title: string,
+  content: string,
+  priority?: string,
+): Promise<AnnouncementOut> {
+  return request<AnnouncementOut>("/api/educator/announcements", {
+    method: "POST",
+    body: JSON.stringify({ title, content, priority: priority ?? "normal" }),
+  });
+}
+
+export async function deleteAnnouncement(id: number): Promise<void> {
+  await request(`/api/educator/announcements/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Activity Feed API ---
+
+export async function fetchActivityFeed(): Promise<ActivityFeedItem[]> {
+  return request<ActivityFeedItem[]>("/api/educator/activity-feed");
+}
+
+// --- Direct Messaging API ---
+
+export async function fetchEducatorThreads(): Promise<MessageThreadSummary[]> {
+  return request<MessageThreadSummary[]>("/api/educator/messages/threads");
+}
+
+export async function fetchEducatorThread(userId: number): Promise<DirectMessageOut[]> {
+  return request<DirectMessageOut[]>(`/api/educator/messages/${userId}`);
+}
+
+export async function sendEducatorMessage(recipientId: number, content: string): Promise<DirectMessageOut> {
+  return request<DirectMessageOut>("/api/educator/messages", {
+    method: "POST",
+    body: JSON.stringify({ recipient_id: recipientId, content }),
+  });
+}
+
+export async function fetchStudentInbox(): Promise<MessageThreadSummary[]> {
+  return request<MessageThreadSummary[]>("/api/messages/inbox");
+}
+
+export async function fetchStudentThread(educatorId: number): Promise<DirectMessageOut[]> {
+  return request<DirectMessageOut[]>(`/api/messages/thread/${educatorId}`);
+}
+
+export async function sendStudentReply(recipientId: number, content: string): Promise<DirectMessageOut> {
+  return request<DirectMessageOut>("/api/messages/reply", {
+    method: "POST",
+    body: JSON.stringify({ recipient_id: recipientId, content }),
+  });
+}
+
+export async function markMessageRead(messageId: number): Promise<void> {
+  await request(`/api/messages/${messageId}/read`, {
+    method: "PUT",
+  });
 }
 
 export { ApiError };
