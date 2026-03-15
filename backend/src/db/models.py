@@ -20,6 +20,7 @@ class User(Base):
     )
     username: Mapped[str] = mapped_column(String(100), unique=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     role: Mapped[str] = mapped_column(String(20))  # student or educator
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     xp_total: Mapped[int] = mapped_column(default=0)
@@ -82,7 +83,7 @@ class Grade(Base):
     __tablename__ = "grades"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    response_id: Mapped[int] = mapped_column(ForeignKey("responses.id"))
+    response_id: Mapped[int | None] = mapped_column(ForeignKey("responses.id"), nullable=True)
     technical_accuracy: Mapped[float] = mapped_column()
     risk_awareness: Mapped[float] = mapped_column()
     strategy_fit: Mapped[float] = mapped_column()
@@ -91,7 +92,7 @@ class Grade(Base):
     feedback_text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
-    response: Mapped["Response"] = relationship(back_populates="grade")
+    response: Mapped["Response | None"] = relationship(back_populates="grade")
 
 
 class SkillScore(Base):

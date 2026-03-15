@@ -1,7 +1,7 @@
 """Add document_chunks table for RAG pipeline.
 
 Revision ID: 004_document_chunks
-Revises: 001_initial
+Revises: 003_leaderboard_snapshots
 Create Date: 2026-03-13
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import JSON
 
 # revision identifiers, used by Alembic.
 revision: str = "004_document_chunks"
-down_revision: Union[str, None] = "001_initial"
+down_revision: Union[str, None] = "003_leaderboard_snapshots"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
