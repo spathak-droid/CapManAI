@@ -317,7 +317,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }:
             ? "fixed inset-4 mx-auto max-h-[calc(100vh-2rem)] w-full max-w-3xl rounded-2xl sm:inset-6"
             : "fixed right-0 top-0 h-full rounded-l-2xl border-l"
         }`}
-        style={isFloating ? undefined : { width: PANEL_WIDTH, maxWidth: "min(100vw - 3rem, 420px)" }}
+        style={isFloating ? undefined : { width: PANEL_WIDTH, maxWidth: "min(100vw - 1rem, 420px)" }}
         role="dialog"
         aria-label="AI Assistant"
       >
@@ -391,7 +391,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }:
         <div className="flex min-h-0 flex-1">
           {/* History sidebar */}
           {historyOpen && (
-            <div className="flex w-44 flex-shrink-0 flex-col border-r border-white/[0.06] bg-black/20">
+            <div className="flex w-36 sm:w-44 flex-shrink-0 flex-col border-r border-white/[0.06] bg-black/20">
               <div className="px-3 pt-3 pb-2">
                 <h3 className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Conversations</h3>
               </div>

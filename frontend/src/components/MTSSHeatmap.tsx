@@ -45,16 +45,16 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
       <table className="w-full text-left text-sm">
         <thead className="bg-zinc-800/50">
           <tr>
-            <th className="sticky left-0 z-10 bg-zinc-800/50 px-4 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <th className="sticky left-0 z-10 bg-zinc-800/50 px-3 sm:px-4 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 min-w-[100px]">
               Student
             </th>
-            <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <th className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500">
               Avg Score
             </th>
             {skillKeys.map((skill) => (
               <th
                 key={skill}
-                className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500"
+                className="px-3 sm:px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500 whitespace-nowrap"
               >
                 {formatSkillName(skill)}
               </th>
@@ -67,10 +67,10 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
               key={student.user_id}
               className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
             >
-              <td className="sticky left-0 bg-zinc-900 px-4 py-3 font-medium text-white">
+              <td className="sticky left-0 bg-zinc-900 px-3 sm:px-4 py-3 font-medium text-white whitespace-nowrap min-w-[100px]">
                 {student.username}
               </td>
-              <td className="px-4 py-3 text-center font-mono text-blue-400">
+              <td className="px-3 sm:px-4 py-3 text-center font-mono text-blue-400">
                 {student.avg_score.toFixed(1)}
               </td>
               {skillKeys.map((skill) => {
@@ -78,7 +78,7 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
                 return (
                   <td
                     key={skill}
-                    className="px-4 py-3 text-center"
+                    className="px-3 sm:px-4 py-3 text-center"
                     title={`${student.username} / ${formatSkillName(skill)}: ${tier.replace("_", " ")}`}
                   >
                     <span

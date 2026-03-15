@@ -120,7 +120,7 @@ export default function FloatingAssistantWidget() {
         onClick={() => setIsOpen((prev) => !prev)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="fixed right-6 bottom-6 z-50 flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-zinc-950"
+        className="fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-50 flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-zinc-950"
         style={{
           width: FAB_SIZE,
           height: FAB_SIZE,

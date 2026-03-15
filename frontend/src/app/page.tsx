@@ -80,7 +80,7 @@ function LandingPage() {
       >
         <div
           ref={glowInnerRef}
-          className="h-[480px] w-[480px] rounded-full bg-blue-500/10 blur-3xl"
+          className="h-[300px] w-[300px] sm:h-[480px] sm:w-[480px] rounded-full bg-blue-500/10 blur-3xl"
         />
       </div>
 

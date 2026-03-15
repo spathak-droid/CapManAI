@@ -85,11 +85,11 @@ export default function AnnouncementFeed({ announcements, canDelete = false, lim
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${style.badge}`}>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className={`inline-block shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${style.badge}`}>
                     {style.label}
                   </span>
-                  <h4 className="text-sm font-semibold text-white truncate">{a.title}</h4>
+                  <h4 className="text-sm font-semibold text-white truncate min-w-0">{a.title}</h4>
                 </div>
                 <p className="text-sm text-zinc-300 whitespace-pre-wrap">{a.content}</p>
                 <div className="flex items-center gap-2 mt-2 text-xs text-zinc-500">

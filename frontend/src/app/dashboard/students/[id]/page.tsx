@@ -85,7 +85,7 @@ function ResponseRow({
     <div className="border-b border-white/[0.04]">
       {/* Summary row */}
       <div
-        className="flex cursor-pointer items-center gap-4 px-5 py-3.5 transition-colors hover:bg-white/[0.02]"
+        className="flex cursor-pointer items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3.5 transition-colors hover:bg-white/[0.02]"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ function ResponseRow({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-white/[0.04] bg-zinc-900/30 px-5 py-4 space-y-4">
+        <div className="border-t border-white/[0.04] bg-zinc-900/30 px-3 sm:px-5 py-4 space-y-4">
           {/* Student answer */}
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1">
@@ -286,9 +286,9 @@ export default function StudentDetailPage() {
       {/* Student Header */}
       {skillData && (
         <div className="mb-8">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div
-              className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white"
               style={{
                 background:
                   "linear-gradient(135deg, #3b82f6 0%, #7c3aed 50%, #a855f7 100%)",
@@ -296,8 +296,8 @@ export default function StudentDetailPage() {
             >
               {(skillData.username || "?")[0].toUpperCase()}
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
                 {skillData.username}
               </h1>
               <div className="mt-1 flex items-center gap-2">
@@ -313,7 +313,7 @@ export default function StudentDetailPage() {
             </div>
             <Link
               href={`/dashboard/messages?student=${userId}` as Route}
-              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
+              className="flex items-center justify-center gap-2 self-start rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-500"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />

@@ -270,7 +270,7 @@ export default function ScenarioCard({
     skillTarget && SKILL_LABELS[skillTarget] ? SKILL_LABELS[skillTarget] : null;
 
   return (
-    <div className="card-glow p-6 space-y-5">
+    <div className="card-glow p-4 sm:p-6 space-y-4 sm:space-y-5">
       {/* ── Header row: badge + stars ── */}
       <div className="flex items-start justify-between gap-4">
         {skillLabel ? (
@@ -297,7 +297,7 @@ export default function ScenarioCard({
       </div>
 
       {/* ── Title ── */}
-      <h2 className="text-xl font-bold text-white leading-snug">{title}</h2>
+      <h2 className="text-lg sm:text-xl font-bold text-white leading-snug">{title}</h2>
 
       {/* ── Situation narrative ── */}
       <p className="leading-relaxed text-zinc-300">{scenario.situation}</p>
@@ -318,7 +318,7 @@ export default function ScenarioCard({
       <div className="border-t border-white/[0.06]" />
 
       {/* ── Question ── */}
-      <p className="text-lg font-semibold leading-snug text-white">
+      <p className="text-base sm:text-lg font-semibold leading-snug text-white">
         {scenario.question}
       </p>
 

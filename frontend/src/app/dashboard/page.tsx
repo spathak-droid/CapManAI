@@ -77,12 +77,12 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* ── Page Header ── */}
-      <div className="mb-10 flex items-start justify-between">
+      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="mb-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+          <h1 className="mb-2 text-2xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
             Educator Dashboard
           </h1>
-          <p className="text-zinc-500 text-base">
+          <p className="text-zinc-500 text-sm sm:text-base">
             MTSS-powered overview of student progress. Monitor tiers, track skill
             development, and identify students who need support.
           </p>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
               setExporting(false);
             }
           }}
-          className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+          className="shrink-0 self-start rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
           {exporting ? "Exporting..." : "Export CSV"}
         </button>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
       {overview && (
         <>
           {/* ── Tier Overview Cards ── */}
-          <div className="mb-12 grid gap-5 md:grid-cols-3">
+          <div className="mb-12 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {tierKeys.map((tierKey) => {
               const config = TIER_CONFIG[tierKey];
               if (!config) return null;
@@ -170,17 +170,17 @@ export default function DashboardPage() {
           </div>
 
           {skillKeys.length > 0 ? (
-            <div className="card-glow mb-12 overflow-hidden">
+            <div className="card-glow mb-12 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-800/50">
                   <tr>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <th className="px-3 sm:px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Skill
                     </th>
                     {tierKeys.map((tk) => (
                       <th
                         key={tk}
-                        className="px-5 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500"
+                        className="px-3 sm:px-5 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-500"
                       >
                         {TIER_CONFIG[tk]?.label.split(" — ")[0] ?? tk}
                       </th>
@@ -195,13 +195,13 @@ export default function DashboardPage() {
                         key={skill}
                         className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
                       >
-                        <td className="px-5 py-3.5 font-medium text-zinc-200">
+                        <td className="px-3 sm:px-5 py-3.5 font-medium text-zinc-200">
                           {formatSkillName(skill)}
                         </td>
                         {tierKeys.map((tk) => (
                           <td
                             key={tk}
-                            className="px-5 py-3.5 text-center"
+                            className="px-3 sm:px-5 py-3.5 text-center"
                           >
                             <span
                               className={`inline-flex min-w-[2rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold ${tierBadgeClass(tk)}`}
@@ -228,20 +228,20 @@ export default function DashboardPage() {
           </h2>
 
           {students && students.length > 0 ? (
-            <div className="card-glow mb-12 overflow-hidden">
+            <div className="card-glow mb-12 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-zinc-800/50">
                   <tr>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <th className="px-3 sm:px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Student
                     </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <th className="px-3 sm:px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                       Overall Tier
                     </th>
-                    <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <th className="px-3 sm:px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 hidden sm:table-cell">
                       Avg Score
                     </th>
-                    <th className="px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    <th className="px-3 sm:px-5 py-3 text-xs font-medium uppercase tracking-wider text-zinc-500 hidden md:table-cell">
                       Skill Tiers
                     </th>
                   </tr>
@@ -258,20 +258,20 @@ export default function DashboardPage() {
                           setExpandedId(isExpanded ? null : student.user_id)
                         }
                       >
-                        <td className="px-5 py-3.5 font-medium text-zinc-200">
+                        <td className="px-3 sm:px-5 py-3.5 font-medium text-zinc-200">
                           {student.username}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-3 sm:px-5 py-3.5">
                           <span
                             className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${tierBadgeClass(student.overall_tier)}`}
                           >
                             {student.overall_tier.replace("_", " ").toUpperCase()}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-right font-mono text-zinc-200">
+                        <td className="px-3 sm:px-5 py-3.5 text-right font-mono text-zinc-200 hidden sm:table-cell">
                           {student.avg_score.toFixed(1)}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-3 sm:px-5 py-3.5 hidden md:table-cell">
                           {isExpanded ? (
                             <div className="flex flex-wrap gap-2">
                               {skills.map(([skill, tier]) => (

@@ -59,7 +59,7 @@ export default function AnnouncementComposer() {
           required
         />
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value)}

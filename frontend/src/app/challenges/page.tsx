@@ -377,7 +377,7 @@ export default function ChallengesPage() {
       {/* ── Hero Section ── */}
       <div
         ref={heroRef}
-        className="relative mb-10 overflow-hidden rounded-3xl border border-white/[0.06] p-8 sm:p-10"
+        className="relative mb-10 overflow-hidden rounded-3xl border border-white/[0.06] p-5 sm:p-8 lg:p-10"
         style={{
           background:
             "linear-gradient(135deg, rgba(134,25,143,0.4) 0%, rgba(88,28,135,0.5) 30%, rgba(109,40,217,0.4) 60%, rgba(76,29,149,0.5) 100%)",
@@ -552,7 +552,7 @@ export default function ChallengesPage() {
         <div className="mb-10">
           <div
             ref={waitingCardRef}
-            className="relative overflow-hidden rounded-3xl border border-violet-500/25 bg-zinc-900/80 p-10"
+            className="relative overflow-hidden rounded-3xl border border-violet-500/25 bg-zinc-900/80 p-6 sm:p-10"
           >
             {/* Background decoration */}
             <div
@@ -813,11 +813,11 @@ export default function ChallengesPage() {
           {openChallenges.map((entry) => (
               <div
                 key={entry.challenge_id}
-                className="group relative flex items-center justify-between rounded-2xl border border-white/[0.08] bg-zinc-900/60 p-4 sm:p-5 transition-all hover:border-green-500/25 hover:bg-zinc-800/60 hover:shadow-[0_0_24px_rgba(34,197,94,0.06)] border-l-[3px] border-l-green-500/40"
+                className="group relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/[0.08] bg-zinc-900/60 p-4 sm:p-5 transition-all hover:border-green-500/25 hover:bg-zinc-800/60 hover:shadow-[0_0_24px_rgba(34,197,94,0.06)] border-l-[3px] border-l-green-500/40"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                   {/* Avatar */}
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white uppercase shadow-lg shadow-violet-500/20">
+                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white uppercase shadow-lg shadow-violet-500/20">
                     {entry.username.charAt(0)}
                   </div>
                   <div>
@@ -860,7 +860,7 @@ export default function ChallengesPage() {
                 <button
                   onClick={() => handleAcceptChallenge(entry.challenge_id)}
                   disabled={acceptingId === entry.challenge_id}
-                  className="rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_16px_rgba(34,197,94,0.2)] transition-all hover:shadow-[0_0_28px_rgba(34,197,94,0.35)] hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="self-end sm:self-center shrink-0 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_16px_rgba(34,197,94,0.2)] transition-all hover:shadow-[0_0_28px_rgba(34,197,94,0.35)] hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {acceptingId === entry.challenge_id ? (
                     <span className="flex items-center gap-2">
@@ -942,7 +942,7 @@ export default function ChallengesPage() {
                 onClick={() => router.push(`/challenges/${c.id}`)}
                 className="group w-full rounded-2xl border border-white/[0.08] bg-zinc-900/60 p-4 sm:p-5 text-left transition-all hover:border-blue-500/30 hover:bg-zinc-800/60 hover:shadow-[0_0_24px_rgba(59,130,246,0.08)] border-l-[3px] border-l-blue-500/50"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20">
                       <svg
@@ -968,7 +968,7 @@ export default function ChallengesPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {c.skill_target && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-zinc-300 ring-1 ring-white/[0.08]">
                         {skillLabel(c.skill_target)}
@@ -1063,7 +1063,7 @@ export default function ChallengesPage() {
                   onClick={() => handleViewResult(c.id)}
                   className={`group w-full rounded-2xl border border-white/[0.08] bg-zinc-900/60 p-4 sm:p-5 text-left transition-all hover:bg-zinc-800/60 border-l-[3px] ${accentClass}`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div
                         className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
@@ -1126,7 +1126,7 @@ export default function ChallengesPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       {c.skill_target && (
                         <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11px] font-medium text-zinc-300 ring-1 ring-white/[0.08]">
                           {skillLabel(c.skill_target)}
@@ -1162,7 +1162,7 @@ export default function ChallengesPage() {
         challenges.length === 0 &&
         !myPendingId &&
         openChallenges.length === 0 && (
-          <div className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-zinc-900/40 p-12 text-center">
+          <div className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-zinc-900/40 p-8 sm:p-12 text-center">
             {/* Subtle grid bg */}
             <div
               className="absolute inset-0 opacity-[0.02]"
@@ -1398,7 +1398,7 @@ function ResultInline({
         <div className="relative flex items-center justify-between">
           <div>
             <p
-              className={`text-3xl font-black tracking-tight ${headerText}`}
+              className={`text-2xl sm:text-3xl font-black tracking-tight ${headerText}`}
             >
               {isDraw ? "Draw!" : isWinner ? "Victory!" : "Defeat"}
             </p>
@@ -1430,7 +1430,7 @@ function ResultInline({
       </div>
 
       {/* Grade comparison */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row">
           {renderGrade("You", result.challenger_grade, isWinner || isDraw)}
           {renderGrade(
