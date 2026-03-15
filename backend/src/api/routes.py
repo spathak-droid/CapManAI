@@ -1,11 +1,12 @@
 """API route definitions for CapMan AI."""
 
+import base64
 import csv
 import io
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response as FastAPIResponse, StreamingResponse
 from sqlalchemy import func, select
 
 from src.api.schemas import (
@@ -32,6 +33,8 @@ from src.api.schemas import (
     RespondResponse,
     StreakInfo,
     StudentResponseEntry,
+    PeerReviewSummary,
+    StudentPeerReviewData,
     StudentRosterEntry,
     StudentSkillBreakdown,
     UserRank,
@@ -50,6 +53,7 @@ from src.db.models import (
     LessonChunk,
     LessonModule,
     LessonQuizItem,
+    PeerReview,
     PeerReviewAssignment,
     ProbeQuestion,
     Response,
@@ -90,6 +94,7 @@ from src.lessons.repository import (
 )
 from src.lessons.service import (
     attempt_chunk,
+    bulk_load_progress,
     calculate_new_badges,
     check_prerequisites_met,
     complete_chunk,
@@ -533,6 +538,7 @@ async def get_mtss_tiers(
         results.append({
             "user_id": student.id,
             "username": student.username,
+            "name": student.name,
             "overall_tier": classify_tier(avg).value,
             "avg_score": round(avg, 1),
             "skill_tiers": {k: v.value for k, v in skill_tiers.items()},
@@ -568,11 +574,11 @@ async def get_student_skills(
                 "attempts": row.attempts,
             }
         return StudentSkillBreakdown(
-            user_id=user_id, username=username, skills=skills
+            user_id=user_id, username=username, name=user_obj.name if user_obj else None, skills=skills
         )
 
     user_obj = await db.get(User, user_id)
-    return StudentSkillBreakdown(user_id=user_id, username=user_obj.username if user_obj else "unknown", skills={})
+    return StudentSkillBreakdown(user_id=user_id, username=user_obj.username if user_obj else "unknown", name=user_obj.name if user_obj else None, skills={})
 
 
 @router.get("/api/mtss/objectives")
@@ -694,13 +700,17 @@ async def get_lesson_modules(
     modules = await fetch_modules(db)
     if not modules:
         modules = list_modules()
+
+    # Bulk-load all progress for prerequisite checks (1 query instead of N)
+    progress_map = await bulk_load_progress(_user.id, db)
+
     results: list[LessonModuleSummary] = []
     for module in modules:
         locked = False
         locked_reason: str | None = None
         if module.prerequisite_ids:
             met, reason = await check_prerequisites_met(
-                _user.id, module.module_id, db
+                _user.id, module.module_id, db, progress_map=progress_map
             )
             if not met:
                 locked = True
@@ -1206,6 +1216,76 @@ async def get_student_responses(
     return entries
 
 
+@router.get("/api/educator/students/{user_id}/peer-reviews")
+async def get_student_peer_reviews(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> StudentPeerReviewData:
+    """Get peer review activity for a student (reviews given and received)."""
+    # Reviews given by this student
+    given_query = (
+        select(PeerReview, PeerReviewAssignment)
+        .join(PeerReviewAssignment, PeerReview.assignment_id == PeerReviewAssignment.id)
+        .where(PeerReviewAssignment.reviewer_id == user_id)
+    )
+    given_result = await db.execute(given_query)
+    given_rows = given_result.all()
+
+    reviews_given: list[PeerReviewSummary] = []
+    for review, assignment in given_rows:
+        reviewee = await db.get(User, assignment.reviewee_id)
+        reviews_given.append(PeerReviewSummary(
+            review_id=review.id,
+            assignment_id=review.assignment_id,
+            peer_name=reviewee.name or reviewee.username if reviewee else "Unknown",
+            technical_accuracy=review.technical_accuracy,
+            risk_awareness=review.risk_awareness,
+            strategy_fit=review.strategy_fit,
+            reasoning_clarity=review.reasoning_clarity,
+            overall_score=review.overall_score,
+            feedback_text=review.feedback_text,
+            helpfulness_rating=review.helpfulness_rating,
+            created_at=review.created_at.isoformat() if review.created_at else "",
+        ))
+
+    # Reviews received by this student
+    received_query = (
+        select(PeerReview, PeerReviewAssignment)
+        .join(PeerReviewAssignment, PeerReview.assignment_id == PeerReviewAssignment.id)
+        .where(PeerReviewAssignment.reviewee_id == user_id)
+    )
+    received_result = await db.execute(received_query)
+    received_rows = received_result.all()
+
+    reviews_received: list[PeerReviewSummary] = []
+    for review, assignment in received_rows:
+        reviewer = await db.get(User, assignment.reviewer_id)
+        reviews_received.append(PeerReviewSummary(
+            review_id=review.id,
+            assignment_id=review.assignment_id,
+            peer_name=reviewer.name or reviewer.username if reviewer else "Unknown",
+            technical_accuracy=review.technical_accuracy,
+            risk_awareness=review.risk_awareness,
+            strategy_fit=review.strategy_fit,
+            reasoning_clarity=review.reasoning_clarity,
+            overall_score=review.overall_score,
+            feedback_text=review.feedback_text,
+            helpfulness_rating=review.helpfulness_rating,
+            created_at=review.created_at.isoformat() if review.created_at else "",
+        ))
+
+    avg_given = sum(r.overall_score for r in reviews_given) / len(reviews_given) if reviews_given else 0.0
+    avg_received = sum(r.overall_score for r in reviews_received) / len(reviews_received) if reviews_received else 0.0
+
+    return StudentPeerReviewData(
+        reviews_given=reviews_given,
+        reviews_received=reviews_received,
+        avg_score_given=round(avg_given, 2),
+        avg_score_received=round(avg_received, 2),
+    )
+
+
 @router.post("/api/educator/feedback")
 async def submit_educator_feedback(
     req: EducatorFeedbackRequest,
@@ -1470,11 +1550,18 @@ async def send_educator_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recipient not found",
         )
+    image_data = None
+    image_content_type = None
+    if req.image_data_b64:
+        image_data = base64.b64decode(req.image_data_b64)
+        image_content_type = req.image_content_type or "image/png"
+
     msg = DirectMessage(
         sender_id=_user.id,
         recipient_id=req.recipient_id,
         content=req.content,
-        image_url=req.image_url,
+        image_data=image_data,
+        image_content_type=image_content_type,
     )
     db.add(msg)
     await db.commit()
@@ -1501,7 +1588,7 @@ async def send_educator_message(
         recipient_id=msg.recipient_id,
         recipient_name=recipient.name or recipient.username,
         content=msg.content,
-        image_url=msg.image_url,
+        image_url=f"/api/messages/image/{msg.id}" if msg.image_data else None,
         is_read=msg.is_read,
         created_at=msg.created_at.isoformat(),
     )
@@ -1609,7 +1696,7 @@ async def get_educator_thread(
                     (recipient.name or recipient.username) if recipient else "Unknown"
                 ),
                 content=msg.content,
-                image_url=msg.image_url,
+                image_url=f"/api/messages/image/{msg.id}" if msg.image_data else None,
                 is_read=msg.is_read,
                 created_at=msg.created_at.isoformat(),
             )
@@ -1632,11 +1719,19 @@ async def student_reply(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recipient not found",
         )
+
+    image_data = None
+    image_content_type = None
+    if req.image_data_b64:
+        image_data = base64.b64decode(req.image_data_b64)
+        image_content_type = req.image_content_type or "image/png"
+
     msg = DirectMessage(
         sender_id=_user.id,
         recipient_id=req.recipient_id,
         content=req.content,
-        image_url=req.image_url,
+        image_data=image_data,
+        image_content_type=image_content_type,
     )
     db.add(msg)
     await db.commit()
@@ -1663,7 +1758,7 @@ async def student_reply(
         recipient_id=msg.recipient_id,
         recipient_name=recipient.name or recipient.username,
         content=msg.content,
-        image_url=msg.image_url,
+        image_url=f"/api/messages/image/{msg.id}" if msg.image_data else None,
         is_read=msg.is_read,
         created_at=msg.created_at.isoformat(),
     )
@@ -1766,7 +1861,7 @@ async def student_thread(
                     (recipient.name or recipient.username) if recipient else "Unknown"
                 ),
                 content=msg.content,
-                image_url=msg.image_url,
+                image_url=f"/api/messages/image/{msg.id}" if msg.image_data else None,
                 is_read=msg.is_read,
                 created_at=msg.created_at.isoformat(),
             )
@@ -1911,10 +2006,7 @@ async def upload_message_image(
     file: UploadFile = File(...),
     _user: User = Depends(get_current_user),
 ) -> dict[str, str]:
-    """Upload an image for use in a message. Returns the URL."""
-    import os
-    import uuid
-
+    """Upload an image for use in a message. Returns base64-encoded data."""
     from fastapi import HTTPException, status
 
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -1931,21 +2023,37 @@ async def upload_message_image(
             detail="Image too large (max 5MB)",
         )
 
-    upload_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "uploads",
-        "messages",
+    b64 = base64.b64encode(contents).decode("ascii")
+    return {"image_data_b64": b64, "content_type": file.content_type or "image/png"}
+
+
+@router.get("/api/messages/image/{message_id}")
+async def get_message_image(
+    message_id: int,
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FastAPIResponse:
+    """Serve a message image from the database."""
+    from fastapi import HTTPException, status
+
+    result = await db.execute(
+        select(DirectMessage).where(DirectMessage.id == message_id)
     )
-    os.makedirs(upload_dir, exist_ok=True)
-
-    ext = os.path.splitext(file.filename or "image.png")[1] or ".png"
-    filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(upload_dir, filename)
-
-    with open(filepath, "wb") as f:
-        f.write(contents)
-
-    return {"image_url": f"/uploads/messages/{filename}"}
+    msg = result.scalar_one_or_none()
+    if not msg or not msg.image_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Image not found"
+        )
+    # Verify user is sender or recipient
+    if msg.sender_id != _user.id and msg.recipient_id != _user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
+        )
+    return FastAPIResponse(
+        content=msg.image_data,
+        media_type=msg.image_content_type or "image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get("/api/messages/unread-count")

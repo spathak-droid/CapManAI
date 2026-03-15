@@ -25,12 +25,20 @@ const SUGGESTION_CHIPS = [
   "How do MTSS tiers work?",
 ];
 
+const EDUCATOR_SUGGESTION_CHIPS = [
+  "How is this student doing?",
+  "What skills need improvement?",
+  "Suggest interventions",
+];
+
 export type AssistantPanelVariant = "sidebar" | "floating";
 
 interface AssistantPanelProps {
   isOpen: boolean;
   onClose: () => void;
   variant?: AssistantPanelVariant;
+  studentContextId?: number | null;
+  studentName?: string | null;
 }
 
 function formatTime(dateStr: string): string {
@@ -96,7 +104,7 @@ function TypingIndicator() {
   );
 }
 
-export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }: AssistantPanelProps) {
+export default function AssistantPanel({ isOpen, onClose, variant = "sidebar", studentContextId, studentName }: AssistantPanelProps) {
   const [conversations, setConversations] = useState<
     AssistantConversationListItem[]
   >([]);
@@ -234,7 +242,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }:
 
     setSending(true);
     try {
-      const res = await sendAssistantMessage(currentId, messagesToSend);
+      const res = await sendAssistantMessage(currentId, messagesToSend, studentContextId);
       if (currentId === null) {
         setCurrentId(res.conversation_id);
         setConversations((prev) => [
@@ -338,7 +346,9 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }:
               <h2 className="text-sm font-semibold bg-gradient-to-r from-blue-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
                 AI Assistant
               </h2>
-              <p className="text-[10px] text-zinc-500 tracking-wide">Powered by AI</p>
+              <p className="text-[10px] text-zinc-500 tracking-wide">
+                {studentName ? `Analyzing: ${studentName}` : "Powered by AI"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -505,7 +515,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar" }:
                       <p className="text-xs text-zinc-500 mb-5">Ask me anything about trading and learning</p>
                       {/* Suggestion chips */}
                       <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-                        {SUGGESTION_CHIPS.map((chip) => (
+                        {(studentContextId ? EDUCATOR_SUGGESTION_CHIPS : SUGGESTION_CHIPS).map((chip) => (
                           <button
                             key={chip}
                             type="button"

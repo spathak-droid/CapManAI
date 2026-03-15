@@ -9,7 +9,7 @@ from src.api.schemas import (
     PeerReviewOut,
     PeerReviewSubmitRequest,
 )
-from src.auth.dependencies import get_current_user
+from src.auth.dependencies import require_role
 from src.db.database import get_db
 from src.db.models import User
 from src.peer_review.service import (
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/peer-review", tags=["peer-review"])
 
 @router.get("/assignments")
 async def list_my_assignments(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db),
 ) -> list[PeerReviewAssignmentOut]:
     """List my review assignments (pending + completed)."""
@@ -47,7 +47,7 @@ async def list_my_assignments(
 @router.get("/assignments/{assignment_id}")
 async def get_assignment(
     assignment_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
     """Get assignment detail with response context."""
@@ -86,7 +86,7 @@ async def get_assignment(
 async def submit_peer_review(
     assignment_id: int,
     req: PeerReviewSubmitRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db),
 ) -> PeerReviewOut:
     """Submit a peer review for an assignment."""
@@ -125,7 +125,7 @@ async def submit_peer_review(
 
 @router.get("/received")
 async def list_received_reviews(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db),
 ) -> list[PeerReviewOut]:
     """Get reviews received on my responses."""
@@ -151,7 +151,7 @@ async def list_received_reviews(
 async def rate_review_helpfulness(
     review_id: int,
     req: HelpfulnessRatingRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, object]:
     """Rate a review's helpfulness (1-5)."""

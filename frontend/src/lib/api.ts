@@ -37,6 +37,7 @@ import type {
   DocumentIngestResponse,
   StudentRosterEntry,
   StudentResponseEntry,
+  StudentPeerReviewData,
   EducatorFeedbackOut,
   AnnouncementOut,
   ActivityFeedItem,
@@ -261,12 +262,17 @@ export async function getAssistantConversation(
 export async function sendAssistantMessage(
   conversationId: number | null,
   messages: AssistantMessagePayload[],
+  studentContextId?: number | null,
 ): Promise<{ conversation_id: number; message: AssistantMessagePayload }> {
   return request<{ conversation_id: number; message: AssistantMessagePayload }>(
     "/api/assistant/chat",
     {
       method: "POST",
-      body: JSON.stringify({ conversation_id: conversationId, messages }),
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        messages,
+        student_context_id: studentContextId ?? null,
+      }),
     },
   );
 }
@@ -468,6 +474,10 @@ export async function getStudentFeedback(userId: number): Promise<EducatorFeedba
   return request<EducatorFeedbackOut[]>(`/api/educator/students/${userId}/feedback`);
 }
 
+export async function fetchStudentPeerReviews(userId: number): Promise<StudentPeerReviewData> {
+  return request<StudentPeerReviewData>(`/api/educator/students/${userId}/peer-reviews`);
+}
+
 // --- Educator Export API ---
 
 export async function exportEducatorCSV(): Promise<void> {
@@ -538,10 +548,19 @@ export async function fetchEducatorThread(userId: number): Promise<DirectMessage
   return request<DirectMessageOut[]>(`/api/educator/messages/${userId}`);
 }
 
-export async function sendEducatorMessage(recipientId: number, content: string, imageUrl?: string): Promise<DirectMessageOut> {
+export async function sendEducatorMessage(
+  recipientId: number,
+  content: string,
+  imageData?: { image_data_b64: string; content_type: string },
+): Promise<DirectMessageOut> {
   return request<DirectMessageOut>("/api/educator/messages", {
     method: "POST",
-    body: JSON.stringify({ recipient_id: recipientId, content, image_url: imageUrl }),
+    body: JSON.stringify({
+      recipient_id: recipientId,
+      content,
+      image_data_b64: imageData?.image_data_b64,
+      image_content_type: imageData?.content_type,
+    }),
   });
 }
 
@@ -553,10 +572,19 @@ export async function fetchStudentThread(educatorId: number): Promise<DirectMess
   return request<DirectMessageOut[]>(`/api/messages/thread/${educatorId}`);
 }
 
-export async function sendStudentReply(recipientId: number, content: string, imageUrl?: string): Promise<DirectMessageOut> {
+export async function sendStudentReply(
+  recipientId: number,
+  content: string,
+  imageData?: { image_data_b64: string; content_type: string },
+): Promise<DirectMessageOut> {
   return request<DirectMessageOut>("/api/messages/reply", {
     method: "POST",
-    body: JSON.stringify({ recipient_id: recipientId, content, image_url: imageUrl }),
+    body: JSON.stringify({
+      recipient_id: recipientId,
+      content,
+      image_data_b64: imageData?.image_data_b64,
+      image_content_type: imageData?.content_type,
+    }),
   });
 }
 
@@ -564,7 +592,7 @@ export async function fetchEducatorsForStudent(): Promise<{ id: number; username
   return request("/api/messages/educators");
 }
 
-export async function uploadMessageImage(file: File): Promise<{ image_url: string }> {
+export async function uploadMessageImage(file: File): Promise<{ image_data_b64: string; content_type: string }> {
   const currentUser = auth.currentUser;
   const headers: Record<string, string> = {};
   if (currentUser) {

@@ -92,6 +92,7 @@ export interface ClassOverview {
 export interface StudentTierInfo {
   user_id: number;
   username: string;
+  name?: string | null;
   overall_tier: string;
   avg_score: number;
   skill_tiers: Record<string, string>;
@@ -255,6 +256,7 @@ export interface AssistantChatResponse {
 export interface StudentSkillBreakdown {
   user_id: number;
   username: string;
+  name?: string | null;
   skills: Record<string, { score: number; tier: string; attempts: number }>;
 }
 
@@ -366,6 +368,27 @@ export interface PeerReviewAssignmentDetail extends PeerReviewAssignment {
   scenario_situation?: string;
   scenario_question?: string;
   scenario_market_data?: Record<string, unknown>;
+}
+
+export interface PeerReviewSummary {
+  review_id: number;
+  assignment_id: number;
+  peer_name: string;
+  technical_accuracy: number;
+  risk_awareness: number;
+  strategy_fit: number;
+  reasoning_clarity: number;
+  overall_score: number;
+  feedback_text: string;
+  helpfulness_rating: number | null;
+  created_at: string;
+}
+
+export interface StudentPeerReviewData {
+  reviews_given: PeerReviewSummary[];
+  reviews_received: PeerReviewSummary[];
+  avg_score_given: number;
+  avg_score_received: number;
 }
 
 // --- Educator Student Roster Types ---

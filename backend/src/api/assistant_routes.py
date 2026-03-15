@@ -12,7 +12,8 @@ from src.api.schemas import (
     AssistantMessageOut,
     AssistantMessageSchema,
 )
-from src.assistant.llm import ASSISTANT_SYSTEM_PROMPT, chat_completion
+from src.assistant.context import fetch_student_analysis_context, format_student_context
+from src.assistant.llm import ASSISTANT_SYSTEM_PROMPT, EDUCATOR_SYSTEM_PROMPT, chat_completion
 from src.assistant.service import (
     append_messages,
     delete_conversation,
@@ -109,8 +110,18 @@ async def assistant_chat(
         last_user.content,
         db,
     )
+    # Choose system prompt and context based on role
+    if user.role == "educator":
+        system_prompt = EDUCATOR_SYSTEM_PROMPT
+        if body.student_context_id:
+            student_data = await fetch_student_analysis_context(db, body.student_context_id)
+            student_context = format_student_context(student_data)
+            system_prompt = f"{EDUCATOR_SYSTEM_PROMPT}\n\n---\n\n{student_context}"
+    else:
+        system_prompt = ASSISTANT_SYSTEM_PROMPT
+
     openrouter_messages = [
-        {"role": "system", "content": ASSISTANT_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         *[{"role": m.role, "content": m.content} for m in body.messages],
     ]
     assistant_content = await chat_completion(openrouter_messages)

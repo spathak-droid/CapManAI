@@ -113,7 +113,7 @@ export default function EducatorHome() {
       {/* 1. Welcome Header — always visible immediately */}
       <div className="animate-slide-up" style={{ animationDelay: "0ms" }}>
         <h1 className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-2xl sm:text-4xl font-bold tracking-tight">
-          Welcome back, {user?.username}
+          Welcome back, {user?.name || user?.username}
         </h1>
         <p className="text-zinc-500 mt-1 mb-8">Your class at a glance</p>
       </div>
@@ -322,7 +322,7 @@ export default function EducatorHome() {
                     className="border-b border-white/[0.04] hover:bg-white/[0.02]"
                   >
                     <td className="px-5 py-3.5 font-medium text-zinc-200">
-                      {student.username}
+                      {student.name || student.username}
                     </td>
                     <td className="px-5 py-3.5">
                       <span

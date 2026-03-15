@@ -23,6 +23,7 @@ import {
   getStudentRoster,
   getStudentResponses,
   getStudentFeedback,
+  fetchStudentPeerReviews,
   fetchAnnouncements,
   fetchActivityFeed,
   fetchEducatorThreads,
@@ -53,6 +54,7 @@ import type {
   RAGDocumentSummary,
   StudentRosterEntry,
   StudentResponseEntry,
+  StudentPeerReviewData,
   EducatorFeedbackOut,
   AnnouncementOut,
   ActivityFeedItem,
@@ -214,6 +216,14 @@ export function useStudentFeedbackList(userId: number | null) {
   return useSWR<EducatorFeedbackOut[]>(
     userId ? `educator-student-feedback-${userId}` : null,
     () => getStudentFeedback(userId!),
+    CACHE_OPTIONS,
+  );
+}
+
+export function useStudentPeerReviews(userId: number | null) {
+  return useSWR<StudentPeerReviewData>(
+    userId ? `educator-student-peer-reviews-${userId}` : null,
+    () => fetchStudentPeerReviews(userId!),
     CACHE_OPTIONS,
   );
 }

@@ -252,6 +252,7 @@ class AssistantChatRequest(BaseModel):
 
     conversation_id: int | None = None
     messages: list[AssistantMessageSchema]
+    student_context_id: int | None = None
 
 
 class AssistantChatResponse(BaseModel):
@@ -331,6 +332,7 @@ class StudentSkillBreakdown(BaseModel):
 
     user_id: int
     username: str
+    name: str | None = None
     skills: dict[str, dict[str, object]]  # skill_name -> {score, tier, attempts}
 
 
@@ -522,6 +524,29 @@ class HelpfulnessRatingRequest(BaseModel):
     rating: int = Field(ge=1, le=5)
 
 
+class PeerReviewSummary(BaseModel):
+    """A single peer review with peer info."""
+    review_id: int
+    assignment_id: int
+    peer_name: str
+    technical_accuracy: float
+    risk_awareness: float
+    strategy_fit: float
+    reasoning_clarity: float
+    overall_score: float
+    feedback_text: str
+    helpfulness_rating: int | None
+    created_at: str
+
+
+class StudentPeerReviewData(BaseModel):
+    """Peer review activity for a student."""
+    reviews_given: list[PeerReviewSummary]
+    reviews_received: list[PeerReviewSummary]
+    avg_score_given: float
+    avg_score_received: float
+
+
 # --- Educator Student Roster schemas ---
 
 
@@ -624,7 +649,8 @@ class DirectMessageCreate(BaseModel):
 
     recipient_id: int
     content: str
-    image_url: str | None = None
+    image_data_b64: str | None = None
+    image_content_type: str | None = None
 
 
 class DirectMessageOut(BaseModel):

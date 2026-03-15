@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePeerReviewAssignments, useReceivedReviews } from "@/lib/hooks";
 import { rateHelpfulness } from "@/lib/api";
 import type { PeerReviewDetail } from "@/lib/types";
@@ -138,6 +140,8 @@ function StarRating({
 }
 
 export default function PeerReviewPage() {
+  const { user: authUser, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("to-review");
   const {
     data: assignments,
@@ -193,6 +197,11 @@ export default function PeerReviewPage() {
     }, heroRef);
     return () => ctx.revert();
   }, []);
+
+  if (!authLoading && authUser && authUser.role !== "student") {
+    router.replace("/");
+    return null;
+  }
 
   async function handleRate(review: PeerReviewDetail, rating: number) {
     try {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStudentResponses, useStudentSkills } from "@/lib/hooks";
+import { useStudentAnalysis } from "@/contexts/StudentAnalysisContext";
+import { useStudentResponses, useStudentSkills, useStudentPeerReviews } from "@/lib/hooks";
 import { submitEducatorFeedback } from "@/lib/api";
 import type { StudentResponseEntry } from "@/lib/types";
 
@@ -226,12 +227,23 @@ export default function StudentDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const userId = params.id ? Number(params.id) : null;
 
+  const { setStudentContext, clearStudentContext } = useStudentAnalysis();
   const { data: skillData, isLoading: skillsLoading } = useStudentSkills(userId);
   const {
     data: responses,
     isLoading: responsesLoading,
     mutate: mutateResponses,
   } = useStudentResponses(userId);
+  const { data: peerReviewData, isLoading: peerReviewsLoading } = useStudentPeerReviews(userId);
+
+  useEffect(() => {
+    if (skillData && userId) {
+      setStudentContext(userId, skillData.name || skillData.username);
+    }
+    return () => {
+      clearStudentContext();
+    };
+  }, [skillData, userId, setStudentContext, clearStudentContext]);
 
   if (!authLoading && user?.role !== "educator") {
     router.replace("/");
@@ -294,11 +306,11 @@ export default function StudentDetailPage() {
                   "linear-gradient(135deg, #3b82f6 0%, #7c3aed 50%, #a855f7 100%)",
               }}
             >
-              {(skillData.username || "?")[0].toUpperCase()}
+              {(skillData.name || skillData.username || "?")[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
-                {skillData.username}
+                {skillData.name || skillData.username}
               </h1>
               <div className="mt-1 flex items-center gap-2">
                 <span
@@ -403,6 +415,78 @@ export default function StudentDetailPage() {
           ) : (
             <div className="card-glow p-10 text-center text-zinc-500">
               This student has not submitted any responses yet.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Peer Review Activity */}
+      {!peerReviewsLoading && peerReviewData && (
+        <div className="mb-10">
+          <h2 className="mb-4 text-xl font-semibold text-white">
+            Peer Review Activity
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 mb-6">
+            <div className="card-glow p-4">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">Avg Score Given</p>
+              <p className="text-2xl font-bold text-blue-400 mt-1">{peerReviewData.avg_score_given.toFixed(2)}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{peerReviewData.reviews_given.length} review{peerReviewData.reviews_given.length !== 1 ? "s" : ""}</p>
+            </div>
+            <div className="card-glow p-4">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">Avg Score Received</p>
+              <p className="text-2xl font-bold text-violet-400 mt-1">{peerReviewData.avg_score_received.toFixed(2)}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{peerReviewData.reviews_received.length} review{peerReviewData.reviews_received.length !== 1 ? "s" : ""}</p>
+            </div>
+          </div>
+
+          {peerReviewData.reviews_given.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Reviews Given</h3>
+              <div className="card-glow overflow-hidden">
+                {peerReviewData.reviews_given.map((r) => (
+                  <div key={r.review_id} className="border-b border-white/[0.04] px-5 py-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-200">{r.peer_name}</span>
+                      <span className={`text-sm font-semibold tabular-nums ${r.overall_score >= 4 ? "text-emerald-400" : r.overall_score >= 3 ? "text-amber-400" : "text-red-400"}`}>
+                        {r.overall_score.toFixed(1)}/5.0
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{r.feedback_text}</p>
+                    <p className="text-[10px] text-zinc-600 mt-1">{new Date(r.created_at).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {peerReviewData.reviews_received.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Reviews Received</h3>
+              <div className="card-glow overflow-hidden">
+                {peerReviewData.reviews_received.map((r) => (
+                  <div key={r.review_id} className="border-b border-white/[0.04] px-5 py-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-200">{r.peer_name}</span>
+                      <span className={`text-sm font-semibold tabular-nums ${r.overall_score >= 4 ? "text-emerald-400" : r.overall_score >= 3 ? "text-amber-400" : "text-red-400"}`}>
+                        {r.overall_score.toFixed(1)}/5.0
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{r.feedback_text}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] text-zinc-600">{new Date(r.created_at).toLocaleDateString()}</p>
+                      {r.helpfulness_rating && (
+                        <span className="text-[10px] text-amber-400">{"★".repeat(r.helpfulness_rating)}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {peerReviewData.reviews_given.length === 0 && peerReviewData.reviews_received.length === 0 && (
+            <div className="card-glow p-10 text-center text-zinc-500">
+              No peer review activity yet.
             </div>
           )}
         </div>

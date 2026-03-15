@@ -68,7 +68,7 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
               className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]"
             >
               <td className="sticky left-0 bg-zinc-900 px-3 sm:px-4 py-3 font-medium text-white whitespace-nowrap min-w-[100px]">
-                {student.username}
+                {student.name || student.username}
               </td>
               <td className="px-3 sm:px-4 py-3 text-center font-mono text-blue-400">
                 {student.avg_score.toFixed(1)}
@@ -79,7 +79,7 @@ export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {
                   <td
                     key={skill}
                     className="px-3 sm:px-4 py-3 text-center"
-                    title={`${student.username} / ${formatSkillName(skill)}: ${tier.replace("_", " ")}`}
+                    title={`${student.name || student.username} / ${formatSkillName(skill)}: ${tier.replace("_", " ")}`}
                   >
                     <span
                       className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold ${cellColor(tier)}`}

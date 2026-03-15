@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudentAnalysis } from "@/contexts/StudentAnalysisContext";
 import AssistantPanel from "@/components/AssistantPanel";
 import { gsap } from "@/lib/gsap";
 
@@ -9,6 +10,7 @@ const FAB_SIZE = 64;
 
 export default function FloatingAssistantWidget() {
   const { user } = useAuth();
+  const { studentContextId, studentName } = useStudentAnalysis();
   const [isOpen, setIsOpen] = useState(false);
   const fabRef = useRef<HTMLButtonElement>(null);
   const iconRef = useRef<SVGSVGElement>(null);
@@ -181,6 +183,8 @@ export default function FloatingAssistantWidget() {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         variant="floating"
+        studentContextId={studentContextId}
+        studentName={studentName}
       />
     </>
   );
