@@ -1884,6 +1884,22 @@ async def get_activity_feed(
     return items[:50]
 
 
+@router.get("/api/messages/educators")
+async def list_educators_for_student(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict[str, object]]:
+    """Return all educators so students can initiate conversations."""
+    result = await db.execute(
+        select(User).where(User.role == "educator").order_by(User.username)
+    )
+    educators = result.scalars().all()
+    return [
+        {"id": e.id, "username": e.username, "name": e.name}
+        for e in educators
+    ]
+
+
 @router.get("/api/messages/unread-count")
 async def get_unread_message_count(
     _user: User = Depends(get_current_user),

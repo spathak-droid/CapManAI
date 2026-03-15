@@ -560,6 +560,10 @@ export async function sendStudentReply(recipientId: number, content: string): Pr
   });
 }
 
+export async function fetchEducatorsForStudent(): Promise<{ id: number; username: string; name: string | null }[]> {
+  return request("/api/messages/educators");
+}
+
 export async function markMessageRead(messageId: number): Promise<void> {
   await request(`/api/messages/${messageId}/read`, {
     method: "PUT",

@@ -30,6 +30,7 @@ import {
   fetchStudentInbox,
   fetchStudentThread,
   fetchUnreadCount,
+  fetchEducatorsForStudent,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -260,6 +261,16 @@ export function useStudentThread(educatorId: number | null) {
     educatorId ? `student-thread-${educatorId}` : null,
     () => fetchStudentThread(educatorId!),
     { ...CACHE_OPTIONS, dedupingInterval: 30_000 },
+  );
+}
+
+// --- Educator list for students ---
+
+export function useEducatorsForStudent() {
+  return useSWR<{ id: number; username: string; name: string | null }[]>(
+    useAuthKey("educators-for-student"),
+    fetchEducatorsForStudent,
+    CACHE_OPTIONS,
   );
 }
 
