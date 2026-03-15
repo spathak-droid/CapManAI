@@ -46,6 +46,7 @@ class ScenarioParams(BaseModel):
     instrument_type: InstrumentType = "equity"
     complexity: int = 3
     skill_target: str = "price_action"
+    auto_regime: bool = False
 
     @field_validator("complexity")
     @classmethod

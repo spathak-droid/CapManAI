@@ -143,7 +143,10 @@ async def _call_openrouter(
         resp = await client.post(url, headers=headers, json=payload)
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"]  # type: ignore[no-any-return]
+        content = data["choices"][0]["message"]["content"]
+        if not content:
+            raise ValueError("LLM returned empty content")
+        return content  # type: ignore[no-any-return]
 
 
 class ProbingAgent:
@@ -244,6 +247,9 @@ class GradingAgent:
                 overall_score=overall,
                 feedback_text=str(raw["feedback_text"]),
             )
+        except json.JSONDecodeError as e:
+            logger.exception("LLM returned invalid JSON for grading: %s", e)
+            return _fallback_grade()
         except ValueError as e:
             if "API key" in str(e):
                 logger.error("Grading unavailable: %s", e)

@@ -382,6 +382,20 @@ class PeerReview(Base):
     assignment: Mapped["PeerReviewAssignment"] = relationship(back_populates="review")
 
 
+class EducatorFeedback(Base):
+    """Feedback left by an educator on a student's response."""
+
+    __tablename__ = "educator_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    educator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    response_id: Mapped[int] = mapped_column(ForeignKey("responses.id"), nullable=False)
+    feedback_text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class MatchmakingQueue(Base):
     """Queue entry for matchmaking users into challenges."""
 

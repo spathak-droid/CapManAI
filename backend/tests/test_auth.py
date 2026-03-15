@@ -2,7 +2,7 @@
 
 from collections.abc import AsyncGenerator, Generator
 from dataclasses import dataclass
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,6 +48,14 @@ def _override_get_current_user() -> _MockUser:
     return _current_mock_user
 
 
+def _make_empty_result() -> MagicMock:
+    """Build a mock result whose scalars().all() returns an empty list."""
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    result.scalar_one_or_none.return_value = None
+    return result
+
+
 async def _mock_get_db() -> AsyncGenerator[
     AsyncMock, None
 ]:
@@ -55,6 +63,8 @@ async def _mock_get_db() -> AsyncGenerator[
     mock_session = AsyncMock()
     mock_session.commit = AsyncMock()
     mock_session.refresh = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=_make_empty_result())
+    mock_session.get = AsyncMock(return_value=None)
     yield mock_session
 
 

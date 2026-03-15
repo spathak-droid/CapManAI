@@ -1,5 +1,7 @@
 """Peer review business logic."""
 
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,7 @@ from src.db.models import (
     PeerReviewAssignment,
     Response,
     Scenario,
+    SkillScore,
     User,
     XPLog,
 )
@@ -15,7 +18,10 @@ from src.gamification.xp import calculate_level
 from src.realtime.events import EventType, create_event
 from src.realtime.manager import manager
 
+logger = logging.getLogger(__name__)
+
 REVIEW_XP = 15
+_SKILL_PROXIMITY = 20.0  # points within which users are "similar level"
 
 
 async def submit_review(
@@ -143,3 +149,90 @@ async def get_assignment_detail(
         "response": response,
         "scenario": scenario,
     }
+
+
+async def auto_assign_peer_reviews(
+    db: AsyncSession,
+    response_id: int,
+    user_id: int,
+    skill_target: str,
+    num_reviewers: int = 1,
+) -> list[PeerReviewAssignment]:
+    """Automatically assign peer reviewers after a response is graded.
+
+    Finds users who have been scored on the same skill_target, preferring
+    those at a similar skill level (within ``_SKILL_PROXIMITY`` points).
+    Falls back to a wider search when not enough close-level peers exist.
+    """
+    # 1. Get current user's score on this skill (if any)
+    user_score: float | None = None
+    user_skill_row = await db.execute(
+        select(SkillScore).where(
+            SkillScore.user_id == user_id,
+            SkillScore.skill_id == skill_target,
+        )
+    )
+    user_skill = user_skill_row.scalar_one_or_none()
+    if user_skill is not None:
+        user_score = user_skill.score
+
+    # 2. Find candidate reviewers: students who have a SkillScore on the same
+    #    skill_target *and* are not the current user.
+    candidates_query = (
+        select(SkillScore)
+        .join(User, SkillScore.user_id == User.id)
+        .where(
+            SkillScore.skill_id == skill_target,
+            SkillScore.user_id != user_id,
+            User.role == "student",
+        )
+    )
+    result = await db.execute(candidates_query)
+    candidates = list(result.scalars().all())
+
+    if not candidates:
+        return []
+
+    # 3. Prefer similar-level users when we have a reference score.
+    if user_score is not None:
+        close = [
+            c for c in candidates
+            if abs(c.score - user_score) <= _SKILL_PROXIMITY
+        ]
+        if len(close) >= num_reviewers:
+            candidates = close
+
+    # 4. Sort by proximity (closest first) or by most recent activity
+    if user_score is not None:
+        candidates.sort(key=lambda c: abs(c.score - user_score))
+    selected = candidates[:num_reviewers]
+
+    # 5. Create assignments
+    assignments: list[PeerReviewAssignment] = []
+    for candidate in selected:
+        assignment = PeerReviewAssignment(
+            reviewer_id=candidate.user_id,
+            reviewee_id=user_id,
+            response_id=response_id,
+            status="pending",
+        )
+        db.add(assignment)
+        assignments.append(assignment)
+
+    if assignments:
+        await db.flush()
+
+        # Broadcast WebSocket events to assigned reviewers
+        for assignment in assignments:
+            event = create_event(
+                EventType.PEER_REVIEW_ASSIGNED,
+                {
+                    "assignment_id": assignment.id,
+                    "reviewer_id": assignment.reviewer_id,
+                    "reviewee_id": user_id,
+                    "response_id": response_id,
+                },
+            )
+            await manager.send_to_user(assignment.reviewer_id, event)
+
+    return assignments

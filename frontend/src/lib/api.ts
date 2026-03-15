@@ -33,6 +33,11 @@ import type {
   PeerReviewDetail,
   BadgesResponse,
   MySkillsResponse,
+  RAGDocumentSummary,
+  DocumentIngestResponse,
+  StudentRosterEntry,
+  StudentResponseEntry,
+  EducatorFeedbackOut,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -411,6 +416,79 @@ export async function fetchMyBadges(): Promise<BadgesResponse> {
 
 export async function fetchMySkills(): Promise<MySkillsResponse> {
   return request<MySkillsResponse>("/api/skills/me");
+}
+
+// --- RAG Document Management API ---
+
+export async function getRAGDocuments(): Promise<RAGDocumentSummary[]> {
+  return request<RAGDocumentSummary[]>("/api/rag/documents");
+}
+
+export async function ingestDocument(
+  sourceFile: string,
+  content: string,
+): Promise<DocumentIngestResponse> {
+  return request<DocumentIngestResponse>("/api/rag/ingest", {
+    method: "POST",
+    body: JSON.stringify({ source_file: sourceFile, content }),
+  });
+}
+
+export async function deleteRAGDocument(sourceFile: string): Promise<void> {
+  await request(`/api/rag/documents/${encodeURIComponent(sourceFile)}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Educator Student Roster API ---
+
+export async function getStudentRoster(): Promise<StudentRosterEntry[]> {
+  return request<StudentRosterEntry[]>("/api/educator/students");
+}
+
+export async function getStudentResponses(userId: number): Promise<StudentResponseEntry[]> {
+  return request<StudentResponseEntry[]>(`/api/educator/students/${userId}/responses`);
+}
+
+export async function submitEducatorFeedback(
+  responseId: number,
+  feedbackText: string,
+): Promise<EducatorFeedbackOut> {
+  return request<EducatorFeedbackOut>("/api/educator/feedback", {
+    method: "POST",
+    body: JSON.stringify({ response_id: responseId, feedback_text: feedbackText }),
+  });
+}
+
+export async function getStudentFeedback(userId: number): Promise<EducatorFeedbackOut[]> {
+  return request<EducatorFeedbackOut[]>(`/api/educator/students/${userId}/feedback`);
+}
+
+// --- Educator Export API ---
+
+export async function exportEducatorCSV(): Promise<void> {
+  const currentUser = auth.currentUser;
+  const headers: Record<string, string> = {};
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_URL}/api/educator/export/csv`, { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error");
+    throw new ApiError(res.status, body);
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "student_export.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export { ApiError };

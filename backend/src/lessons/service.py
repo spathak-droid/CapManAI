@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import User, UserChunkProgress, UserStreak
+from src.db.models import LessonChunk, LessonModule, User, UserChunkProgress, UserStreak
 from src.gamification.xp import calculate_level
 
 MASTERY_THRESHOLD = 80.0
@@ -1882,6 +1882,82 @@ async def get_user_state(user_id: int, db: AsyncSession) -> UserStreak:
         await db.commit()
         await db.refresh(streak_row)
     return streak_row
+
+
+async def check_prerequisites_met(
+    user_id: int, module_id: str, db: AsyncSession
+) -> tuple[bool, str | None]:
+    """Check if a user has mastered all prerequisite modules.
+
+    Returns (met, reason) where met is True if all prerequisites are satisfied
+    (or there are none), and reason describes which prerequisite is unmet.
+    """
+    # Try DB first for the module's prerequisite_ids
+    result = await db.execute(
+        select(LessonModule.prerequisite_ids).where(
+            LessonModule.module_id == module_id
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row is not None:
+        prereq_ids: list[str] = row or []
+    else:
+        # Fallback to in-memory definitions
+        module = MODULES.get(module_id)
+        if module is None:
+            return True, None
+        prereq_ids = module.prerequisite_ids
+
+    if not prereq_ids:
+        return True, None
+
+    for prereq_module_id in prereq_ids:
+        # Get all chunk_ids for the prerequisite module (DB first, fallback in-memory)
+        chunk_result = await db.execute(
+            select(LessonChunk.chunk_id).where(
+                LessonChunk.module_id == prereq_module_id
+            )
+        )
+        chunk_ids = [r[0] for r in chunk_result.all()]
+        if not chunk_ids:
+            # Fallback to in-memory
+            prereq_mod = MODULES.get(prereq_module_id)
+            if prereq_mod is None:
+                continue
+            chunk_ids = prereq_mod.chunk_ids
+
+        if not chunk_ids:
+            continue
+
+        # Check that ALL chunks in the prerequisite module are mastered (80%+)
+        for chunk_id in chunk_ids:
+            prog_result = await db.execute(
+                select(UserChunkProgress).where(
+                    UserChunkProgress.user_id == user_id,
+                    UserChunkProgress.chunk_id == chunk_id,
+                )
+            )
+            progress = prog_result.scalar_one_or_none()
+            if progress is None or not progress.mastered:
+                # Look up prereq title for a helpful message
+                prereq_title = prereq_module_id
+                title_result = await db.execute(
+                    select(LessonModule.title).where(
+                        LessonModule.module_id == prereq_module_id
+                    )
+                )
+                title_row = title_result.scalar_one_or_none()
+                if title_row:
+                    prereq_title = title_row
+                elif prereq_module_id in MODULES:
+                    prereq_title = MODULES[prereq_module_id].title
+                reason = (
+                    f"Prerequisite not met: master all chunks in "
+                    f"'{prereq_title}' (module {prereq_module_id}) first."
+                )
+                return False, reason
+
+    return True, None
 
 
 def list_modules() -> list[ModuleDef]:

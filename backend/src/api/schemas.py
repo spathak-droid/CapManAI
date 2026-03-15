@@ -55,6 +55,16 @@ class ProbeResponse(BaseModel):
     questions: list[str]
 
 
+class GenerateScenarioResponse(BaseModel):
+    """Response from scenario generation, includes the persisted scenario_id."""
+
+    scenario_id: int
+    situation: str
+    market_data: dict[str, object]
+    question: str
+    multiple_choice: dict[str, object] | None = None
+
+
 class GradeRequest(BaseModel):
     """Request body for grading a student response."""
 
@@ -63,6 +73,7 @@ class GradeRequest(BaseModel):
     student_response: str
     probe_exchanges: list[ProbeExchange]
     skill_target: str = "price_action"
+    complexity: int = 3
 
 
 class GradeResult(BaseModel):
@@ -131,6 +142,8 @@ class LessonModuleSummary(BaseModel):
     prerequisite_ids: list[str]
     chunk_ids: list[str]
     chunk_count: int
+    locked: bool = False
+    locked_reason: str | None = None
 
 
 class LessonModuleDetail(LessonModuleSummary):
@@ -359,6 +372,14 @@ class DocumentIngestResponse(BaseModel):
     chunks_created: int
 
 
+class RAGDocumentSummary(BaseModel):
+    """Summary of an ingested RAG document (grouped by source_file)."""
+
+    source_file: str
+    chunk_count: int
+    created_at: str
+
+
 class RAGSearchResult(BaseModel):
     """A single RAG search result."""
 
@@ -376,6 +397,27 @@ class RAGSearchResponse(BaseModel):
 
 
 # --- Challenge schemas ---
+
+
+class ScenarioHistoryItem(BaseModel):
+    """A single recent scenario in the user's history."""
+
+    scenario_id: int
+    market_regime: str
+    skill_target: str
+    complexity: int
+    situation: str
+    question: str
+    created_at: str
+
+
+class ScenarioHistoryResponse(BaseModel):
+    """Scenario diversity history for a user."""
+
+    total_scenarios: int
+    regime_distribution: dict[str, int]
+    skill_distribution: dict[str, int]
+    recent_scenarios: list[ScenarioHistoryItem]
 
 
 class QueueJoinRequest(BaseModel):
@@ -478,6 +520,56 @@ class HelpfulnessRatingRequest(BaseModel):
     """Request body for rating review helpfulness."""
 
     rating: int = Field(ge=1, le=5)
+
+
+# --- Educator Student Roster schemas ---
+
+
+class StudentRosterEntry(BaseModel):
+    """A single student in the educator's roster view."""
+
+    id: int
+    username: str
+    name: str | None = None
+    xp_total: int
+    level: int
+    overall_tier: str
+    avg_skill_score: float
+    response_count: int
+
+
+class StudentResponseEntry(BaseModel):
+    """A student's response with grade and feedback info."""
+
+    response_id: int
+    scenario_situation: str
+    answer_text: str
+    overall_score: float | None = None
+    technical_accuracy: float | None = None
+    risk_awareness: float | None = None
+    strategy_fit: float | None = None
+    reasoning_clarity: float | None = None
+    grade_feedback: str | None = None
+    educator_feedback: str | None = None
+    educator_feedback_id: int | None = None
+    created_at: str
+
+
+class EducatorFeedbackRequest(BaseModel):
+    """Request body for submitting educator feedback."""
+
+    response_id: int
+    feedback_text: str = Field(min_length=1)
+
+
+class EducatorFeedbackOut(BaseModel):
+    """Educator feedback returned from the API."""
+
+    id: int
+    educator_id: int
+    response_id: int
+    feedback_text: str
+    created_at: str
 
 
 # --- Badge schemas ---

@@ -186,6 +186,7 @@ class TestGenerateEndpoint:
 
         assert response.status_code == 200
         data = response.json()
+        assert "scenario_id" in data
         assert "situation" in data
         assert "market_data" in data
         assert "question" in data

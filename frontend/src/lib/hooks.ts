@@ -19,6 +19,10 @@ import {
   getReceivedReviews,
   fetchMyBadges,
   fetchMySkills,
+  getRAGDocuments,
+  getStudentRoster,
+  getStudentResponses,
+  getStudentFeedback,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -38,6 +42,10 @@ import type {
   PeerReviewDetail,
   BadgesResponse,
   MySkillsResponse,
+  RAGDocumentSummary,
+  StudentRosterEntry,
+  StudentResponseEntry,
+  EducatorFeedbackOut,
 } from "./types";
 
 // SWR config: dedupe requests within 5 minutes, don't refetch on window focus
@@ -166,4 +174,32 @@ export function useMyBadges() {
 
 export function useMySkills() {
   return useSWR<MySkillsResponse>("my-skills", fetchMySkills, CACHE_OPTIONS);
+}
+
+// --- Educator Student Roster hooks ---
+
+export function useStudentRoster() {
+  return useSWR<StudentRosterEntry[]>("educator-students", getStudentRoster, CACHE_OPTIONS);
+}
+
+export function useStudentResponses(userId: number | null) {
+  return useSWR<StudentResponseEntry[]>(
+    userId ? `educator-student-responses-${userId}` : null,
+    () => getStudentResponses(userId!),
+    CACHE_OPTIONS,
+  );
+}
+
+export function useStudentFeedbackList(userId: number | null) {
+  return useSWR<EducatorFeedbackOut[]>(
+    userId ? `educator-student-feedback-${userId}` : null,
+    () => getStudentFeedback(userId!),
+    CACHE_OPTIONS,
+  );
+}
+
+// --- RAG Document hooks ---
+
+export function useRAGDocuments() {
+  return useSWR<RAGDocumentSummary[]>("rag-documents", getRAGDocuments, CACHE_OPTIONS);
 }

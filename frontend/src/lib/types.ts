@@ -368,6 +368,55 @@ export interface PeerReviewAssignmentDetail extends PeerReviewAssignment {
   scenario_market_data?: Record<string, unknown>;
 }
 
+// --- Educator Student Roster Types ---
+
+export interface StudentRosterEntry {
+  id: number;
+  username: string;
+  name: string | null;
+  xp_total: number;
+  level: number;
+  overall_tier: string;
+  avg_skill_score: number;
+  response_count: number;
+}
+
+export interface StudentResponseEntry {
+  response_id: number;
+  scenario_situation: string;
+  answer_text: string;
+  overall_score: number | null;
+  technical_accuracy: number | null;
+  risk_awareness: number | null;
+  strategy_fit: number | null;
+  reasoning_clarity: number | null;
+  grade_feedback: string | null;
+  educator_feedback: string | null;
+  educator_feedback_id: number | null;
+  created_at: string;
+}
+
+export interface EducatorFeedbackOut {
+  id: number;
+  educator_id: number;
+  response_id: number;
+  feedback_text: string;
+  created_at: string;
+}
+
+// --- RAG Document Types ---
+
+export interface RAGDocumentSummary {
+  source_file: string;
+  chunk_count: number;
+  created_at: string;
+}
+
+export interface DocumentIngestResponse {
+  doc_id: string;
+  chunks_created: number;
+}
+
 // --- Badge Types ---
 
 export interface BadgeInfo {

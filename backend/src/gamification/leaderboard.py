@@ -33,7 +33,7 @@ async def get_leaderboard(db: AsyncSession, limit: int = 20) -> list[Leaderboard
         List of leaderboard entries sorted by XP descending.
     """
     result = await db.execute(
-        select(User).where(User.xp_total > 0).order_by(User.xp_total.desc()).limit(limit)
+        select(User).where(User.xp_total > 0, User.role == "student").order_by(User.xp_total.desc()).limit(limit)
     )
     users = result.scalars().all()
     return [

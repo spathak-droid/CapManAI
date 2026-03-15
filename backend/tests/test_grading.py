@@ -201,6 +201,7 @@ class TestRespondEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert "response_id" in data
+        assert isinstance(data["response_id"], int)
         assert data["status"] == "received"
 
 

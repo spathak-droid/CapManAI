@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardOverview, useMTSSTiers } from "@/lib/hooks";
+import { exportEducatorCSV } from "@/lib/api";
 import MTSSHeatmap from "@/components/MTSSHeatmap";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const { data: overview, error: overviewError, isLoading: overviewLoading } = useDashboardOverview();
   const { data: students, error: studentsError, isLoading: studentsLoading } = useMTSSTiers();
@@ -75,14 +77,32 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* ── Page Header ── */}
-      <div className="mb-10">
-        <h1 className="mb-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-          Educator Dashboard
-        </h1>
-        <p className="text-zinc-500 text-base">
-          MTSS-powered overview of student progress. Monitor tiers, track skill
-          development, and identify students who need support.
-        </p>
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="mb-2 text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+            Educator Dashboard
+          </h1>
+          <p className="text-zinc-500 text-base">
+            MTSS-powered overview of student progress. Monitor tiers, track skill
+            development, and identify students who need support.
+          </p>
+        </div>
+        <button
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true);
+            try {
+              await exportEducatorCSV();
+            } catch {
+              // silently handle — user sees no download
+            } finally {
+              setExporting(false);
+            }
+          }}
+          className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+        >
+          {exporting ? "Exporting..." : "Export CSV"}
+        </button>
       </div>
 
       {/* ── Loading State ── */}

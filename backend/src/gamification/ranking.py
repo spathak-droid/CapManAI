@@ -78,7 +78,7 @@ async def recalculate_rankings(db: AsyncSession) -> None:
     }
 
     # Gather all users
-    users_result = await db.execute(select(User))
+    users_result = await db.execute(select(User).where(User.role == "student"))
     users = users_result.scalars().all()
 
     if not users:

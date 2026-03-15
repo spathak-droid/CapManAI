@@ -1,8 +1,11 @@
 """API route definitions for CapMan AI."""
 
+import csv
+import io
 from typing import Any
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
 from src.api.schemas import (
@@ -10,6 +13,9 @@ from src.api.schemas import (
     BadgeInfo,
     ChunkCompleteResponse,
     DynamicLeaderboardEntry,
+    EducatorFeedbackOut,
+    EducatorFeedbackRequest,
+    GenerateScenarioResponse,
     GradeRequest,
     GradeResponse,
     InterventionRecommendation,
@@ -25,6 +31,8 @@ from src.api.schemas import (
     RespondRequest,
     RespondResponse,
     StreakInfo,
+    StudentResponseEntry,
+    StudentRosterEntry,
     StudentSkillBreakdown,
     UserRank,
 )
@@ -34,11 +42,16 @@ from src.auth.dependencies import get_current_user, require_role
 from src.db.database import get_db
 from src.db.models import (
     Challenge,
+    DocumentChunk,
+    EducatorFeedback,
+    Grade,
     LessonChunk,
     LessonModule,
     LessonQuizItem,
     PeerReviewAssignment,
+    ProbeQuestion,
     Response,
+    Scenario,
     SkillScore,
     User,
     XPLog,
@@ -52,14 +65,15 @@ from src.gamification.ranking import (
     get_user_rank,
     recalculate_rankings,
 )
-from src.gamification.xp import calculate_level, xp_to_next_level
+from src.gamification.xp import calculate_level, calculate_xp, xp_to_next_level
 from src.grading.agent import GradingAgent, ProbingAgent
 from src.mtss.classifier import (
     DEMO_STUDENTS,
     ClassOverview,
     MTSSTier,
+    classify_from_db,
     classify_tier,
-    get_class_overview,
+    get_class_overview_from_db,
     get_demo_students,
     get_student_tiers,
 )
@@ -77,6 +91,7 @@ from src.lessons.repository import (
 from src.lessons.service import (
     attempt_chunk,
     calculate_new_badges,
+    check_prerequisites_met,
     complete_chunk,
     get_chunk,
     get_module,
@@ -89,12 +104,21 @@ from src.api.schemas import (
     DocumentIngestRequest,
     DocumentIngestResponse,
     LessonScenarioRequest,
+    RAGDocumentSummary,
     RAGSearchResponse,
     RAGSearchResult,
+    ScenarioHistoryItem,
+    ScenarioHistoryResponse,
 )
 from src.rag.ingest import _generate_doc_id, ingest_document
 from src.rag.retriever import get_context, invalidate_chunk_cache, search as rag_search
 from src.rag.seed import seed_rag_documents
+from src.scenario_gen.diversity import (
+    get_regime_distribution,
+    get_skill_distribution,
+    should_override_regime,
+    suggest_regime,
+)
 from src.scenario_gen.generator import (
     LessonContext,
     ScenarioGenerator,
@@ -130,10 +154,46 @@ async def generate_scenario(
     params: ScenarioParams,
     _user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> ScenarioResult:
-    """Generate a new trading scenario using LLM."""
+) -> GenerateScenarioResponse:
+    """Generate a new trading scenario using LLM and persist to DB.
+
+    When ``auto_regime`` is True, the endpoint checks the user's past
+    regime distribution and overrides ``market_regime`` with the
+    least-seen regime if significant imbalance is detected.
+    """
+    if params.auto_regime:
+        dist = await get_regime_distribution(db, _user.id)
+        if should_override_regime(dist):
+            suggested = await suggest_regime(db, _user.id)
+            params = params.model_copy(update={"market_regime": suggested})  # type: ignore[assignment]
     rag_ctx = await get_context(db, query=params.skill_target, top_k=3)
-    return await _scenario_generator.generate(params, rag_context=rag_ctx)
+    result = await _scenario_generator.generate(params, rag_context=rag_ctx)
+
+    # Persist the scenario to DB
+    scenario = Scenario(
+        market_regime=params.market_regime,
+        instrument_type=params.instrument_type,
+        complexity=params.complexity,
+        skill_target=params.skill_target,
+        situation=result.situation,
+        market_data=result.market_data,
+        question=result.question,
+    )
+    db.add(scenario)
+    await db.commit()
+    await db.refresh(scenario)
+
+    mc_dict = None
+    if result.multiple_choice is not None:
+        mc_dict = result.multiple_choice.model_dump()
+
+    return GenerateScenarioResponse(
+        scenario_id=scenario.id,
+        situation=result.situation,
+        market_data=result.market_data,
+        question=result.question,
+        multiple_choice=mc_dict,
+    )
 
 
 @router.post("/api/scenarios/generate-lesson")
@@ -148,15 +208,64 @@ async def generate_lesson_scenario(
     return await _scenario_generator.generate_lesson(lesson, rag_context=rag_ctx)
 
 
+@router.get("/api/scenarios/history")
+async def get_scenario_history(
+    _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ScenarioHistoryResponse:
+    """Return the user's scenario diversity history."""
+    regime_dist = await get_regime_distribution(db, _user.id)
+    skill_dist = await get_skill_distribution(db, _user.id)
+
+    stmt = (
+        select(Scenario)
+        .join(Response, Response.scenario_id == Scenario.id)
+        .where(Response.user_id == _user.id)
+        .order_by(Scenario.created_at.desc())
+        .limit(10)
+    )
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    recent = [
+        ScenarioHistoryItem(
+            scenario_id=s.id,
+            market_regime=s.market_regime,
+            skill_target=s.skill_target,
+            complexity=s.complexity,
+            situation=s.situation,
+            question=s.question,
+            created_at=s.created_at.isoformat(),
+        )
+        for s in rows
+    ]
+
+    total = sum(regime_dist.values())
+    return ScenarioHistoryResponse(
+        total_scenarios=total,
+        regime_distribution=regime_dist,
+        skill_distribution=skill_dist,
+        recent_scenarios=recent,
+    )
+
+
 @router.post("/api/scenarios/respond")
 async def respond_to_scenario(
     req: RespondRequest,
     _user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> RespondResponse:
-    """Submit a response to a trading scenario."""
-    mock_response_id = (req.scenario_id * 1000) + req.user_id
+    """Submit a response to a trading scenario and persist to DB."""
+    response = Response(
+        user_id=req.user_id,
+        scenario_id=req.scenario_id,
+        answer_text=req.answer_text,
+    )
+    db.add(response)
+    await db.commit()
+    await db.refresh(response)
     return RespondResponse(
-        response_id=mock_response_id, status="received"
+        response_id=response.id, status="received"
     )
 
 
@@ -188,7 +297,33 @@ async def grade_response(
         probe_exchanges=req.probe_exchanges,
         rag_context=rag_ctx if rag_ctx else None,
     )
-    xp_earned = int(result.overall_score * 10)
+    xp_earned = calculate_xp(
+        overall_score=result.overall_score,
+        complexity=req.complexity,
+    )
+
+    # Save Grade record linked to the response
+    grade_record = Grade(
+        response_id=req.response_id,
+        technical_accuracy=result.technical_accuracy,
+        risk_awareness=result.risk_awareness,
+        strategy_fit=result.strategy_fit,
+        reasoning_clarity=result.reasoning_clarity,
+        overall_score=result.overall_score,
+        feedback_text=result.feedback_text,
+    )
+    db.add(grade_record)
+
+    # Save ProbeQuestion records for each probe exchange
+    for exchange in req.probe_exchanges:
+        probe = ProbeQuestion(
+            response_id=req.response_id,
+            question_text=exchange.question,
+            answer_text=exchange.answer,
+        )
+        db.add(probe)
+
+    await db.commit()
 
     # Persist XP to the current user and leaderboard when we have a DB user
     try:
@@ -232,6 +367,21 @@ async def grade_response(
             await db.commit()
     except Exception:
         pass  # Don't fail the grade response if skill persistence fails
+
+    # Auto-assign peer reviews (best-effort, don't block grading)
+    try:
+        if isinstance(_user, User):
+            from src.peer_review.service import auto_assign_peer_reviews
+
+            await auto_assign_peer_reviews(
+                db,
+                response_id=req.response_id,
+                user_id=_user.id,
+                skill_target=req.skill_target,
+            )
+            await db.commit()
+    except Exception:
+        pass  # Don't fail the grade response if peer assignment fails
 
     return GradeResponse(
         technical_accuracy=result.technical_accuracy,
@@ -351,9 +501,24 @@ async def get_my_rank(
 @router.get("/api/mtss/tiers")
 async def get_mtss_tiers(
     _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, object]]:
-    """Get MTSS tier classifications for all demo students."""
-    results: list[dict[str, object]] = []
+    """Get MTSS tier classifications for all students (DB with demo fallback)."""
+    # Try real DB students first
+    real_students = await db.execute(
+        select(User).where(User.role == "student")
+    )
+    student_rows = real_students.scalars().all()
+
+    if student_rows:
+        results: list[dict[str, object]] = []
+        for student in student_rows:
+            classification = await classify_from_db(db, student.id)
+            results.append(classification)
+        return results
+
+    # Fallback to demo data when no real students exist
+    results = []
     for student in DEMO_STUDENTS:
         skill_tiers = get_student_tiers(student.skill_scores)
         scores = list(student.skill_scores.values())
@@ -379,9 +544,10 @@ async def get_mtss_tiers(
 @router.get("/api/dashboard/overview")
 async def get_dashboard_overview(
     _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
 ) -> ClassOverview:
-    """Get dashboard overview data with tier distribution."""
-    return get_class_overview(DEMO_STUDENTS)
+    """Get dashboard overview data with tier distribution (DB with demo fallback)."""
+    return await get_class_overview_from_db(db)
 
 
 @router.get("/api/mtss/student/{user_id}/skills")
@@ -582,20 +748,33 @@ async def get_lesson_modules(
     modules = await fetch_modules(db)
     if not modules:
         modules = list_modules()
-    return [
-        LessonModuleSummary(
-            module_id=module.module_id,
-            title=module.title,
-            track=module.track,
-            order=module.order,
-            objective=module.objective,
-            estimated_minutes=module.estimated_minutes,
-            prerequisite_ids=module.prerequisite_ids,
-            chunk_ids=module.chunk_ids,
-            chunk_count=len(module.chunk_ids),
+    results: list[LessonModuleSummary] = []
+    for module in modules:
+        locked = False
+        locked_reason: str | None = None
+        if module.prerequisite_ids:
+            met, reason = await check_prerequisites_met(
+                _user.id, module.module_id, db
+            )
+            if not met:
+                locked = True
+                locked_reason = reason
+        results.append(
+            LessonModuleSummary(
+                module_id=module.module_id,
+                title=module.title,
+                track=module.track,
+                order=module.order,
+                objective=module.objective,
+                estimated_minutes=module.estimated_minutes,
+                prerequisite_ids=module.prerequisite_ids,
+                chunk_ids=module.chunk_ids,
+                chunk_count=len(module.chunk_ids),
+                locked=locked,
+                locked_reason=locked_reason,
+            )
         )
-        for module in modules
-    ]
+    return results
 
 
 @router.get("/api/lessons/modules/{module_id}")
@@ -614,6 +793,14 @@ async def get_lesson_module_detail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson module not found",
+        )
+    met, reason = await check_prerequisites_met(_user.id, module_id, db)
+    if not met:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=reason or "Prerequisites not met",
         )
     chunks = await fetch_chunks_for_module(db, module_id)
     if not chunks:
@@ -649,6 +836,14 @@ async def get_lesson_chunk(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
         )
+    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
+    if not met:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=reason or "Prerequisites not met",
+        )
     response = _to_chunk_response(chunk)
     rag_ctx = await get_context(db, query=chunk.learning_goal, top_k=3, for_display=True)
     response.supplementary_context = rag_ctx
@@ -672,6 +867,14 @@ async def attempt_lesson_chunk(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
+        )
+    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
+    if not met:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=reason or "Prerequisites not met",
         )
 
     answers_by_item = {
@@ -708,6 +911,14 @@ async def complete_lesson_chunk(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
+        )
+    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
+    if not met:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=reason or "Prerequisites not met",
         )
 
     result = await complete_chunk(_user.id, chunk_id, db)
@@ -961,6 +1172,252 @@ async def get_lessons_catalog_chunk(
 
 
 # ---------------------------------------------------------------------------
+# Educator Student Roster & Feedback endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/api/educator/students")
+async def get_educator_students(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[StudentRosterEntry]:
+    """List all students with aggregated stats for the educator roster."""
+    # Get all students
+    result = await db.execute(
+        select(User).where(User.role == "student")
+    )
+    students = result.scalars().all()
+
+    roster: list[StudentRosterEntry] = []
+    for student in students:
+        # Get response count
+        resp_count_result = await db.execute(
+            select(func.count()).select_from(Response).where(
+                Response.user_id == student.id
+            )
+        )
+        response_count = int(resp_count_result.scalar_one() or 0)
+
+        # Get skill scores for tier calculation
+        skill_result = await db.execute(
+            select(SkillScore).where(SkillScore.user_id == student.id)
+        )
+        skill_rows = skill_result.scalars().all()
+        scores = [row.score for row in skill_rows]
+        avg_score = sum(scores) / len(scores) if scores else 0.0
+        overall_tier = classify_tier(avg_score).value
+
+        roster.append(
+            StudentRosterEntry(
+                id=student.id,
+                username=student.username,
+                name=student.name,
+                xp_total=student.xp_total or 0,
+                level=student.level or 1,
+                overall_tier=overall_tier,
+                avg_skill_score=round(avg_score, 1),
+                response_count=response_count,
+            )
+        )
+    return roster
+
+
+@router.get("/api/educator/students/{user_id}/responses")
+async def get_student_responses(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[StudentResponseEntry]:
+    """Get a student's recent responses with grades and educator feedback."""
+    result = await db.execute(
+        select(Response)
+        .where(Response.user_id == user_id)
+        .order_by(Response.created_at.desc())
+        .limit(20)
+    )
+    responses = result.scalars().all()
+
+    entries: list[StudentResponseEntry] = []
+    for resp in responses:
+        # Get scenario
+        scenario = await db.get(Scenario, resp.scenario_id)
+        situation = (scenario.situation[:200] + "...") if scenario and len(scenario.situation) > 200 else (scenario.situation if scenario else "")
+
+        # Get grade
+        grade_result = await db.execute(
+            select(Grade).where(Grade.response_id == resp.id)
+        )
+        grade = grade_result.scalar_one_or_none()
+
+        # Get educator feedback
+        fb_result = await db.execute(
+            select(EducatorFeedback).where(
+                EducatorFeedback.response_id == resp.id
+            ).order_by(EducatorFeedback.created_at.desc()).limit(1)
+        )
+        feedback = fb_result.scalar_one_or_none()
+
+        entries.append(
+            StudentResponseEntry(
+                response_id=resp.id,
+                scenario_situation=situation,
+                answer_text=resp.answer_text,
+                overall_score=grade.overall_score if grade else None,
+                technical_accuracy=grade.technical_accuracy if grade else None,
+                risk_awareness=grade.risk_awareness if grade else None,
+                strategy_fit=grade.strategy_fit if grade else None,
+                reasoning_clarity=grade.reasoning_clarity if grade else None,
+                grade_feedback=grade.feedback_text if grade else None,
+                educator_feedback=feedback.feedback_text if feedback else None,
+                educator_feedback_id=feedback.id if feedback else None,
+                created_at=resp.created_at.isoformat(),
+            )
+        )
+    return entries
+
+
+@router.post("/api/educator/feedback")
+async def submit_educator_feedback(
+    req: EducatorFeedbackRequest,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> EducatorFeedbackOut:
+    """Submit educator feedback on a student response."""
+    # Verify response exists
+    response = await db.get(Response, req.response_id)
+    if response is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Response not found",
+        )
+
+    feedback = EducatorFeedback(
+        educator_id=_user.id,
+        response_id=req.response_id,
+        feedback_text=req.feedback_text,
+    )
+    db.add(feedback)
+    await db.commit()
+    await db.refresh(feedback)
+
+    return EducatorFeedbackOut(
+        id=feedback.id,
+        educator_id=feedback.educator_id,
+        response_id=feedback.response_id,
+        feedback_text=feedback.feedback_text,
+        created_at=feedback.created_at.isoformat(),
+    )
+
+
+@router.get("/api/educator/students/{user_id}/feedback")
+async def get_student_feedback(
+    user_id: int,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[EducatorFeedbackOut]:
+    """Get all educator feedback for a student's responses."""
+    # Get all response IDs for this student
+    resp_result = await db.execute(
+        select(Response.id).where(Response.user_id == user_id)
+    )
+    response_ids = [row[0] for row in resp_result.all()]
+
+    if not response_ids:
+        return []
+
+    fb_result = await db.execute(
+        select(EducatorFeedback)
+        .where(EducatorFeedback.response_id.in_(response_ids))
+        .order_by(EducatorFeedback.created_at.desc())
+    )
+    feedbacks = fb_result.scalars().all()
+
+    return [
+        EducatorFeedbackOut(
+            id=fb.id,
+            educator_id=fb.educator_id,
+            response_id=fb.response_id,
+            feedback_text=fb.feedback_text,
+            created_at=fb.created_at.isoformat(),
+        )
+        for fb in feedbacks
+    ]
+
+
+@router.get("/api/educator/export/csv")
+async def export_educator_csv(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Export student performance data as CSV for MTSS documentation."""
+    # Query all students with their skill scores
+    result = await db.execute(
+        select(User).where(User.role == "student")
+    )
+    students = result.scalars().all()
+
+    # Build skill score lookup: {user_id: {skill_id: score}}
+    skill_result = await db.execute(select(SkillScore))
+    all_skills = skill_result.scalars().all()
+    skill_map: dict[int, dict[str, float]] = {}
+    for ss in all_skills:
+        skill_map.setdefault(ss.user_id, {})[ss.skill_id] = round(ss.score, 1)
+
+    # Count responses per user
+    response_counts_result = await db.execute(
+        select(Response.user_id, func.count(Response.id))
+        .group_by(Response.user_id)
+    )
+    response_counts: dict[int, int] = {
+        row[0]: row[1] for row in response_counts_result.all()
+    }
+
+    csv_columns = [
+        "name", "username", "level", "xp_total", "overall_tier",
+        "avg_score", "price_action", "options_chain", "strike_select",
+        "risk_mgmt", "position_size", "regime_id", "vol_assess",
+        "trade_mgmt", "response_count",
+    ]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(csv_columns)
+
+    for student in students:
+        skills = skill_map.get(student.id, {})
+        scores = list(skills.values())
+        avg_score = round(sum(scores) / len(scores), 1) if scores else 0.0
+        overall_tier = classify_tier(avg_score).value
+
+        writer.writerow([
+            student.name or student.username,
+            student.username,
+            student.level,
+            student.xp_total,
+            overall_tier,
+            avg_score,
+            skills.get("price_action", 0.0),
+            skills.get("options_chain", 0.0),
+            skills.get("strike_select", 0.0),
+            skills.get("risk_mgmt", 0.0),
+            skills.get("position_size", 0.0),
+            skills.get("regime_id", 0.0),
+            skills.get("vol_assess", 0.0),
+            skills.get("trade_mgmt", 0.0),
+            response_counts.get(student.id, 0),
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=student_export.csv"},
+    )
+
+
+# ---------------------------------------------------------------------------
 # RAG endpoints
 # ---------------------------------------------------------------------------
 
@@ -976,6 +1433,50 @@ async def rag_ingest(
     await db.commit()
     doc_id = _generate_doc_id(req.source_file)
     return DocumentIngestResponse(doc_id=doc_id, chunks_created=len(chunks))
+
+
+@router.get("/api/rag/documents")
+async def rag_list_documents(
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> list[RAGDocumentSummary]:
+    """List all ingested RAG documents grouped by source_file (educator-only)."""
+    result = await db.execute(
+        select(
+            DocumentChunk.source_file,
+            func.count().label("chunk_count"),
+            func.min(DocumentChunk.created_at).label("created_at"),
+        )
+        .group_by(DocumentChunk.source_file)
+        .order_by(func.min(DocumentChunk.created_at).desc())
+    )
+    rows = result.all()
+    return [
+        RAGDocumentSummary(
+            source_file=row.source_file,
+            chunk_count=row.chunk_count,
+            created_at=row.created_at.isoformat() if row.created_at else "",
+        )
+        for row in rows
+    ]
+
+
+@router.delete("/api/rag/documents/{source_file:path}")
+async def rag_delete_document(
+    source_file: str,
+    _user: User = Depends(require_role("educator")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Delete all chunks for a given source_file (educator-only)."""
+    from sqlalchemy import delete as sa_delete
+
+    result = await db.execute(
+        sa_delete(DocumentChunk).where(DocumentChunk.source_file == source_file)
+    )
+    await db.commit()
+    invalidate_chunk_cache()
+    deleted = result.rowcount  # type: ignore[union-attr]
+    return {"status": "ok", "message": f"Deleted {deleted} chunks for '{source_file}'"}
 
 
 @router.post("/api/rag/reseed")
