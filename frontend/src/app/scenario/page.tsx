@@ -10,13 +10,16 @@ import {
   generateScenario,
   submitResponse,
   submitProbeResponse,
+  respondToScenario,
 } from "@/lib/api";
 import type {
   Scenario,
   ScenarioParams,
   ProbeExchange,
   Grade,
+  TrainingSessionDetail,
 } from "@/lib/types";
+import { useTrainingReview } from "@/lib/hooks";
 import {
   useTextReveal,
   useScrollReveal,
@@ -173,6 +176,110 @@ function StepIndicator({ phase }: { phase: Phase }) {
   );
 }
 
+function TrainingSessionCard({ session }: { session: TrainingSessionDetail }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="card-glow overflow-hidden">
+      <div
+        className="flex cursor-pointer items-center gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02]"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-zinc-300 truncate">{session.scenario_situation.slice(0, 100)}...</p>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-[10px] uppercase tracking-wider text-zinc-600">
+              {session.skill_target.replace(/_/g, " ")}
+            </span>
+            <span className="text-[10px] text-zinc-600">
+              {new Date(session.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {session.overall_score !== null && (
+            <span className={`text-sm font-semibold tabular-nums ${
+              session.overall_score >= 4 ? "text-emerald-400" : session.overall_score >= 3 ? "text-amber-400" : "text-red-400"
+            }`}>
+              {session.overall_score.toFixed(1)}/5
+            </span>
+          )}
+          {session.xp_earned > 0 && (
+            <span className="text-xs text-emerald-400 font-medium">+{session.xp_earned} XP</span>
+          )}
+          <svg className={`h-4 w-4 text-zinc-500 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-white/[0.04] bg-zinc-900/30 px-5 py-4 space-y-4">
+          {/* Scenario */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1">Scenario</p>
+            <p className="text-sm text-zinc-300">{session.scenario_situation}</p>
+            <p className="text-sm text-zinc-400 mt-2 italic">{session.scenario_question}</p>
+          </div>
+
+          {/* Student Answer */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1">Your Response</p>
+            <p className="text-sm text-zinc-300 whitespace-pre-wrap">{session.answer_text}</p>
+          </div>
+
+          {/* Probe Exchanges */}
+          {session.probe_exchanges.length > 0 && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-2">Follow-Up Questions</p>
+              <div className="space-y-3">
+                {session.probe_exchanges.map((pe, idx) => (
+                  <div key={idx} className="rounded-lg bg-zinc-800/50 p-3">
+                    <p className="text-xs text-violet-400 font-medium mb-1">Q{idx + 1}: {pe.question}</p>
+                    <p className="text-sm text-zinc-300">{pe.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Grade Breakdown */}
+          {session.overall_score !== null && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-2">Grade Breakdown</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: "Technical", value: session.technical_accuracy },
+                  { label: "Risk", value: session.risk_awareness },
+                  { label: "Strategy", value: session.strategy_fit },
+                  { label: "Reasoning", value: session.reasoning_clarity },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg bg-zinc-800/50 p-2.5 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">{item.label}</p>
+                    <p className={`text-lg font-semibold tabular-nums ${
+                      (item.value ?? 0) >= 4 ? "text-emerald-400" : (item.value ?? 0) >= 3 ? "text-amber-400" : "text-red-400"
+                    }`}>
+                      {item.value?.toFixed(1) ?? "-"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Feedback */}
+          {session.feedback_text && (
+            <div className="rounded-xl border border-white/[0.06] bg-zinc-800/50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1">AI Feedback</p>
+              <p className="text-sm text-zinc-300 whitespace-pre-wrap">{session.feedback_text}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ScenarioPage() {
   // Scenario params
   const [marketRegime, setMarketRegime] =
@@ -192,7 +299,9 @@ export default function ScenarioPage() {
   const [probeExchanges, setProbeExchanges] = useState<ProbeExchange[]>([]);
   const [grade, setGrade] = useState<Grade | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { refetchUser } = useAuth();
+  const [responseId, setResponseId] = useState<number | null>(null);
+  const { user, refetchUser } = useAuth();
+  const { data: trainingSessions } = useTrainingReview();
 
   // GSAP hooks
   const heroRef = useRef<HTMLDivElement>(null);
@@ -259,6 +368,7 @@ export default function ScenarioPage() {
     setProbeExchanges([]);
     setGrade(null);
     setError(null);
+    setResponseId(null);
   }, []);
 
   async function handleGenerate() {
@@ -288,6 +398,11 @@ export default function ScenarioPage() {
     setStudentResponse(analysis);
     setPhase("responding");
     try {
+      // Save the response to DB first
+      if (scenario.scenario_id && user) {
+        const respondResult = await respondToScenario(scenario.scenario_id, user.id, analysis);
+        setResponseId(respondResult.response_id);
+      }
       const scenarioText = `${scenario.situation}\n\n${scenario.question}`;
       const probeRes = await submitResponse(scenarioText, analysis);
       setProbeQuestions(probeRes.questions);
@@ -328,6 +443,7 @@ export default function ScenarioPage() {
           studentResponse,
           updatedExchanges,
           skillTarget,
+          responseId ?? undefined,
         );
         setGrade(g);
         setPhase("graded");
@@ -742,6 +858,18 @@ export default function ScenarioPage() {
       {phase === "graded" && grade && (
         <div ref={gradeContainerRef} className="mb-8">
           <GradeDisplay grade={grade} />
+        </div>
+      )}
+
+      {/* ── Past Training Sessions ── */}
+      {trainingSessions && trainingSessions.length > 0 && (
+        <div className="mt-12 mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Past Training Sessions</h2>
+          <div className="space-y-3">
+            {trainingSessions.map((session) => (
+              <TrainingSessionCard key={session.response_id} session={session} />
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -25,6 +25,7 @@ from src.api.schemas import (
     LessonModuleSummary,
     LessonProgressSummary,
     ObjectiveDistribution,
+    ProbeExchangeOut,
     ProbeRequest,
     ProbeResponse,
     QuizAttemptRequest,
@@ -120,6 +121,7 @@ from src.api.schemas import (
     RAGSearchResult,
     ScenarioHistoryItem,
     ScenarioHistoryResponse,
+    TrainingSessionDetail,
 )
 from src.rag.ingest import _generate_doc_id, ingest_document
 from src.rag.retriever import get_context, invalidate_chunk_cache, search as rag_search
@@ -258,6 +260,71 @@ async def get_scenario_history(
         skill_distribution=skill_dist,
         recent_scenarios=recent,
     )
+
+
+@router.get("/api/scenarios/review")
+async def get_training_review(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[TrainingSessionDetail]:
+    """Get the current user's training sessions with full detail for review."""
+    result = await db.execute(
+        select(Response)
+        .where(Response.user_id == user.id)
+        .order_by(Response.created_at.desc())
+        .limit(20)
+    )
+    responses = result.scalars().all()
+
+    sessions: list[TrainingSessionDetail] = []
+    for resp in responses:
+        scenario = await db.get(Scenario, resp.scenario_id)
+        if not scenario:
+            continue
+
+        # Get grade
+        grade_result = await db.execute(
+            select(Grade).where(Grade.response_id == resp.id)
+        )
+        grade = grade_result.scalar_one_or_none()
+
+        # Get probe exchanges
+        probe_result = await db.execute(
+            select(ProbeQuestion)
+            .where(ProbeQuestion.response_id == resp.id)
+            .order_by(ProbeQuestion.created_at)
+        )
+        probes = probe_result.scalars().all()
+
+        # Estimate XP from grade
+        xp = 0
+        if grade:
+            xp = calculate_xp(overall_score=grade.overall_score, complexity=scenario.complexity)
+
+        sessions.append(TrainingSessionDetail(
+            response_id=resp.id,
+            scenario_id=scenario.id,
+            scenario_situation=scenario.situation,
+            scenario_question=scenario.question,
+            scenario_market_data=scenario.market_data,
+            skill_target=scenario.skill_target,
+            complexity=scenario.complexity,
+            answer_text=resp.answer_text,
+            probe_exchanges=[
+                ProbeExchangeOut(question=p.question_text, answer=p.answer_text)
+                for p in probes
+            ],
+            overall_score=grade.overall_score if grade else None,
+            technical_accuracy=grade.technical_accuracy if grade else None,
+            risk_awareness=grade.risk_awareness if grade else None,
+            strategy_fit=grade.strategy_fit if grade else None,
+            reasoning_clarity=grade.reasoning_clarity if grade else None,
+            feedback_text=grade.feedback_text if grade else None,
+            xp_earned=xp,
+            created_at=resp.created_at.isoformat(),
+        ))
+
+    return sessions
 
 
 @router.post("/api/scenarios/respond")
@@ -1197,11 +1264,23 @@ async def get_student_responses(
         )
         feedback = fb_result.scalar_one_or_none()
 
+        # Get probe exchanges
+        probe_result = await db.execute(
+            select(ProbeQuestion)
+            .where(ProbeQuestion.response_id == resp.id)
+            .order_by(ProbeQuestion.created_at)
+        )
+        probes = probe_result.scalars().all()
+
         entries.append(
             StudentResponseEntry(
                 response_id=resp.id,
                 scenario_situation=situation,
                 answer_text=resp.answer_text,
+                probe_exchanges=[
+                    ProbeExchangeOut(question=p.question_text, answer=p.answer_text)
+                    for p in probes
+                ],
                 overall_score=grade.overall_score if grade else None,
                 technical_accuracy=grade.technical_accuracy if grade else None,
                 risk_awareness=grade.risk_awareness if grade else None,

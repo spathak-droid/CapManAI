@@ -32,6 +32,7 @@ import {
   fetchStudentThread,
   fetchUnreadCount,
   fetchEducatorsForStudent,
+  fetchTrainingReview,
 } from "./api";
 import type {
   LeaderboardEntry,
@@ -60,6 +61,7 @@ import type {
   ActivityFeedItem,
   DirectMessageOut,
   MessageThreadSummary,
+  TrainingSessionDetail,
 } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -298,4 +300,10 @@ export function useUnreadCount() {
 
 export function useRAGDocuments() {
   return useSWR<RAGDocumentSummary[]>(useAuthKey("rag-documents"), getRAGDocuments, CACHE_OPTIONS);
+}
+
+// --- Training Review hooks ---
+
+export function useTrainingReview() {
+  return useSWR<TrainingSessionDetail[]>(useAuthKey("training-review"), fetchTrainingReview, CACHE_OPTIONS);
 }

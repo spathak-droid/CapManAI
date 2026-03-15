@@ -140,6 +140,23 @@ function ResponseRow({
             </p>
           </div>
 
+          {/* Probe exchanges */}
+          {response.probe_exchanges && response.probe_exchanges.length > 0 && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 mb-2">
+                Follow-Up Questions
+              </p>
+              <div className="space-y-2">
+                {response.probe_exchanges.map((pe, idx) => (
+                  <div key={idx} className="rounded-lg bg-zinc-800/50 p-3">
+                    <p className="text-xs text-violet-400 font-medium mb-1">Q{idx + 1}: {pe.question}</p>
+                    <p className="text-sm text-zinc-300">{pe.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Grade breakdown */}
           {response.overall_score !== null && (
             <div>

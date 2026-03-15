@@ -422,6 +422,33 @@ class ScenarioHistoryResponse(BaseModel):
     recent_scenarios: list[ScenarioHistoryItem]
 
 
+class ProbeExchangeOut(BaseModel):
+    """A probe question and student answer."""
+    question: str
+    answer: str
+
+
+class TrainingSessionDetail(BaseModel):
+    """Full training session detail for student review."""
+    response_id: int
+    scenario_id: int
+    scenario_situation: str
+    scenario_question: str
+    scenario_market_data: dict[str, object]
+    skill_target: str
+    complexity: int
+    answer_text: str
+    probe_exchanges: list[ProbeExchangeOut]
+    overall_score: float | None = None
+    technical_accuracy: float | None = None
+    risk_awareness: float | None = None
+    strategy_fit: float | None = None
+    reasoning_clarity: float | None = None
+    feedback_text: str | None = None
+    xp_earned: int = 0
+    created_at: str
+
+
 class QueueJoinRequest(BaseModel):
     """Request to join the matchmaking queue."""
 
@@ -569,6 +596,7 @@ class StudentResponseEntry(BaseModel):
     response_id: int
     scenario_situation: str
     answer_text: str
+    probe_exchanges: list[ProbeExchangeOut] = []
     overall_score: float | None = None
     technical_accuracy: float | None = None
     risk_awareness: float | None = None

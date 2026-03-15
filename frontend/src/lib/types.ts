@@ -28,6 +28,7 @@ export interface ScenarioParams {
 }
 
 export interface Scenario {
+  scenario_id?: number;
   situation: string;
   market_data: Record<string, unknown>;
   question: string;
@@ -300,6 +301,28 @@ export interface UserRank {
   total_users: number;
 }
 
+// --- Training Review Types ---
+
+export interface TrainingSessionDetail {
+  response_id: number;
+  scenario_id: number;
+  scenario_situation: string;
+  scenario_question: string;
+  scenario_market_data: Record<string, unknown>;
+  skill_target: string;
+  complexity: number;
+  answer_text: string;
+  probe_exchanges: { question: string; answer: string }[];
+  overall_score: number | null;
+  technical_accuracy: number | null;
+  risk_awareness: number | null;
+  strategy_fit: number | null;
+  reasoning_clarity: number | null;
+  feedback_text: string | null;
+  xp_earned: number;
+  created_at: string;
+}
+
 // --- Challenge Types ---
 
 export interface OpenChallengeEntry {
@@ -408,6 +431,7 @@ export interface StudentResponseEntry {
   response_id: number;
   scenario_situation: string;
   answer_text: string;
+  probe_exchanges?: { question: string; answer: string }[];
   overall_score: number | null;
   technical_accuracy: number | null;
   risk_awareness: number | null;

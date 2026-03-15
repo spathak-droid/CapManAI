@@ -43,6 +43,7 @@ import type {
   ActivityFeedItem,
   DirectMessageOut,
   MessageThreadSummary,
+  TrainingSessionDetail,
 } from "./types";
 
 /** Backend base URL. Must be set via NEXT_PUBLIC_API_URL (e.g. http://localhost:8000). Sign-in is via Firebase; the backend is only used for GET /api/auth/me after sign-in. */
@@ -142,16 +143,32 @@ export async function submitResponse(
   });
 }
 
+export async function respondToScenario(
+  scenarioId: number,
+  userId: number,
+  answerText: string,
+): Promise<{ response_id: number; status: string }> {
+  return request<{ response_id: number; status: string }>("/api/scenarios/respond", {
+    method: "POST",
+    body: JSON.stringify({
+      scenario_id: scenarioId,
+      user_id: userId,
+      answer_text: answerText,
+    }),
+  });
+}
+
 export async function submitProbeResponse(
   scenarioText: string,
   studentResponse: string,
   probeExchanges: ProbeExchange[],
   skillTarget?: string,
+  responseId?: number,
 ): Promise<Grade> {
   return request<Grade>("/api/scenarios/grade", {
     method: "POST",
     body: JSON.stringify({
-      response_id: 0, // placeholder — backend may assign
+      response_id: responseId ?? 0,
       scenario_text: scenarioText,
       student_response: studentResponse,
       probe_exchanges: probeExchanges,
@@ -275,6 +292,88 @@ export async function sendAssistantMessage(
       }),
     },
   );
+}
+
+/**
+ * Stream assistant response via SSE.
+ * Calls onToken for each chunk, onDone when complete.
+ */
+export async function streamAssistantMessage(
+  conversationId: number | null,
+  messages: AssistantMessagePayload[],
+  onToken: (token: string) => void,
+  onDone: () => void,
+  onError: (error: Error) => void,
+  studentContextId?: number | null,
+): Promise<void> {
+  const url = `${API_URL}/api/assistant/chat/stream`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        messages,
+        student_context_id: studentContextId ?? null,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No response body");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let convId: number | null = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (data === "[DONE]") {
+          onDone();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.conversation_id !== undefined && convId === null) {
+            convId = parsed.conversation_id;
+            onToken(`\x00CONV_ID:${convId}`);
+          }
+          if (parsed.token) {
+            onToken(parsed.token);
+          }
+        } catch {
+          // skip malformed JSON
+        }
+      }
+    }
+    onDone();
+  } catch (e) {
+    onError(e instanceof Error ? e : new Error(String(e)));
+  }
 }
 
 export async function renameAssistantConversation(
@@ -620,6 +719,12 @@ export async function markMessageRead(messageId: number): Promise<void> {
 
 export async function fetchUnreadCount(): Promise<{ unread_count: number }> {
   return request<{ unread_count: number }>("/api/messages/unread-count");
+}
+
+// --- Training Review API ---
+
+export async function fetchTrainingReview(): Promise<TrainingSessionDetail[]> {
+  return request<TrainingSessionDetail[]>("/api/scenarios/review");
 }
 
 export { ApiError };
