@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { getAssignmentDetail, submitPeerReview } from "@/lib/api";
 import type { PeerReviewAssignmentDetail } from "@/lib/types";
 
@@ -70,6 +70,11 @@ export default function PeerReviewFormPage() {
         ...scores,
         feedback_text: feedback,
       });
+      // Invalidate peer review caches so the list page shows fresh data
+      await Promise.all([
+        mutate("peer-review-assignments"),
+        mutate("peer-review-received"),
+      ]);
       setSubmitted(true);
       setTimeout(() => router.push("/peer-review"), 2000);
     } catch (err) {

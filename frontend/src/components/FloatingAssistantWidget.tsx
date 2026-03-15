@@ -14,7 +14,6 @@ export default function FloatingAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const fabRef = useRef<HTMLButtonElement>(null);
   const iconRef = useRef<SVGSVGElement>(null);
-  const glowTweenRef = useRef<gsap.core.Tween | null>(null);
   const spinTweenRef = useRef<gsap.core.Tween | null>(null);
   const entranceTweenRef = useRef<gsap.core.Tween | null>(null);
 
@@ -35,26 +34,6 @@ export default function FloatingAssistantWidget() {
 
     return () => {
       entranceTweenRef.current?.kill();
-    };
-  }, []);
-
-  // Idle glow pulse on the outer shadow
-  useEffect(() => {
-    const fab = fabRef.current;
-    if (!fab) return;
-
-    glowTweenRef.current = gsap.to(fab, {
-      boxShadow:
-        "0 0 24px 8px rgba(139, 92, 246, 0.5), 0 0 48px 16px rgba(192, 132, 252, 0.2)",
-      duration: 2,
-      ease: "sine.inOut",
-      yoyo: true,
-      repeat: -1,
-      delay: 1.7, // start after entrance animation
-    });
-
-    return () => {
-      glowTweenRef.current?.kill();
     };
   }, []);
 
@@ -85,19 +64,16 @@ export default function FloatingAssistantWidget() {
     }
   }, [isOpen]);
 
-  // Hover handlers for glow intensification + scale
+  // Hover handlers for scale
   const handleMouseEnter = useCallback(() => {
     const fab = fabRef.current;
     if (!fab) return;
     gsap.to(fab, {
       scale: 1.1,
-      boxShadow:
-        "0 0 32px 12px rgba(139, 92, 246, 0.7), 0 0 64px 24px rgba(192, 132, 252, 0.35)",
       duration: 0.3,
       ease: "power2.out",
       overwrite: "auto",
     });
-    glowTweenRef.current?.pause();
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -109,7 +85,6 @@ export default function FloatingAssistantWidget() {
       ease: "power2.out",
       overwrite: "auto",
     });
-    glowTweenRef.current?.resume();
   }, []);
 
   if (!user) return null;
@@ -128,17 +103,9 @@ export default function FloatingAssistantWidget() {
           height: FAB_SIZE,
           background:
             "radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15) 0%, transparent 60%), linear-gradient(135deg, #7c3aed 0%, #c026d3 100%)",
-          boxShadow:
-            "0 0 16px 4px rgba(139, 92, 246, 0.3), 0 0 32px 8px rgba(192, 132, 252, 0.1)",
         }}
         aria-label={isOpen ? "Close AI assistant" : "Open AI assistant"}
       >
-        {/* Notification dot — top-right pulse */}
-        <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-zinc-950" />
-        </span>
-
         {/* Icon container with rotation transition for open/close */}
         <span
           className="flex items-center justify-center transition-transform duration-300"

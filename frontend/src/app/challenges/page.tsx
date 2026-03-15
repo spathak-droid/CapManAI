@@ -205,32 +205,49 @@ export default function ChallengesPage() {
     };
   }, [myPendingId]);
 
-  // Load challenges and open challenges on mount
-  useEffect(() => {
-    async function load() {
-      try {
-        const [myChallenges, open, onlineData] = await Promise.all([
-          getMyChallenges(),
-          getOpenChallenges(),
-          getOnlineCount().catch(() => ({ online_count: 0 })),
-        ]);
-        setOnlineCount(onlineData.online_count);
-        setChallenges(myChallenges);
-        setOpenChallenges(open);
+  // Load challenges and open challenges
+  const loadChallenges = useCallback(async () => {
+    try {
+      const [myChallenges, open, onlineData] = await Promise.all([
+        getMyChallenges(),
+        getOpenChallenges(),
+        getOnlineCount().catch(() => ({ online_count: 0 })),
+      ]);
+      setOnlineCount(onlineData.online_count);
+      setChallenges(myChallenges);
+      setOpenChallenges(open);
 
-        // Check if user has a pending challenge
-        const pending = myChallenges.find(
-          (c) => c.status === "pending" && c.challenger_id === user?.id,
-        );
-        if (pending) setMyPendingId(pending.id);
-      } catch {
-        // Silently fail — user might not be authenticated yet
-      } finally {
-        setLoading(false);
+      // Check if user has a pending challenge
+      const pending = myChallenges.find(
+        (c) => c.status === "pending" && c.challenger_id === user?.id,
+      );
+      setMyPendingId(pending?.id ?? null);
+    } catch {
+      // Silently fail — user might not be authenticated yet
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  // Load on mount
+  useEffect(() => {
+    loadChallenges();
+  }, [loadChallenges]);
+
+  // Refresh when page becomes visible (user navigates back)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        loadChallenges();
       }
     }
-    load();
-  }, [user?.id]);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
+    };
+  }, [loadChallenges]);
 
   // Listen for match found — redirect to challenge page
   useRealtimeEvent(

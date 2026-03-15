@@ -594,7 +594,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar", s
                     <ul className="space-y-3">
                       {currentConversation.messages.map((m, i) => (
                         <li
-                          key={m.id ? m.id : `msg-${i}`}
+                          key={m.id && m.id > 0 ? m.id : `msg-${i}`}
                           className={`chat-message group flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                           {m.role === "user" ? (
