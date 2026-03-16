@@ -9,17 +9,7 @@ import { useStudentAnalysis } from "@/contexts/StudentAnalysisContext";
 import { useStudentResponses, useStudentSkills, useStudentPeerReviews } from "@/lib/hooks";
 import { submitEducatorFeedback } from "@/lib/api";
 import type { StudentResponseEntry } from "@/lib/types";
-
-const SKILL_LABELS: Record<string, string> = {
-  price_action: "Price Action",
-  options_chain: "Options Chain",
-  strike_select: "Strike Selection",
-  risk_mgmt: "Risk Management",
-  position_size: "Position Sizing",
-  regime_id: "Regime Identification",
-  vol_assess: "Volatility Assessment",
-  trade_mgmt: "Trade Management",
-};
+import { formatSkillName } from "@/lib/format";
 
 const TIER_BADGE: Record<string, string> = {
   tier_1: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
@@ -42,10 +32,6 @@ function tierLabel(tier: string): string {
     default:
       return tier;
   }
-}
-
-function formatSkillName(key: string): string {
-  return SKILL_LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function scoreColor(score: number | null): string {

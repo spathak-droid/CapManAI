@@ -10,29 +10,7 @@ import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 import EmojiPicker from "@/components/EmojiPicker";
 import AuthImage from "@/components/AuthImage";
 import type { MessageThreadSummary, StudentRosterEntry } from "@/lib/types";
-
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function formatTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffHrs / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString();
-}
+import { getInitials, formatTime } from "@/lib/format";
 
 function StudentPicker({
   roster,

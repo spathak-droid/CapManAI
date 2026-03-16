@@ -3,25 +3,9 @@
 import { useState } from "react";
 import { useActivityFeed } from "@/lib/hooks";
 import type { ActivityFeedItem } from "@/lib/types";
+import { formatRelativeTime } from "@/lib/format";
 
 const INITIAL_LIMIT = 10;
-
-function formatRelativeTime(timestamp: string): string {
-  const now = Date.now();
-  const then = new Date(timestamp).getTime();
-  const diffMs = now - then;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
-
-  if (diffSec < 60) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay === 1) return "yesterday";
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(timestamp).toLocaleDateString();
-}
 
 function EventIcon({ eventType }: { eventType: string }) {
   switch (eventType) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useStudentSkills, useStudentInterventions } from "@/lib/hooks";
 import type { InterventionRecommendation } from "@/lib/types";
+import { formatSkillName } from "@/lib/format";
 
 interface MTSSSkillDrilldownProps {
   userId: number;
@@ -59,10 +60,6 @@ function tierGlowClass(tier: string): string {
     default:
       return "";
   }
-}
-
-function formatSkillName(key: string): string {
-  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function MTSSSkillDrilldown({ userId, username }: MTSSSkillDrilldownProps) {

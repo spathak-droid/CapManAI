@@ -7,17 +7,7 @@ import { useDashboardOverview, useMTSSTiers } from "@/lib/hooks";
 import { exportEducatorCSV } from "@/lib/api";
 import MTSSHeatmap from "@/components/MTSSHeatmap";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
-
-const SKILL_LABELS: Record<string, string> = {
-  price_action: "Price Action",
-  options_chain: "Options Chain",
-  strike_select: "Strike Selection",
-  risk_mgmt: "Risk Management",
-  position_size: "Position Sizing",
-  regime_id: "Regime Identification",
-  vol_assess: "Volatility Assessment",
-  trade_mgmt: "Trade Management",
-};
+import { formatSkillName } from "@/lib/format";
 
 const TIER_CONFIG: Record<string, { label: string; description: string; color: string; borderColor: string; hoverBorder: string; hoverShadow: string; blurBg: string; iconBg: string; iconText: string; textClass: string; badgeClass: string }> = {
   tier_1: {
@@ -63,10 +53,6 @@ const TIER_CONFIG: Record<string, { label: string; description: string; color: s
 
 function tierBadgeClass(tier: string): string {
   return TIER_CONFIG[tier]?.badgeClass ?? "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20";
-}
-
-function formatSkillName(key: string): string {
-  return SKILL_LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function DashboardPage() {

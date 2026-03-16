@@ -1,21 +1,11 @@
 "use client";
 
 import type { StudentTierInfo } from "@/lib/types";
+import { SKILL_LABELS_SHORT } from "@/lib/constants";
 
 interface MTSSHeatmapProps {
   students: StudentTierInfo[];
 }
-
-const SKILL_LABELS: Record<string, string> = {
-  price_action: "Price Action",
-  options_chain: "Options Chain",
-  strike_select: "Strike Selection",
-  risk_mgmt: "Risk Mgmt",
-  position_size: "Position Size",
-  regime_id: "Regime ID",
-  vol_assess: "Vol Assess",
-  trade_mgmt: "Trade Mgmt",
-};
 
 function cellColor(tier: string): string {
   switch (tier) {
@@ -31,7 +21,7 @@ function cellColor(tier: string): string {
 }
 
 function formatSkillName(key: string): string {
-  return SKILL_LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return SKILL_LABELS_SHORT[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export default function MTSSHeatmap({ students }: MTSSHeatmapProps) {

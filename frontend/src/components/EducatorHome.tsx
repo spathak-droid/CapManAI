@@ -14,12 +14,7 @@ import {
   useCountUp,
   useProgressFill,
 } from "@/lib/gsap";
-
-function formatSkillName(skill: string): string {
-  return skill
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { formatSkillName } from "@/lib/format";
 
 function findWeakestSkill(skillTiers: Record<string, string>): { name: string; tier: string } | null {
   const entries = Object.entries(skillTiers);

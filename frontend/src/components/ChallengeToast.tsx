@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
+import { SKILL_LABELS } from "@/lib/constants";
 
 interface ToastData {
   id: number;
@@ -11,17 +12,6 @@ interface ToastData {
   username: string;
   skillTarget: string | null;
 }
-
-const SKILL_LABELS: Record<string, string> = {
-  price_action: "Price Action",
-  options_chain: "Options Chain",
-  strike_select: "Strike Selection",
-  risk_mgmt: "Risk Management",
-  position_size: "Position Sizing",
-  regime_id: "Regime Identification",
-  vol_assess: "Volatility Assessment",
-  trade_mgmt: "Trade Management",
-};
 
 export default function ChallengeToast() {
   const { user } = useAuth();

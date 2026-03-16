@@ -41,32 +41,7 @@ interface AssistantPanelProps {
   studentName?: string | null;
 }
 
-function formatTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  } catch {
-    return "";
-  }
-}
-
-function relativeTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) return "Just now";
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHrs = Math.floor(diffMin / 60);
-    if (diffHrs < 24) return `${diffHrs}h ago`;
-    const diffDays = Math.floor(diffHrs / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return d.toLocaleDateString([], { month: "short", day: "numeric" });
-  } catch {
-    return "";
-  }
-}
+import { formatClockTime, relativeTime } from "@/lib/format";
 
 /** Typing indicator with 3 bouncing dots */
 function TypingIndicator() {
@@ -604,7 +579,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar", s
                               {/* Timestamp on hover */}
                               {m.created_at && (
                                 <span className="absolute -bottom-5 right-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
-                                  {formatTime(m.created_at)}
+                                  {formatClockTime(m.created_at)}
                                 </span>
                               )}
                             </div>
@@ -619,7 +594,7 @@ export default function AssistantPanel({ isOpen, onClose, variant = "sidebar", s
                               {/* Timestamp on hover */}
                               {m.created_at && (
                                 <span className="absolute -bottom-5 left-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
-                                  {formatTime(m.created_at)}
+                                  {formatClockTime(m.created_at)}
                                 </span>
                               )}
                             </div>
