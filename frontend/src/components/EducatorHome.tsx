@@ -153,29 +153,6 @@ export default function EducatorHome() {
   const tier2BarRef = useProgressFill<HTMLDivElement>(0, { delay: 0.5 });
   const tier3BarRef = useProgressFill<HTMLDivElement>(0, { delay: 0.6 });
 
-  // Hero entrance animation
-  useEffect(() => {
-    if (!heroRef.current || isLoading) return;
-    const ctx = gsap.context(() => {
-      gsap.from(".hero-greeting", { opacity: 0, y: 30, duration: 0.7, ease: "power3.out" });
-      gsap.from(".hero-name", { opacity: 0, y: 40, duration: 0.8, delay: 0.15, ease: "power3.out" });
-      gsap.from(".hero-subtitle", { opacity: 0, y: 20, duration: 0.6, delay: 0.35, ease: "power3.out" });
-      gsap.from(".hero-ring", { opacity: 0, scale: 0.5, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
-      gsap.from(".hero-stat-block", { opacity: 0, x: 20, duration: 0.6, delay: 0.5, ease: "power3.out" });
-    }, heroRef);
-    return () => ctx.revert();
-  }, [isLoading]);
-
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-zinc-500 text-lg">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   const tierCounts = overview?.tier_counts ?? {};
   const studentsByTier = overview?.students_by_tier ?? {};
   const tier1Count = tierCounts["tier_1"] ?? 0;
@@ -198,6 +175,19 @@ export default function EducatorHome() {
   const tier2Pct = totalStudents > 0 ? (tier2Count / totalStudents) * 100 : 0;
   const tier3Pct = totalStudents > 0 ? (tier3Count / totalStudents) * 100 : 0;
 
+  // Hero entrance animation
+  useEffect(() => {
+    if (!heroRef.current || isLoading) return;
+    const ctx = gsap.context(() => {
+      gsap.from(".hero-greeting", { opacity: 0, y: 30, duration: 0.7, ease: "power3.out" });
+      gsap.from(".hero-name", { opacity: 0, y: 40, duration: 0.8, delay: 0.15, ease: "power3.out" });
+      gsap.from(".hero-subtitle", { opacity: 0, y: 20, duration: 0.6, delay: 0.35, ease: "power3.out" });
+      gsap.from(".hero-ring", { opacity: 0, scale: 0.5, duration: 0.8, delay: 0.3, ease: "back.out(1.7)" });
+      gsap.from(".hero-stat-block", { opacity: 0, x: 20, duration: 0.6, delay: 0.5, ease: "power3.out" });
+    }, heroRef);
+    return () => ctx.revert();
+  }, [isLoading]);
+
   // Update bar refs when data loads
   useEffect(() => {
     if (tier1BarRef.current && totalStudents > 0) {
@@ -211,6 +201,16 @@ export default function EducatorHome() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalStudents, tier1Pct, tier2Pct, tier3Pct]);
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-zinc-500 text-lg">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">

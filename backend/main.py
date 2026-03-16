@@ -8,18 +8,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-logger = logging.getLogger(__name__)
 
 from src.api.assistant_routes import router as assistant_router
 from src.api.routes import router
 from src.auth.routes import auth_router
 from src.challenges.routes import router as challenges_router
-from src.peer_review.routes import router as peer_review_router
-from src.realtime.routes import router as realtime_router
 from src.core.config import settings
 from src.db.database import async_session_factory
 from src.lessons.persistence import seed_lessons_to_db
+from src.peer_review.routes import router as peer_review_router
 from src.rag.seed import seed_rag_documents
+from src.realtime.routes import router as realtime_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
