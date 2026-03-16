@@ -8,6 +8,7 @@ import { sendEducatorMessage, markMessageRead, uploadMessageImage } from "@/lib/
 import { getApiBaseUrl } from "@/lib/api";
 import { useRealtimeEvent } from "@/lib/useRealtimeEvent";
 import EmojiPicker from "@/components/EmojiPicker";
+import AuthImage from "@/components/AuthImage";
 import type { MessageThreadSummary, StudentRosterEntry } from "@/lib/types";
 
 function getInitials(name: string): string {
@@ -388,11 +389,11 @@ function EducatorMessagesInner() {
                     >
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       {msg.image_url && (
-                        <img
+                        <AuthImage
                           src={`${getApiBaseUrl()}${msg.image_url}`}
                           alt="Shared image"
                           className="mt-2 max-w-full rounded-lg max-h-64 cursor-pointer"
-                          onClick={() => window.open(`${getApiBaseUrl()}${msg.image_url}`, "_blank")}
+                          onClick={(blobUrl) => window.open(blobUrl, "_blank")}
                         />
                       )}
                       <p
