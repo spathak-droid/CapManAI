@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CapMan AI -- Frontend
 
-## Getting Started
+Next.js application for the CapMan AI gamified trading education platform.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Animations**: GSAP
+- **Auth**: Firebase Authentication
+- **Real-time**: WebSocket
+- **Testing**: Vitest
+
+## Directory Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── auth/               # Login and registration
+│   ├── badges/             # Badge showcase
+│   ├── challenges/         # Real-time challenge matchmaking
+│   ├── dashboard/          # Educator dashboard (students, MTSS, messages, content)
+│   ├── leaderboard/        # XP leaderboard
+│   ├── lessons/            # Interactive lessons with micro-quizzes
+│   ├── messages/           # Student messaging
+│   ├── peer-review/        # Peer review submissions and reviews
+│   ├── scenario/           # AI trading scenario simulations
+│   └── about/              # About page
+├── components/             # Shared React components
+│   ├── skeletons/          # Loading skeleton components
+│   └── ui/                 # Base UI primitives
+├── contexts/               # React contexts
+│   ├── AuthContext.tsx      # Firebase auth state
+│   ├── RealtimeContext.tsx  # WebSocket connection
+│   └── StudentAnalysisContext.tsx
+└── lib/                    # Utilities and services
+    ├── api.ts              # API client (fetch wrapper with auth)
+    ├── constants.ts        # Shared constants (skills, labels)
+    ├── format.ts           # Shared formatting utilities
+    ├── hooks.ts            # SWR data-fetching hooks
+    ├── types.ts            # TypeScript type definitions
+    ├── firebase.ts         # Firebase initialization
+    ├── gsap.ts             # GSAP animation hooks
+    ├── websocket.ts        # WebSocket client
+    └── useRealtimeEvent.ts # Real-time event hook
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+cp .env.example .env.local  # Configure environment variables
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Description |
+|---|---|
+| `pnpm dev` | Start development server |
+| `pnpm build` | Production build |
+| `pnpm lint` | ESLint |
+| `pnpm tsc --noEmit` | Type check |
+| `pnpm test` | Run tests |
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
