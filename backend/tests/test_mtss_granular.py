@@ -82,7 +82,7 @@ class TestInterventionLogic:
     """Test the intervention recommendation generation logic."""
 
     def test_tier_3_intensive_support(self) -> None:
-        from src.api.routes import _generate_interventions
+        from src.api.routes_gamification import _generate_interventions
 
         result = _generate_interventions({"risk_mgmt": 25.0})
         assert len(result) == 1
@@ -91,7 +91,7 @@ class TestInterventionLogic:
         assert len(result[0].suggested_activities) >= 2
 
     def test_tier_2_targeted_practice(self) -> None:
-        from src.api.routes import _generate_interventions
+        from src.api.routes_gamification import _generate_interventions
 
         result = _generate_interventions({"price_action": 55.0})
         assert len(result) == 1
@@ -99,7 +99,7 @@ class TestInterventionLogic:
         assert "Targeted practice recommended" in result[0].recommendation
 
     def test_tier_1_on_track(self) -> None:
-        from src.api.routes import _generate_interventions
+        from src.api.routes_gamification import _generate_interventions
 
         result = _generate_interventions({"vol_assess": 85.0})
         assert len(result) == 1
@@ -107,7 +107,7 @@ class TestInterventionLogic:
         assert "On track" in result[0].recommendation
 
     def test_mixed_tiers_multiple_skills(self) -> None:
-        from src.api.routes import _generate_interventions
+        from src.api.routes_gamification import _generate_interventions
 
         result = _generate_interventions({
             "price_action": 90.0,

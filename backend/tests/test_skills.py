@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from src.api.routes import ALL_SKILL_IDS
+from src.api.routes_gamification import ALL_SKILL_IDS
 from src.auth.dependencies import get_current_user
 from src.db.database import get_db
 
@@ -94,7 +94,7 @@ class TestGradeAcceptsSkillTarget:
                 return_value=mock_response,
             ),
             patch(
-                "src.api.routes.get_context",
+                "src.api.routes_scenarios.get_context",
                 new_callable=AsyncMock,
                 return_value="",
             ),
@@ -130,7 +130,7 @@ class TestGradeAcceptsSkillTarget:
                 return_value=mock_response,
             ),
             patch(
-                "src.api.routes.get_context",
+                "src.api.routes_scenarios.get_context",
                 new_callable=AsyncMock,
                 return_value="",
             ),
