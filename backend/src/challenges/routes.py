@@ -1,5 +1,7 @@
 """API routes for head-to-head challenges."""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,12 +44,19 @@ async def _challenge_to_detail(c: Challenge, db: AsyncSession) -> ChallengeDetai
     )
     submitted_user_ids = {row[0] for row in result.all()}
 
-    # Get scenario text
+    # Get scenario text and quiz questions (without correct answers/explanations)
     scenario_text: str | None = None
+    quiz_questions: list[dict] | None = None
     if c.scenario_id:
         scenario = await db.get(Scenario, c.scenario_id)
         if scenario:
             scenario_text = f"{scenario.situation}\n\n{scenario.question}"
+            raw_questions = (scenario.market_data or {}).get("quiz_questions")
+            if raw_questions:
+                quiz_questions = [
+                    {k: v for k, v in q.items() if k not in ("correct_option_id", "explanation")}
+                    for q in raw_questions
+                ]
 
     return ChallengeDetail(
         id=c.id,
@@ -61,6 +70,7 @@ async def _challenge_to_detail(c: Challenge, db: AsyncSession) -> ChallengeDetai
         challenger_submitted=c.challenger_id in submitted_user_ids,
         opponent_submitted=(c.opponent_id in submitted_user_ids) if c.opponent_id else False,
         scenario_text=scenario_text,
+        quiz_questions=quiz_questions,
     )
 
 
@@ -268,7 +278,7 @@ async def submit_challenge_response(
     """Submit a response to a challenge."""
     try:
         response = await submit_response(
-            db, challenge_id=challenge_id, user_id=user.id, answer_text=req.answer_text
+            db, challenge_id=challenge_id, user_id=user.id, answers=json.dumps(req.answers)
         )
         await db.commit()
     except ValueError as e:
@@ -329,6 +339,8 @@ async def get_challenge_result(
 
     challenger_grade: dict[str, object] | None = None
     opponent_grade: dict[str, object] | None = None
+    challenger_answers: list[dict] | None = None
+    opponent_answers: list[dict] | None = None
     xp_earned = 0
 
     for resp in responses:
@@ -344,10 +356,19 @@ async def get_challenge_result(
                     "overall_score": grade.overall_score,
                     "feedback_text": grade.feedback_text,
                 }
+
+        # Parse the stored answers JSON
+        try:
+            parsed_answers: list[dict] = json.loads(resp.answer_text or "[]")
+        except (json.JSONDecodeError, TypeError):
+            parsed_answers = []
+
         if resp.user_id == challenge.challenger_id:
             challenger_grade = grade_dict
+            challenger_answers = parsed_answers
         else:
             opponent_grade = grade_dict
+            opponent_answers = parsed_answers
 
         if resp.user_id == user.id:
             from src.challenges.service import LOSER_XP, WINNER_XP
@@ -356,10 +377,22 @@ async def get_challenge_result(
                 WINNER_XP if user.id == challenge.winner_id else LOSER_XP
             )
 
+    # Get full quiz questions (with correct answers) from scenario
+    quiz_questions: list[dict] | None = None
+    if challenge.scenario_id:
+        scenario = await db.get(Scenario, challenge.scenario_id)
+        if scenario and scenario.market_data:
+            raw_questions = scenario.market_data.get("quiz_questions")
+            if raw_questions:
+                quiz_questions = list(raw_questions)
+
     return ChallengeResultDetail(
         challenge_id=challenge.id,
         winner_id=challenge.winner_id,
         challenger_grade=challenger_grade,
         opponent_grade=opponent_grade,
         xp_earned=xp_earned,
+        quiz_questions=quiz_questions,
+        challenger_answers=challenger_answers,
+        opponent_answers=opponent_answers,
     )

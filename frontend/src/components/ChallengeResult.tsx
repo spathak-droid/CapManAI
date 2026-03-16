@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ChallengeResultDetail } from "@/lib/types";
+import type { ChallengeResultDetail, QuizQuestion } from "@/lib/types";
 
 interface ChallengeResultProps {
   result: ChallengeResultDetail;
@@ -81,6 +81,80 @@ function GradeCard({
   );
 }
 
+function QuizResultCard({
+  title,
+  questions,
+  answers,
+  isWinner,
+}: {
+  title: string;
+  questions: QuizQuestion[];
+  answers: { question_id: number; selected: string }[];
+  isWinner: boolean;
+}) {
+  const answerMap = Object.fromEntries(answers.map((a) => [a.question_id, a.selected]));
+  const correct = questions.filter((q) => answerMap[q.id] === q.correct_option_id).length;
+
+  return (
+    <div
+      className={`flex-1 rounded-2xl border p-5 ${
+        isWinner
+          ? "border-emerald-500/30 bg-emerald-500/5"
+          : "border-red-500/20 bg-red-500/5"
+      }`}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              isWinner
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "bg-red-500/20 text-red-400"
+            }`}
+          >
+            {isWinner ? "Winner" : "Runner-up"}
+          </span>
+          <span className="text-sm font-medium text-white">{title}</span>
+        </div>
+        <span
+          className={`text-lg font-bold font-mono ${
+            isWinner ? "text-emerald-400" : "text-red-400"
+          }`}
+        >
+          {correct}/3
+        </span>
+      </div>
+      <div className="space-y-4">
+        {questions.map((q, idx) => {
+          const userAnswer = answerMap[q.id];
+          const isCorrect = userAnswer === q.correct_option_id;
+          return (
+            <div key={q.id} className="space-y-2">
+              <p className="text-xs text-zinc-400">
+                <span className="text-zinc-500 mr-1">Q{idx + 1}.</span>
+                {q.prompt}
+              </p>
+              <div className="flex items-center gap-2 text-xs">
+                {isCorrect ? (
+                  <span className="text-emerald-400">✓ Correct</span>
+                ) : (
+                  <span className="text-red-400">
+                    ✗ Answered: {userAnswer?.toUpperCase()}, Correct:{" "}
+                    {q.correct_option_id?.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              {q.explanation && !isCorrect && (
+                <p className="text-xs text-zinc-500 italic">{q.explanation}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ChallengeResult({
   result,
   currentUserId,
@@ -125,18 +199,40 @@ export default function ChallengeResult({
         )}
       </div>
 
-      {/* Side-by-side grades */}
+      {/* Side-by-side grades / quiz results */}
       <div className="flex flex-col gap-4 sm:flex-row">
-        <GradeCard
-          title="Your Score"
-          grade={result.challenger_grade}
-          isWinner={isWinner || isDraw}
-        />
-        <GradeCard
-          title="Opponent Score"
-          grade={result.opponent_grade}
-          isWinner={!isWinner && !isDraw}
-        />
+        {result.quiz_questions &&
+        result.quiz_questions.length > 0 &&
+        result.challenger_answers &&
+        result.opponent_answers ? (
+          <>
+            <QuizResultCard
+              title="Your Score"
+              questions={result.quiz_questions}
+              answers={result.challenger_answers}
+              isWinner={isWinner || isDraw}
+            />
+            <QuizResultCard
+              title="Opponent Score"
+              questions={result.quiz_questions}
+              answers={result.opponent_answers}
+              isWinner={!isWinner && !isDraw}
+            />
+          </>
+        ) : (
+          <>
+            <GradeCard
+              title="Your Score"
+              grade={result.challenger_grade}
+              isWinner={isWinner || isDraw}
+            />
+            <GradeCard
+              title="Opponent Score"
+              grade={result.opponent_grade}
+              isWinner={!isWinner && !isDraw}
+            />
+          </>
+        )}
       </div>
 
       {/* Back button */}

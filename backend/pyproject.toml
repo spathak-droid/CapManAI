@@ -2,7 +2,7 @@
 name = "backend"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
@@ -31,7 +31,7 @@ dev = [
 ]
 
 [tool.pyright]
-pythonVersion = "3.14"
+pythonVersion = "3.13"
 venvPath = "."
 venv = ".venv"
 

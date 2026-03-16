@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { Suspense, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEducatorThreads, useEducatorThread, useStudentRoster, useUnreadCount } from "@/lib/hooks";
@@ -151,6 +151,14 @@ function ThreadItem({
 }
 
 export default function EducatorMessagesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20 text-zinc-500">Loading...</div>}>
+      <EducatorMessagesInner />
+    </Suspense>
+  );
+}
+
+function EducatorMessagesInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();

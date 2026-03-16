@@ -476,7 +476,7 @@ class OpenChallengeEntry(BaseModel):
 class ChallengeSubmitRequest(BaseModel):
     """Request to submit a challenge response."""
 
-    answer_text: str
+    answers: list[dict]
 
 
 class ChallengeDetail(BaseModel):
@@ -493,6 +493,7 @@ class ChallengeDetail(BaseModel):
     challenger_submitted: bool = False
     opponent_submitted: bool = False
     scenario_text: str | None = None
+    quiz_questions: list[dict] | None = None
 
 
 class ChallengeResultDetail(BaseModel):
@@ -503,6 +504,9 @@ class ChallengeResultDetail(BaseModel):
     challenger_grade: dict[str, object] | None
     opponent_grade: dict[str, object] | None
     xp_earned: int
+    quiz_questions: list[dict] | None = None
+    challenger_answers: list[dict] | None = None
+    opponent_answers: list[dict] | None = None
 
 
 # --- Peer Review schemas ---

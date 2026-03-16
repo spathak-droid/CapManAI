@@ -29,7 +29,7 @@ export default function ChallengePage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [challenge, setChallenge] = useState<ChallengeDetail | null>(null);
   const [result, setResult] = useState<ChallengeResultDetail | null>(null);
-  const [answer, setAnswer] = useState("");
+  const [answers, setAnswers] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [opponentSubmitted, setOpponentSubmitted] = useState(false);
   const [startTime] = useState(() => Date.now());
@@ -154,12 +154,21 @@ export default function ChallengePage() {
     return () => clearTimeout(timer);
   }, [phase, challengeId, refetchUser]);
 
+  const allAnswered =
+    challenge?.quiz_questions != null &&
+    challenge.quiz_questions.length > 0 &&
+    challenge.quiz_questions.length === Object.keys(answers).length;
+
   async function handleSubmit() {
-    if (!answer.trim()) return;
+    if (!allAnswered) return;
     setError(null);
     setPhase("submitting");
+    const answersList = Object.entries(answers).map(([qId, selected]) => ({
+      question_id: Number(qId),
+      selected,
+    }));
     try {
-      const res = await submitChallengeResponse(challengeId, answer) as {
+      const res = await submitChallengeResponse(challengeId, answersList) as {
         challenge_status: string;
       };
       // If both submitted, backend already started grading
@@ -284,45 +293,80 @@ export default function ChallengePage() {
             </div>
           )}
 
-          {/* Response textarea */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-zinc-300">
-              Your Analysis
-            </label>
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              rows={8}
-              placeholder="Analyze the scenario. Consider the market data, identify risks and opportunities, and propose your trading strategy..."
-              className="w-full resize-none rounded-xl border border-white/[0.1] bg-zinc-800/60 px-4 py-3 text-sm text-white placeholder-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!answer.trim()}
-              className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-violet-700 to-fuchsia-700 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_32px_rgba(139,92,246,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] transition-all hover:shadow-[0_0_40px_rgba(139,92,246,0.35)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              <span
-                className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,255,255,0.15),transparent)]"
-                aria-hidden
-              />
-              <span className="relative flex items-center justify-center gap-2">
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          {/* MCQ Quiz */}
+          {challenge.quiz_questions && challenge.quiz_questions.length > 0 && (
+            <div className="space-y-6">
+              {challenge.quiz_questions.map((q, idx) => (
+                <div
+                  key={q.id}
+                  className="rounded-2xl border border-white/[0.06] bg-zinc-900/50 p-5"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-                Submit Response
-              </span>
-            </button>
-          </div>
+                  <p className="text-sm font-medium text-white mb-4">
+                    <span className="text-violet-400 mr-2">Q{idx + 1}.</span>
+                    {q.prompt}
+                  </p>
+                  <div className="grid gap-2">
+                    {q.options.map((opt) => {
+                      const isSelected = answers[q.id] === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() =>
+                            setAnswers((prev) => ({ ...prev, [q.id]: opt.id }))
+                          }
+                          className={`text-left rounded-xl border px-4 py-3 text-sm transition-all ${
+                            isSelected
+                              ? "border-violet-500/50 bg-violet-500/15 text-white ring-1 ring-violet-500/30"
+                              : "border-white/[0.08] bg-zinc-800/40 text-zinc-300 hover:border-white/[0.15] hover:bg-zinc-800/60"
+                          }`}
+                        >
+                          <span
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-medium mr-3 ${
+                              isSelected
+                                ? "border-violet-400 bg-violet-500/30 text-violet-300"
+                                : "border-zinc-600 text-zinc-500"
+                            }`}
+                          >
+                            {opt.id.toUpperCase()}
+                          </span>
+                          {opt.text}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Submit button */}
+          <button
+            onClick={handleSubmit}
+            disabled={!allAnswered}
+            className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-violet-700 to-fuchsia-700 px-6 py-3.5 text-base font-semibold text-white shadow-[0_0_32px_rgba(139,92,246,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] transition-all hover:shadow-[0_0_40px_rgba(139,92,246,0.35)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <span
+              className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(255,255,255,0.15),transparent)]"
+              aria-hidden
+            />
+            <span className="relative flex items-center justify-center gap-2">
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+              Submit Response
+            </span>
+          </button>
         </div>
       )}
 

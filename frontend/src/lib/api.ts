@@ -436,11 +436,11 @@ export async function cancelOpenChallenge(challengeId: number): Promise<void> {
 
 export async function submitChallengeResponse(
   challengeId: number,
-  answerText: string,
+  answers: { question_id: number; selected: string }[],
 ): Promise<unknown> {
   return request(`/api/challenges/${challengeId}/submit`, {
     method: "POST",
-    body: JSON.stringify({ answer_text: answerText }),
+    body: JSON.stringify({ answers }),
   });
 }
 

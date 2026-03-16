@@ -323,6 +323,22 @@ export interface TrainingSessionDetail {
   created_at: string;
 }
 
+// --- Challenge Quiz Types ---
+
+export interface QuizOption {
+  id: string;
+  text: string;
+}
+
+export interface QuizQuestion {
+  id: number;
+  prompt: string;
+  options: QuizOption[];
+  // Only present in results
+  correct_option_id?: string;
+  explanation?: string;
+}
+
 // --- Challenge Types ---
 
 export interface OpenChallengeEntry {
@@ -351,6 +367,7 @@ export interface ChallengeDetail {
   challenger_submitted?: boolean;
   opponent_submitted?: boolean;
   scenario_text?: string | null;
+  quiz_questions?: QuizQuestion[] | null;
 }
 
 export interface ChallengeResultDetail {
@@ -359,6 +376,9 @@ export interface ChallengeResultDetail {
   challenger_grade: Record<string, unknown> | null;
   opponent_grade: Record<string, unknown> | null;
   xp_earned: number;
+  quiz_questions?: QuizQuestion[] | null;
+  challenger_answers?: { question_id: number; selected: string }[] | null;
+  opponent_answers?: { question_id: number; selected: string }[] | null;
 }
 
 // --- Peer Review Types ---
