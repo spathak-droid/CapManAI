@@ -1,9 +1,26 @@
 """Tests for the RAG pipeline: chunking, embeddings, and endpoints."""
 
 import math
+from unittest.mock import MagicMock, patch
 
 from src.rag.embeddings import EMBEDDING_DIM, compute_embedding, compute_embeddings_batch
 from src.rag.ingest import _generate_doc_id, chunk_text
+
+
+def _make_fake_embedding(seed: float = 1.0) -> list[float]:
+    """Create a fake normalized embedding vector for testing."""
+    raw = [(seed * (i + 1)) % 7 - 3.0 for i in range(EMBEDDING_DIM)]
+    magnitude = math.sqrt(sum(v * v for v in raw))
+    return [v / magnitude for v in raw]
+
+
+def _mock_api_response(inputs: list[str]) -> list[list[float]]:
+    """Generate deterministic fake embeddings keyed by input text hash."""
+    results = []
+    for text in inputs:
+        seed = float(hash(text) % 1000) / 100.0
+        results.append(_make_fake_embedding(seed))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -113,24 +130,34 @@ class TestChunkText:
 # ---------------------------------------------------------------------------
 
 
+@patch("src.rag.embeddings._call_embeddings_api", side_effect=lambda inputs: _mock_api_response(inputs))
 class TestComputeEmbedding:
-    def test_returns_correct_dimension(self) -> None:
+    def setup_method(self) -> None:
+        """Clear LRU cache between tests."""
+        from src.rag.embeddings import _compute_embedding_cached
+        _compute_embedding_cached.cache_clear()
+
+    def test_returns_correct_dimension(self, mock_api: MagicMock) -> None:
         emb = compute_embedding("hello world")
         assert len(emb) == EMBEDDING_DIM
 
-    def test_empty_text_returns_zero_vector(self) -> None:
+    def test_empty_text_returns_zero_vector(self, mock_api: MagicMock) -> None:
         emb = compute_embedding("")
         assert all(v == 0.0 for v in emb)
+        # Should not call API for empty text
+        mock_api.assert_not_called()
 
-    def test_normalized_vector(self) -> None:
+    def test_normalized_vector(self, mock_api: MagicMock) -> None:
         emb = compute_embedding("capital management trading strategy")
         magnitude = math.sqrt(sum(v * v for v in emb))
         assert abs(magnitude - 1.0) < 1e-6
 
-    def test_same_text_same_embedding(self) -> None:
+    def test_same_text_same_embedding(self, mock_api: MagicMock) -> None:
         a = compute_embedding("risk management")
         b = compute_embedding("risk management")
         assert a == b
+        # Second call should use cache, so API called only once
+        assert mock_api.call_count == 1
 
 
 # ---------------------------------------------------------------------------
@@ -138,25 +165,22 @@ class TestComputeEmbedding:
 # ---------------------------------------------------------------------------
 
 
+@patch("src.rag.embeddings._call_embeddings_api", side_effect=lambda inputs: _mock_api_response(inputs))
 class TestComputeEmbeddingsBatch:
-    def test_empty_list_returns_empty(self) -> None:
+    def test_empty_list_returns_empty(self, mock_api: MagicMock) -> None:
         assert compute_embeddings_batch([]) == []
+        mock_api.assert_not_called()
 
-    def test_batch_matches_individual(self) -> None:
-        texts = ["hello world", "risk management"]
-        batch_results = compute_embeddings_batch(texts)
-        individual_results = [compute_embedding(t) for t in texts]
-        assert len(batch_results) == len(individual_results)
-        for batch_vec, ind_vec in zip(batch_results, individual_results):
-            assert len(batch_vec) == EMBEDDING_DIM
-            for a, b in zip(batch_vec, ind_vec):
-                assert abs(a - b) < 1e-6
-
-    def test_batch_correct_dimensions(self) -> None:
+    def test_batch_correct_dimensions(self, mock_api: MagicMock) -> None:
         texts = ["one", "two", "three"]
         results = compute_embeddings_batch(texts)
         assert len(results) == 3
         assert all(len(v) == EMBEDDING_DIM for v in results)
+
+    def test_batch_calls_api_once(self, mock_api: MagicMock) -> None:
+        texts = ["hello world", "risk management"]
+        compute_embeddings_batch(texts)
+        mock_api.assert_called_once_with(texts)
 
 
 # ---------------------------------------------------------------------------
@@ -178,32 +202,3 @@ class TestGenerateDocId:
     def test_id_length(self) -> None:
         doc_id = _generate_doc_id("some/file.pdf")
         assert len(doc_id) == 16
-
-
-# ---------------------------------------------------------------------------
-# Semantic similarity sanity check
-# ---------------------------------------------------------------------------
-
-
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Helper: compute cosine similarity between two vectors."""
-    dot = sum(x * y for x, y in zip(a, b))
-    mag_a = math.sqrt(sum(x * x for x in a))
-    mag_b = math.sqrt(sum(x * x for x in b))
-    if mag_a == 0.0 or mag_b == 0.0:
-        return 0.0
-    return dot / (mag_a * mag_b)
-
-
-class TestSemanticSimilarity:
-    def test_similar_texts_have_higher_score(self) -> None:
-        """Texts about similar topics should score higher than unrelated texts."""
-        trading = compute_embedding("stock trading market price")
-        investing = compute_embedding("equity investment portfolio market")
-        cooking = compute_embedding("baking bread flour oven recipe")
-
-        sim_related = _cosine_similarity(trading, investing)
-        sim_unrelated = _cosine_similarity(trading, cooking)
-
-        # Related texts should have higher similarity
-        assert sim_related > sim_unrelated

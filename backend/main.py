@@ -1,10 +1,8 @@
 """FastAPI application entry point for CapMan AI."""
 
-import asyncio
 import logging
 import traceback
 from collections.abc import AsyncIterator
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -24,21 +22,12 @@ from src.lessons.persistence import seed_lessons_to_db
 from src.rag.seed import seed_rag_documents
 
 
-def _warm_embedding_model() -> None:
-    """Pre-warm the sentence-transformers model so the first request isn't blocked."""
-    from src.rag.embeddings import compute_embedding
-
-    compute_embedding("warmup")
-
-
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Seed lesson data on startup. Schema managed by Alembic."""
     async with async_session_factory() as session:
         await seed_lessons_to_db(session)
         await seed_rag_documents(session)
-    loop = asyncio.get_running_loop()
-    loop.run_in_executor(ThreadPoolExecutor(max_workers=1), _warm_embedding_model)
     yield
 
 

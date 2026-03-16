@@ -1,41 +1,54 @@
-"""Semantic embedding computation using sentence-transformers.
+"""Semantic embedding computation using OpenRouter's embedding API.
 
-Uses all-MiniLM-L6-v2 (384 dimensions) — fast, lightweight, good quality.
-Model is loaded lazily on first call and cached for the process lifetime.
+Uses openai/text-embedding-3-small (1536 dimensions) via OpenRouter.
 """
 
 import logging
 from functools import lru_cache
 
+import httpx
+
+from src.core.config import settings
+
 logger = logging.getLogger(__name__)
 
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-EMBEDDING_DIM = 384
+EMBEDDING_MODEL = "openai/text-embedding-3-small"
+EMBEDDING_DIM = 1536
+
+_TIMEOUT = 30.0
 
 
-@lru_cache(maxsize=1)
-def _get_model():
-    """Lazy-load the sentence-transformers model (cached after first call)."""
-    from sentence_transformers import SentenceTransformer
-    logger.info("Loading embedding model: %s", EMBEDDING_MODEL)
-    model = SentenceTransformer(EMBEDDING_MODEL)
-    logger.info("Embedding model loaded (dim=%d)", EMBEDDING_DIM)
-    return model
+def _call_embeddings_api(inputs: list[str]) -> list[list[float]]:
+    """Call the OpenRouter embeddings endpoint (OpenAI-compatible format)."""
+    url = f"{settings.OPENROUTER_BASE_URL}/embeddings"
+    headers = {
+        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": EMBEDDING_MODEL,
+        "input": inputs,
+    }
+    response = httpx.post(url, json=payload, headers=headers, timeout=_TIMEOUT)
+    response.raise_for_status()
+    data = response.json()
+    # Sort by index to ensure correct ordering
+    items = sorted(data["data"], key=lambda x: x["index"])
+    return [item["embedding"] for item in items]
 
 
 @lru_cache(maxsize=128)
 def _compute_embedding_cached(text: str) -> tuple[float, ...]:
     """Cached embedding computation. Returns tuple for hashability."""
-    model = _get_model()
-    vector = model.encode(text, normalize_embeddings=True)
-    return tuple(vector.tolist())
+    vectors = _call_embeddings_api([text])
+    return tuple(vectors[0])
 
 
 def compute_embedding(text: str) -> list[float]:
-    """Compute a 384-dimensional semantic embedding for the given text.
+    """Compute a 1536-dimensional semantic embedding for the given text.
 
     Returns:
-        List of 384 floats (L2-normalized by the model).
+        List of 1536 floats.
     """
     if not text or not text.strip():
         return [0.0] * EMBEDDING_DIM
@@ -43,15 +56,11 @@ def compute_embedding(text: str) -> list[float]:
 
 
 def compute_embeddings_batch(texts: list[str]) -> list[list[float]]:
-    """Compute embeddings for a batch of texts (much faster than one-by-one).
+    """Compute embeddings for a batch of texts via a single API call.
 
     Returns:
         List of embedding vectors, one per input text.
     """
     if not texts:
         return []
-    model = _get_model()
-    vectors = model.encode(
-        texts, normalize_embeddings=True, batch_size=32, show_progress_bar=False
-    )
-    return [v.tolist() for v in vectors]
+    return _call_embeddings_api(texts)
