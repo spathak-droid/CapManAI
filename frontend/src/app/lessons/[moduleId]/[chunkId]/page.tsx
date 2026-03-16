@@ -640,20 +640,40 @@ export default function LessonChunkPage() {
               </div>
 
               {!attemptResult && (
-                <button
-                  onClick={handleSubmitAttempt}
-                  disabled={!canSubmit || submitting}
-                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/25 transition-all hover:shadow-violet-900/40 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {submitting ? (
-                    <>
-                      <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Submit Quiz"
+                <div className="mt-6">
+                  <button
+                    onClick={handleSubmitAttempt}
+                    disabled={!canSubmit || submitting}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/25 transition-all hover:shadow-violet-900/40 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Quiz"
+                    )}
+                  </button>
+                  {!canSubmit && !submitting && (() => {
+                    const unanswered = currentChunk.quiz_items.filter(
+                      (item) => item.item_type !== "reflection" && !answers[item.item_id]?.trim()
+                    ).length;
+                    return unanswered > 0 ? (
+                      <p className="mt-2 text-xs text-zinc-500">
+                        Answer {unanswered === 1 ? "1 remaining question" : `all ${unanswered} remaining questions`} to submit.
+                      </p>
+                    ) : null;
+                  })()}
+                  {error && (
+                    <div className="mt-3 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.08] p-4 text-sm text-red-400">
+                      <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {error}
+                    </div>
                   )}
-                </button>
+                </div>
               )}
             </div>
           </div>
@@ -969,15 +989,7 @@ export default function LessonChunkPage() {
         </div>
       </div>
 
-      {/* ── Error ── */}
-      {error && (
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.08] p-4 text-sm text-red-400">
-          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {error}
-        </div>
-      )}
+      {/* Error is now displayed next to the Submit button */}
     </div>
   );
 }
