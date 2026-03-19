@@ -34,8 +34,6 @@ from src.lessons.repository import (
 )
 from src.lessons.service import (
     attempt_chunk,
-    bulk_load_progress,
-    check_prerequisites_met,
     complete_chunk,
     get_chunk,
     get_module,
@@ -78,20 +76,10 @@ async def get_lesson_modules(
     if not modules:
         modules = list_modules()
 
-    # Bulk-load all progress for prerequisite checks (1 query instead of N)
-    progress_map = await bulk_load_progress(_user.id, db)
-
     results: list[LessonModuleSummary] = []
     for module in modules:
         locked = False
         locked_reason: str | None = None
-        if module.prerequisite_ids:
-            met, reason = await check_prerequisites_met(
-                _user.id, module.module_id, db, progress_map=progress_map
-            )
-            if not met:
-                locked = True
-                locked_reason = reason
         results.append(
             LessonModuleSummary(
                 module_id=module.module_id,
@@ -185,15 +173,6 @@ async def attempt_lesson_chunk(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
         )
-    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
-    if not met:
-        from fastapi import HTTPException, status
-
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=reason or "Prerequisites not met",
-        )
-
     answers_by_item = {
         answer.item_id: (answer.selected_option_id or answer.response_text or "")
         for answer in req.answers
@@ -229,15 +208,6 @@ async def complete_lesson_chunk(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson chunk not found",
         )
-    met, reason = await check_prerequisites_met(_user.id, chunk.module_id, db)
-    if not met:
-        from fastapi import HTTPException, status
-
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=reason or "Prerequisites not met",
-        )
-
     result = await complete_chunk(_user.id, chunk_id, db)
     xp_earned = int(result.get("xp_earned", 0))  # type: ignore[arg-type]
 

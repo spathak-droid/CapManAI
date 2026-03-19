@@ -84,24 +84,27 @@ export function useLeaderboard() {
 }
 
 export function useLessonModules(enabled = true) {
+  const authKey = useAuthKey("lesson-modules");
   return useSWR<LessonModuleSummary[]>(
-    enabled ? "lesson-modules" : null,
+    enabled ? authKey : null,
     fetchLessonModules,
     CACHE_OPTIONS,
   );
 }
 
 export function useLessonProgress(enabled = true) {
+  const authKey = useAuthKey("lesson-progress");
   return useSWR<LessonProgressSummary>(
-    enabled ? "lesson-progress" : null,
+    enabled ? authKey : null,
     fetchMyLessonProgress,
     CACHE_OPTIONS,
   );
 }
 
 export function useStreak(enabled = true) {
+  const authKey = useAuthKey("streak");
   return useSWR<StreakInfo>(
-    enabled ? "streak" : null,
+    enabled ? authKey : null,
     fetchMyStreak,
     CACHE_OPTIONS,
   );
@@ -116,16 +119,18 @@ export function useMTSSTiers() {
 }
 
 export function useLessonModule(moduleId: string | null) {
+  const authKey = useAuthKey(moduleId ? `lesson-module-${moduleId}` : "");
   return useSWR<LessonModuleDetail>(
-    moduleId ? `lesson-module-${moduleId}` : null,
+    moduleId && authKey ? authKey : null,
     () => fetchLessonModule(moduleId!),
     CACHE_OPTIONS,
   );
 }
 
 export function useLessonChunk(chunkId: string | null) {
+  const authKey = useAuthKey(chunkId ? `lesson-chunk-${chunkId}` : "");
   return useSWR<LessonChunkDetail>(
-    chunkId ? `lesson-chunk-${chunkId}` : null,
+    chunkId && authKey ? authKey : null,
     () => fetchLessonChunk(chunkId!),
     CACHE_OPTIONS,
   );

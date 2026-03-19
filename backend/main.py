@@ -26,9 +26,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Seed lesson data on startup. Schema managed by Alembic."""
-    async with async_session_factory() as session:
-        await seed_lessons_to_db(session)
-        await seed_rag_documents(session)
+    try:
+        async with async_session_factory() as session:
+            await seed_lessons_to_db(session)
+            await seed_rag_documents(session)
+    except Exception:
+        logger.warning("DB seed failed on startup (DB may be unreachable). App will still serve requests.\n%s", traceback.format_exc())
     yield
 
 
