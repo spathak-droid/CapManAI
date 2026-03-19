@@ -204,12 +204,15 @@ export default function LessonsPage() {
     });
   }, [modules, progress?.next_module_id]);
 
-  if (!authLoading && !user) {
-    router.replace("/auth/login");
-    return null;
-  }
-  if (!authLoading && user && user.role !== "student") {
-    router.replace(user.role === "educator" ? "/dashboard" : "/");
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/auth/login");
+    } else if (!authLoading && user && user.role !== "student") {
+      router.replace(user.role === "educator" ? "/dashboard" : "/");
+    }
+  }, [authLoading, user, router]);
+
+  if (!authLoading && (!user || user.role !== "student")) {
     return null;
   }
 

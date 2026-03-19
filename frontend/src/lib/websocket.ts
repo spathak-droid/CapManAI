@@ -67,7 +67,7 @@ export class WebSocketClient {
     };
 
     this.ws.onerror = (err) => {
-      console.error("[WebSocket] Error:", err);
+      console.warn("[WebSocket] Connection error — will retry", err);
       // onclose will fire after onerror, triggering reconnect
     };
   }

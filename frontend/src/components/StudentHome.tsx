@@ -447,24 +447,28 @@ export default function StudentHome() {
           <div className="relative">
             <div className="flex items-center gap-2 mb-1">
               <svg className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <h2 className="text-lg font-semibold text-white">Continue Training</h2>
+              <h2 className="text-lg font-semibold text-white">{(progress?.program_completion_percent ?? 0) > 0 ? "Continue Training" : "Get Started"}</h2>
             </div>
             {progress?.next_module_id && progress?.next_chunk_id ? (
               <>
                 <p className="text-violet-200/80 text-sm mb-4">
-                  Pick up where you left off — you&apos;re {(progress?.program_completion_percent ?? 0).toFixed(1)}% through the program
+                  {(progress?.program_completion_percent ?? 0) > 0
+                    ? `Pick up where you left off — you're ${(progress.program_completion_percent ?? 0).toFixed(1)}% through the program`
+                    : "Start your trading training journey — your first lesson is ready!"}
                 </p>
-                <div className="h-1.5 rounded-full bg-white/20 overflow-hidden mb-5 max-w-sm">
-                  <div
-                    className="h-full rounded-full bg-white/80"
-                    style={{ width: `${progress?.program_completion_percent ?? 0}%` }}
-                  />
-                </div>
+                {(progress?.program_completion_percent ?? 0) > 0 && (
+                  <div className="h-1.5 rounded-full bg-white/20 overflow-hidden mb-5 max-w-sm">
+                    <div
+                      className="h-full rounded-full bg-white/80"
+                      style={{ width: `${progress?.program_completion_percent ?? 0}%` }}
+                    />
+                  </div>
+                )}
                 <Link
                   href={`/lessons/${progress.next_module_id}/${progress.next_chunk_id}`}
                   className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-violet-700 shadow-lg shadow-violet-900/30 transition-all hover:bg-white/95 hover:shadow-violet-900/40 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  Resume Lesson
+                  {(progress?.program_completion_percent ?? 0) > 0 ? "Resume Lesson" : "Start First Lesson"}
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                 </Link>
               </>
