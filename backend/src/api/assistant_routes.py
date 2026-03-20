@@ -122,7 +122,13 @@ async def assistant_chat(
             student_context = format_student_context(student_data)
             system_prompt = f"{EDUCATOR_SYSTEM_PROMPT}\n\n---\n\n{student_context}"
     else:
-        system_prompt = ASSISTANT_SYSTEM_PROMPT
+        # Inject the student's own data so the assistant can reference grades/skills
+        student_data = await fetch_student_analysis_context(db, user.id)
+        student_context = format_student_context(student_data)
+        if student_context:
+            system_prompt = f"{ASSISTANT_SYSTEM_PROMPT}\n\n---\n\nHere is the current student's data. Use it to answer questions about their grades, skills, and performance:\n\n{student_context}"
+        else:
+            system_prompt = ASSISTANT_SYSTEM_PROMPT
 
     openrouter_messages = [
         {"role": "system", "content": system_prompt},
@@ -174,7 +180,13 @@ async def assistant_chat_stream(
             student_context = format_student_context(student_data)
             system_prompt = f"{EDUCATOR_SYSTEM_PROMPT}\n\n---\n\n{student_context}"
     else:
-        system_prompt = ASSISTANT_SYSTEM_PROMPT
+        # Inject the student's own data so the assistant can reference grades/skills
+        student_data = await fetch_student_analysis_context(db, user.id)
+        student_context = format_student_context(student_data)
+        if student_context:
+            system_prompt = f"{ASSISTANT_SYSTEM_PROMPT}\n\n---\n\nHere is the current student's data. Use it to answer questions about their grades, skills, and performance:\n\n{student_context}"
+        else:
+            system_prompt = ASSISTANT_SYSTEM_PROMPT
 
     openrouter_messages = [
         {"role": "system", "content": system_prompt},
