@@ -204,19 +204,18 @@ export default function LessonsPage() {
     });
   }, [modules, progress?.next_module_id]);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/auth/login");
-    } else if (!authLoading && user && user.role !== "student") {
-      router.replace(user.role === "educator" ? "/dashboard" : "/");
-    }
-  }, [authLoading, user, router]);
-
-  if (!authLoading && (!user || user.role !== "student")) {
-    return null;
+  // Show skeleton while auth or data is loading — never redirect during loading
+  if (authLoading || isLoading) {
+    return <LessonsPageSkeleton />;
   }
 
-  if (isLoading) {
+  // Only redirect AFTER auth is fully resolved
+  if (!user) {
+    router.replace("/auth/login");
+    return <LessonsPageSkeleton />;
+  }
+  if (user.role !== "student") {
+    router.replace(user.role === "educator" ? "/dashboard" : "/");
     return <LessonsPageSkeleton />;
   }
 

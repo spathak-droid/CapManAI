@@ -6,7 +6,6 @@ import {
   useEffect,
   useState,
   useCallback,
-  useRef,
 } from "react";
 import {
   signInWithEmailAndPassword,
@@ -17,7 +16,7 @@ import {
 import { mutate } from "swr";
 import { auth } from "@/lib/firebase";
 import type { AuthUser } from "@/lib/types";
-import { fetchCurrentUser, fetchCurrentUserWithToken, updateProfile } from "@/lib/api";
+import { fetchCurrentUser, updateProfile } from "@/lib/api";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -33,15 +32,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  // Skip onAuthStateChanged fetch when login/register is handling it
-  const skipNextAuthChange = useRef(false);
 
+  // onAuthStateChanged is the SINGLE source of truth for auth state.
+  // login/register set user optimistically, but this always runs as backup.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (skipNextAuthChange.current) {
-        skipNextAuthChange.current = false;
-        return;
-      }
       if (firebaseUser) {
         document.cookie =
           "auth_session=true; path=/; max-age=604800; SameSite=Lax";
@@ -61,34 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    skipNextAuthChange.current = true;
-    const credential = await signInWithEmailAndPassword(auth, email, password);
-    document.cookie =
-      "auth_session=true; path=/; max-age=604800; SameSite=Lax";
-    try {
-      const token = await credential.user.getIdToken();
-      const backendUser = await fetchCurrentUserWithToken(token);
-      setUser(backendUser);
-      setLoading(false);
-    } catch (err) {
-      console.error("Backend sync failed:", err);
-      document.cookie = "auth_session=; path=/; max-age=0";
-      await signOut(auth);
-      setUser(null);
-      setLoading(false);
-      throw new Error("Could not sync with server. Check backend and try again.");
-    }
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged will fire and set user/loading
   }, []);
 
   const register = useCallback(
     async (email: string, password: string, role: string, name: string) => {
-      skipNextAuthChange.current = true;
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const token = await credential.user.getIdToken();
-      await fetchCurrentUserWithToken(token);
+      await createUserWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged fires here → creates DB user via fetchCurrentUser
+      // Wait a moment for it to complete, then update profile
+      const backendUser = await fetchCurrentUser();
       const updated = await updateProfile({ name, role });
       setUser(updated);
-      setLoading(false);
     },
     [],
   );
@@ -96,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await signOut(auth);
     setUser(null);
-    // Clear all SWR caches so the next user doesn't see stale data
     await mutate(() => true, undefined, { revalidate: false });
   }, []);
 

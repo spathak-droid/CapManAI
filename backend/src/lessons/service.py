@@ -107,6 +107,8 @@ MODULES, CHUNKS, ORDERED_MODULE_IDS = _load_catalog_from_json()
 
 async def get_user_state(user_id: int, db: AsyncSession) -> UserStreak:
     """Get or create UserStreak row for a user."""
+    from sqlalchemy.exc import IntegrityError
+
     result = await db.execute(select(UserStreak).where(UserStreak.user_id == user_id))
     streak_row = result.scalar_one_or_none()
     if streak_row is None:
@@ -117,8 +119,21 @@ async def get_user_state(user_id: int, db: AsyncSession) -> UserStreak:
             lesson_xp_total=0,
         )
         db.add(streak_row)
-        await db.commit()
-        await db.refresh(streak_row)
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(
+                select(UserStreak).where(UserStreak.user_id == user_id)
+            )
+            streak_row = result.scalar_one_or_none()
+            if streak_row is None:
+                streak_row = UserStreak(
+                    user_id=user_id,
+                    current_streak=0,
+                    last_activity_date=None,
+                    lesson_xp_total=0,
+                )
     return streak_row
 
 
@@ -255,8 +270,7 @@ async def _ensure_chunk_progress(
             mastery_bonus_awarded=False,
         )
         db.add(progress)
-        await db.commit()
-        await db.refresh(progress)
+        await db.flush()
     return progress
 
 

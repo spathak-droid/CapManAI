@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 DOCUMENTS_DIR = Path(__file__).parent / "documents"
 
 # Bump this version whenever the chunking algorithm changes to force a re-seed.
-_CHUNKING_VERSION = 3
+_CHUNKING_VERSION = 2
 
 
 async def seed_rag_documents(db: AsyncSession, *, force: bool = False) -> None:

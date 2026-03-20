@@ -13,14 +13,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && user) router.replace("/");
   }, [loading, user, router]);
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.info("CapMan API base (used for /api/auth/me after sign-in):", getApiBaseUrl());
-    }
-  }, []);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [quickLogging, setQuickLogging] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +30,23 @@ export default function LoginPage() {
       setError(msg);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function quickLogin(account: "student" | "educator") {
+    setError("");
+    setQuickLogging(account);
+    const creds = account === "student"
+      ? { email: "test@test.com", password: "test1234" }
+      : { email: "educator@test.com", password: "educator1234" };
+    try {
+      await login(creds.email, creds.password);
+      router.push("/");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login failed";
+      setError(msg);
+    } finally {
+      setQuickLogging(null);
     }
   }
 
@@ -105,6 +118,28 @@ export default function LoginPage() {
               {submitting ? "Signing in..." : "Sign In"}
             </button>
           </form>
+
+          <div className="mt-6 space-y-3">
+            <p className="text-center text-xs text-zinc-500 uppercase tracking-wider">Quick sign in</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => quickLogin("student")}
+                disabled={!!quickLogging || submitting}
+                className="flex-1 rounded-xl border border-white/[0.08] bg-zinc-800/50 py-2.5 text-sm text-zinc-300 transition hover:bg-zinc-700/50 hover:text-white disabled:opacity-50"
+              >
+                {quickLogging === "student" ? "Signing in..." : "Test Student"}
+              </button>
+              <button
+                type="button"
+                onClick={() => quickLogin("educator")}
+                disabled={!!quickLogging || submitting}
+                className="flex-1 rounded-xl border border-white/[0.08] bg-zinc-800/50 py-2.5 text-sm text-zinc-300 transition hover:bg-zinc-700/50 hover:text-white disabled:opacity-50"
+              >
+                {quickLogging === "educator" ? "Signing in..." : "Test Educator"}
+              </button>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-zinc-500">
             Don&apos;t have an account?{" "}

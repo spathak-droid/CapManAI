@@ -39,28 +39,23 @@ async def get_current_user(
     firebase_uid: str = payload["sub"]
     email: str = payload.get("email", "")
 
-    # Find by firebase_uid first
     result = await db.execute(
         select(User).where(User.firebase_uid == firebase_uid)
     )
     user = result.scalar_one_or_none()
 
     if user is None and email:
-        # Check if a user with this email exists (e.g. re-registered in Firebase)
         result = await db.execute(
             select(User).where(User.email == email)
         )
         user = result.scalar_one_or_none()
         if user is not None:
-            # Update the firebase_uid to the new one
             user.firebase_uid = firebase_uid
             await db.commit()
             await db.refresh(user)
 
     if user is None:
-        # Auto-create user on first login
         username = email.split("@")[0] if email else firebase_uid[:20]
-        # Ensure unique username
         existing = await db.execute(
             select(User).where(User.username == username)
         )
@@ -77,7 +72,6 @@ async def get_current_user(
         try:
             await db.commit()
         except IntegrityError:
-            # Race condition: another request already created this user
             await db.rollback()
             result = await db.execute(
                 select(User).where(User.firebase_uid == firebase_uid)

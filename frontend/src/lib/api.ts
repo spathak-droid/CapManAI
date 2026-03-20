@@ -69,6 +69,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_URL}${path}`;
+  const t0 = performance.now();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -80,11 +81,14 @@ async function request<T>(
     const token = await currentUser.getIdToken();
     headers["Authorization"] = `Bearer ${token}`;
   }
+  const t1 = performance.now();
 
   let res: Response;
   try {
     res = await fetch(url, { ...options, headers });
   } catch (e) {
+    const elapsed = Math.round(performance.now() - t0);
+    console.error(`[API] ${options.method ?? "GET"} ${path} FAILED after ${elapsed}ms`, e);
     const msg =
       e instanceof TypeError && e.message === "Failed to fetch"
         ? "Cannot reach the server. Is the backend running?"
@@ -92,6 +96,14 @@ async function request<T>(
           ? e.message
           : "Network error";
     throw new ApiError(0, msg);
+  }
+
+  const t2 = performance.now();
+  const tokenMs = Math.round(t1 - t0);
+  const fetchMs = Math.round(t2 - t1);
+  const totalMs = Math.round(t2 - t0);
+  if (totalMs > 200 || !res.ok) {
+    console.warn(`[API] ${options.method ?? "GET"} ${path} → ${res.status} (token:${tokenMs}ms fetch:${fetchMs}ms total:${totalMs}ms)`);
   }
 
   if (!res.ok) {

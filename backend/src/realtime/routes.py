@@ -17,9 +17,10 @@ router = APIRouter()
 
 
 async def _get_user_id_from_token(token: str) -> int | None:
-    """Verify a Firebase token and look up the actual DB user ID.
+    """Verify a Firebase token and look up the DB user.
 
-    Returns None if the token is invalid or the user doesn't exist.
+    Returns None if the token is invalid or the user doesn't exist yet.
+    The WebSocket will auto-reconnect, and by then the user should exist.
     """
     try:
         payload: dict[str, Any] = verify_firebase_token(token)
@@ -27,13 +28,11 @@ async def _get_user_id_from_token(token: str) -> int | None:
         if not firebase_uid:
             return None
 
-        # Look up real DB user ID
         async with async_session_factory() as db:
             result = await db.execute(
                 select(User.id).where(User.firebase_uid == firebase_uid)
             )
-            row = result.scalar_one_or_none()
-            return row
+            return result.scalar_one_or_none()
     except Exception:
         logger.warning("WebSocket token verification failed")
     return None

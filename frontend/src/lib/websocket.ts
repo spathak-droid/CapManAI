@@ -36,13 +36,13 @@ export class WebSocketClient {
 
     try {
       this.ws = new WebSocket(`${this.url}/ws/${this.token}`);
-    } catch (err) {
-      console.error("[WebSocket] Failed to create connection:", err);
+    } catch {
       this.scheduleReconnect();
       return;
     }
 
     this.ws.onopen = () => {
+      console.info("[WebSocket] Connected");
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
     };
@@ -66,8 +66,7 @@ export class WebSocketClient {
       }
     };
 
-    this.ws.onerror = (err) => {
-      console.warn("[WebSocket] Connection error — will retry", err);
+    this.ws.onerror = () => {
       // onclose will fire after onerror, triggering reconnect
     };
   }

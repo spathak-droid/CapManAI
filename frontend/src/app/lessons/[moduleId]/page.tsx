@@ -213,17 +213,16 @@ export default function ModuleDetailPage() {
     return () => ctx.revert();
   }, [moduleDetail]);
 
-  // Auth redirects
-  if (!authLoading && !user) {
-    router.replace("/auth/login");
-    return null;
-  }
-  if (!authLoading && user && user.role !== "student") {
-    router.replace(user.role === "educator" ? "/dashboard" : "/");
-    return null;
+  if (authLoading || moduleLoading) {
+    return <ModuleDetailSkeleton />;
   }
 
-  if (moduleLoading) {
+  if (!user) {
+    router.replace("/auth/login");
+    return <ModuleDetailSkeleton />;
+  }
+  if (user.role !== "student") {
+    router.replace(user.role === "educator" ? "/dashboard" : "/");
     return <ModuleDetailSkeleton />;
   }
 

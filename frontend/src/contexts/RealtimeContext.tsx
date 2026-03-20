@@ -9,6 +9,7 @@ import {
   useCallback,
 } from "react";
 import { auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { getApiBaseUrl } from "@/lib/api";
 import { WebSocketClient, type WebSocketEventCallback } from "@/lib/websocket";
 
@@ -23,6 +24,7 @@ const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
+  const { user } = useAuth();
   const clientRef = useRef<WebSocketClient | null>(null);
   // Pending subscriptions registered before WebSocket connects
   const pendingListenersRef = useRef<Map<string, Set<WebSocketEventCallback>>>(new Map());
@@ -33,20 +35,24 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const apiUrl = getApiBaseUrl();
     if (!apiUrl) return;
 
-    const unsubscribeAuth = auth.onAuthStateChanged(async (firebaseUser) => {
-      // Tear down existing connection
-      if (clientRef.current) {
-        clientRef.current.disconnect();
-        clientRef.current = null;
-        setIsConnected(false);
-      }
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+    // Tear down existing connection
+    if (clientRef.current) {
+      clientRef.current.disconnect();
+      clientRef.current = null;
+      setIsConnected(false);
+    }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
 
-      if (!firebaseUser) return;
+    // Only connect when the backend user exists (not just Firebase)
+    if (!user) return;
 
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return;
+
+    (async () => {
       try {
         const token = await firebaseUser.getIdToken();
         const client = new WebSocketClient(apiUrl, token);
@@ -62,20 +68,17 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
         client.connect();
 
-        // Poll connection status every 2 seconds to keep React state in sync
         pollRef.current = setInterval(() => {
           setIsConnected(client.isConnected);
         }, 10000);
 
-        // Also set immediately after a short delay to catch the initial connect
         setTimeout(() => setIsConnected(client.isConnected), 500);
-      } catch (err) {
-        console.error("[Realtime] Failed to initialize WebSocket:", err);
+      } catch {
+        console.warn("[Realtime] WebSocket unavailable — real-time features disabled");
       }
-    });
+    })();
 
     return () => {
-      unsubscribeAuth();
       if (clientRef.current) {
         clientRef.current.disconnect();
         clientRef.current = null;
@@ -85,7 +88,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         pollRef.current = null;
       }
     };
-  }, []);
+  }, [user]);
 
   const subscribe = useCallback(
     (eventType: string, callback: WebSocketEventCallback): (() => void) => {
